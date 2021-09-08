@@ -20,7 +20,7 @@ class ContasTab(QWidget):
             QIcon(QPixmap(path + r".\icons\add.png")),
             "Adicionar Conta"
         )
-        # add_act.triggered.connect(self.on_add_conta)
+        add_act.triggered.connect(lambda: self.on_add_conta())
         # del_act = self.toolbar.addAction(
         #     QIcon(QPixmap(path + r".\icons\delete.png")),
         #     "Remover Conta"
@@ -28,13 +28,14 @@ class ContasTab(QWidget):
         # del_act.triggered.connect(self.on_del_conta)
         return self.toolbar
 
-    def on_add_conta(self):
+    def on_add_conta(self, show_message=True):
         new_index = self.table.rowCount()
         self.table.insertRow(new_index)
 
-        self.table.setCellWidget(new_index, 0, QLineEdit("teste"))
+        self.table.setCellWidget(new_index, 0, ContaTableLine.get_number_input(self)
         self.table.setCellWidget(new_index, 4, ContaTableLine.get_del_button(self))
-        QToaster.showMessage(self, "On ADD CONTA clicked", closable=False, timeout=2000, corner=Qt.BottomRightCorner)
+        if show_message:
+            QToaster.showMessage(self, "On ADD CONTA clicked", closable=False, timeout=2000, corner=Qt.BottomRightCorner)
 
     def on_del_conta(self):
         QToaster.showMessage(self, "On DELETE CONTA clicked", closable=False, timeout=2000, corner=Qt.BottomRightCorner)
@@ -42,8 +43,8 @@ class ContasTab(QWidget):
     def get_table(self):
         self.table = QTableWidget()
         self.table.setColumnCount(5)
-        self.on_add_conta()
-        self.on_add_conta()
+        self.on_add_conta(show_message=False)
+        self.on_add_conta(show_message=False)
         # self.table.setRowCount(4)
         return self.table
 
@@ -51,6 +52,10 @@ class ContasTab(QWidget):
 class ContaTableLine:
     def __init__(self):
         pass
+
+    @staticmethod
+    def get_number_input(parent:ContasTab):
+        return QLineEdit("teste")
 
     @staticmethod
     def get_del_button(parent:ContasTab):
