@@ -4,7 +4,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from util.toaster import QToaster
 from view.lanc_table import LancamentosTable
-from view.contas_table import ContasTable
+from view.contas_table import ContasTab
 
 
 class MainWindow(QMainWindow):
@@ -14,22 +14,20 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Finanças - Python")
         self.setMinimumSize(800, 600)
 
-        tb = self.addToolBar("Main")
-        self.fill_toolbar(tb)
+        self.toolbar = self.addToolBar("Main")
+        self.fill_toolbar(self.toolbar)
 
         layout = QVBoxLayout()
         layout.addWidget(self.get_tabbar())
         self.container = QWidget()
         self.container.setLayout(layout)
-        self.container.setContentsMargins(20,20,20,20)
 
         self.setCentralWidget(self.container)
 
     def get_tabbar(self):
         self.tabbar = QTabWidget()
-        # tabbar.setSizeIncrement(10,10)
 
-        self.tabbar.addTab(ContasTable(), "Contas")
+        self.tabbar.addTab(ContasTab(), "Contas")
         self.tabbar.addTab(LancamentosTable(), "Lançamentos")
 
         return self.tabbar
@@ -60,13 +58,11 @@ class MainWindow(QMainWindow):
         )
         load_act.triggered.connect(self.on_add)
 
-
         load_act = toolbar.addAction(
             QIcon(QPixmap(path + r".\icons\delete.png")),
             "Remove"
         )
         load_act.triggered.connect(self.on_remove)
-
 
     def on_load(self, s):
         QToaster.showMessage(self, "On LOAD clicked", closable=False, timeout=2000, corner=Qt.BottomRightCorner)
