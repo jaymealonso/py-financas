@@ -5,7 +5,7 @@ import pandas as pd
 class TipoDeConta:
     def __init__(self):
         path = os.path.dirname(os.path.abspath(__file__))
-        self.tipo_de_conta = None #   pd.read_json(path + r".\initial_load\tipo_conta.json")
+        self.tipo_de_conta = pd.read_json(path + r".\initial_load\tipo_conta.json", orient="split")
 
     def get_descricao(self, tp_conta):
         return self.tipo_de_conta[""]

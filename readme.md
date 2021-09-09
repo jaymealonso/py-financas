@@ -21,6 +21,7 @@ Outras funcionalidades (planejadas):
 - [Setup](##Setup)
   - [Instalar o Python](###Instalar o Python)
   - [Instalar o PyQt5](###Instalar o PyQt5) 
+  - [Instalar o pandas](###Instalar o pandas)
 - [Para executar](##Para executar)
 
 ---
@@ -45,6 +46,11 @@ Para configurar o ambiente e executar o projeto
 > Depois de instalado o python o PyQt5 pode ser baixado com o instalado de pacotes ``pip``
 > 
 > `pip install PyQt5`
+
+### Instalar o pandas
+> Depois de instalado o python o pandas pode ser baixado com o instalado de pacotes ``pip``
+> 
+> `pip install pandas`
  
 ## Para executar
 > `python main.py`

@@ -59,8 +59,8 @@ class ContaTableLine:
     @staticmethod
     def get_tipo_conta_dropdown(parent:ContasTab):
         combobox = QComboBox()
-        # for tipo_conta in parent.tipos_conta:
-        #     combobox.addItem(tipo_conta.get_descricao())
+        for index in parent.tipos_conta.tipo_de_conta.index.tolist():
+            combobox.addItem(parent.tipos_conta.tipo_de_conta[0][index], index)
         return combobox
 
     @staticmethod

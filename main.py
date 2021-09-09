@@ -1,8 +1,4 @@
-
-from PyQt5.QtCore import *
-from PyQt5.QtGui import *
-
-from PyQt5.QtWidgets import *  # QApplication, QLabel, QWidget, Q
+from PyQt5.QtWidgets import QApplication
 from view.main_window import MainWindow
 
 
@@ -12,8 +8,9 @@ class MainApp:
         self.app.setStyle('Fusion')
         self.app.setStyleSheet('QWidget {font-size: 24px}')
 
-        self.window = MainWindow() # QMainWindow() #  QWidget()
+        self.window = MainWindow()
         self.window.show()
+
 
 app = MainApp()
 app.app.exec_()
