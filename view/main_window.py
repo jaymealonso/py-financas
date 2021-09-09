@@ -3,7 +3,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from util.toaster import QToaster
-from view.lanc_table import LancamentosTable
+from view.lanc_table import LancamentosTab
 from view.contas_table import ContasTab
 from view.agenda_tab import AgendaTab
 
@@ -31,7 +31,7 @@ class MainWindow(QMainWindow):
         self.tabbar = QTabWidget()
 
         self.tabbar.addTab(ContasTab(), "Contas")
-        self.tabbar.addTab(LancamentosTable(), "Lançamentos")
+        self.tabbar.addTab(LancamentosTab(), "Lançamentos")
         self.tabbar.addTab(AgendaTab(), "Agenda")
 
         return self.tabbar

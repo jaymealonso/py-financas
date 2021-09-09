@@ -1,0 +1,18 @@
+[
+    {
+      "id": "ccorr",
+      "name": "Conta Corrente"
+    },
+    {
+      "id": "ccorr",
+      "name": "Conta Poupança"
+    },
+    {
+      "id": "cdebi",
+      "name": "Conta Débito"
+    },
+    {
+      "id": "ccred",
+      "name": "Conta Crédito"
+    }
+]
