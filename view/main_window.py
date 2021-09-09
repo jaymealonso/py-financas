@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import *
 from util.toaster import QToaster
 from view.lanc_table import LancamentosTable
 from view.contas_table import ContasTab
+from view.agenda_tab import AgendaTab
 
 
 class MainWindow(QMainWindow):
@@ -13,12 +14,14 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("Finanças - Python")
         self.setMinimumSize(800, 600)
+        self.resize(1600, 900)
 
+        self.tabbar = self.get_tabbar()
         self.toolbar = self.addToolBar("Main")
         self.fill_toolbar(self.toolbar)
 
         layout = QVBoxLayout()
-        layout.addWidget(self.get_tabbar())
+        layout.addWidget(self.tabbar)
         self.container = QWidget()
         self.container.setLayout(layout)
 
@@ -29,6 +32,7 @@ class MainWindow(QMainWindow):
 
         self.tabbar.addTab(ContasTab(), "Contas")
         self.tabbar.addTab(LancamentosTable(), "Lançamentos")
+        self.tabbar.addTab(AgendaTab(), "Agenda")
 
         return self.tabbar
 
