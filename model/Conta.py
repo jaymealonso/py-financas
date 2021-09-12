@@ -1,22 +1,48 @@
-# import Lancamento
-import os
-import pandas as pd
+from dataclasses import dataclass
+from model.db import Database
 
-class TipoDeConta:
+
+@dataclass
+class ContaTipo:
+    id: str
+    descricao: str
+
+
+class ContasTipo:
     def __init__(self):
-        path = os.path.dirname(os.path.abspath(__file__))
-        self.tipo_de_conta = pd.read_json(path + r".\initial_load\tipo_conta.json", orient="split")
+        self.__items = []
+        self.db = Database().db
+        self.load()
 
-    def get_descricao(self, tp_conta):
-        return self.tipo_de_conta[""]
+    def load(self):
+        result = self.db.execute('select * from contas_tipo').fetchall()
+        for i in result:
+            self.__items.append(ContaTipo(*i))
+
+    def items(self):
+        return self.__items
 
 
+@dataclass
 class Conta:
-    def __init__(self, _id, descricao, tipo_de_conta, id_banco):
-        self._id = _id
-        self.descricao = descricao
-        self.tipo_de_conta = tipo_de_conta
-        self.id_banco = id_banco
+    id: str
+    descricao: str
+    numero: str
+    moeda: str
+    tipo_id: str
 
-    # def add_lancamento(self):
-    #     self.lancamentos.append(Lancamento())
+
+class Contas:
+    def __init__(self):
+        self.__items = []
+
+    def load(self):
+        db = Database().db
+
+        result = db.execute('select * from contas').fetchall()
+        for i in result:
+            self.__items.append(Conta(*i))
+
+    def items(self):
+        return self.__items
+

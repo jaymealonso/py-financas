@@ -1,11 +1,10 @@
-import os
 from PyQt5.QtCore import *
-from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from util.toaster import QToaster
-from view.lanc_table import LancamentosTab
-from view.contas_table import ContasTab
+from view.lanc_tab import LancamentosTab
+from view.contas_tab import ContasTab
 from view.agenda_tab import AgendaTab
+import view.icons.icons as icons
 
 
 class MainWindow(QMainWindow):
@@ -43,28 +42,23 @@ class MainWindow(QMainWindow):
         toolbar.setIconSize(QSize(64, 64))
         toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
 
-        path = os.path.dirname(os.path.abspath(__file__))
         save_act = toolbar.addAction(
-            QIcon(QPixmap(path + r".\icons\open_folder.png")),
-            "Load"
+            icons.load(), "Carregar"
         )
         save_act.triggered.connect(self.on_load)
 
         load_act = toolbar.addAction(
-            QIcon(QPixmap(path + r".\icons\save_as.png")),
-            "Save"
+            icons.save(), "Salvar"
         )
         load_act.triggered.connect(self.on_save)
 
         load_act = toolbar.addAction(
-            QIcon(QPixmap(path + r".\icons\add.png")),
-            "Add"
+            icons.add(), "Adicionar"
         )
         load_act.triggered.connect(self.on_add)
 
         load_act = toolbar.addAction(
-            QIcon(QPixmap(path + r".\icons\delete.png")),
-            "Remove"
+            icons.delete(), "Remover"
         )
         load_act.triggered.connect(self.on_remove)
 

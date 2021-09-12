@@ -16,6 +16,6 @@ def delete():
     return QIcon(QPixmap(path + r".\delete.png"))
 
 
-def open_folder():
-    return QIcon(QPixmap(path + r".\delete.png"))
+def load():
+    return QIcon(QPixmap(path + r".\open_folder.png"))
 
