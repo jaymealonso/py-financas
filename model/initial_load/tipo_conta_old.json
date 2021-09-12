@@ -1,0 +1,11 @@
+{
+  "index": [
+      "ccorr", "cpoup", "cdebi", "ccred"
+  ],
+  "data": [
+    "Conta Corrente",
+    "Conta Poupança",
+    "Conta Débito",
+    "Conta Crédito"
+  ]
+}

@@ -2,7 +2,7 @@ import view.icons.icons as icons
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import *
 from util.toaster import QToaster
-from model.Conta import TipoDeConta
+from model.Conta import TipoDeConta, Contas
 
 class ContasTab(QWidget):
     def __init__(self):
@@ -13,6 +13,7 @@ class ContasTab(QWidget):
         self.toolbar: QToolBar = None
         self.table: QTableWidget = None
         self.tipos_conta: TipoDeConta = TipoDeConta()
+
         layout.addWidget(self.get_toolbar())
         layout.addWidget(self.get_table())
 
@@ -47,6 +48,17 @@ class ContasTab(QWidget):
 
         return self.table
 
+    def load_table_data(self):
+        model_contas = Contas()
+        model_contas.load()
+        for row in model_contas.items():
+            new_index = self.table.rowCount()
+            new_row = self.table.insertRow(new_index)
+            item = self.table.setitemAt(new_index)
+
+        return self.table_rows
+
+
 
 class ContaTableLine:
     def __init__(self):
@@ -59,8 +71,8 @@ class ContaTableLine:
     @staticmethod
     def get_tipo_conta_dropdown(parent:ContasTab):
         combobox = QComboBox()
-        for index in parent.tipos_conta.tipo_de_conta.index.tolist():
-            combobox.addItem(parent.tipos_conta.tipo_de_conta[0][index], index)
+        for item in parent.tipos_conta.tipo_de_conta:
+            combobox.addItem(item['descricao'], item['_id'])
         return combobox
 
     @staticmethod
