@@ -1,8 +1,15 @@
 import sqlite3
 import os
+import sys
 
 path = os.path.dirname(os.path.abspath(__file__))
-DATABASE_FILENAME = f"{path}\database.db"
+# determine if application is a script file or frozen exe
+if getattr(sys, 'frozen', False):
+    application_path = os.path.dirname(sys.executable)
+elif __file__:
+    application_path = os.path.dirname(__file__)
+
+DATABASE_FILENAME = f"{application_path}\database.db"
 INITIAL_LOAD_FILENAME = f"{path}\initial_load\create_db.sql"
 
 

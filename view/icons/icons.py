@@ -5,7 +5,7 @@ path = os.path.dirname(os.path.abspath(__file__))
 
 
 def save():
-    return QIcon(QPixmap(path + r".\icons\save_as.png"))
+    return QIcon(QPixmap(path + r".\save_as.png"))
 
 
 def add():
@@ -18,4 +18,12 @@ def delete():
 
 def load():
     return QIcon(QPixmap(path + r".\open_folder.png"))
+
+
+def import_file():
+    return QIcon(QPixmap(path + r".\book_go.png"))
+
+
+def open_lancamentos():
+    return QIcon(QPixmap(path + r".\table.png"))
 

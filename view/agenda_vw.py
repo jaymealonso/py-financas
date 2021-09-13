@@ -1,16 +1,16 @@
 import view.icons.icons as icons
-from PyQt5.QtCore import *
-from PyQt5.QtWidgets import *
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QToolBar, QTableWidget, QLineEdit, QPushButton
 from util.toaster import QToaster
 
 
-class AgendaTab(QWidget):
+class AgendaView(QWidget):
     def __init__(self):
-        super(AgendaTab, self).__init__()
-        layout = QVBoxLayout()
+        self.toolbar: QToolBar = None
+        self.table: QTableWidget = None
 
-        self.toolbar:QToolBar = None
-        self.table:QTableWidget = None
+        super(AgendaView, self).__init__()
+        layout = QVBoxLayout()
         layout.addWidget(self.get_toolbar())
         layout.addWidget(self.get_table())
 
@@ -61,11 +61,11 @@ class AgendaTabLine:
         pass
 
     @staticmethod
-    def get_number_input(parent:AgendaTab):
+    def get_number_input(parent:AgendaView):
         return QLineEdit("teste")
 
     @staticmethod
-    def get_del_button(parent:AgendaTab, index):
+    def get_del_button(parent:AgendaView, index):
         del_pbutt = QPushButton()
         del_pbutt.setToolTip("Eliminar Conta")
         del_pbutt.setIcon(icons.delete())

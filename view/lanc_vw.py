@@ -1,19 +1,39 @@
 import view.icons.icons as icons
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QLineEdit, QPushButton, QToolBar
 from util.toaster import QToaster
 
 
-class LancamentosTab(QWidget):
+class LancamentosView(QWidget):
     def __init__(self):
-        super(LancamentosTab, self).__init__()
+        self.toolbar: QToolBar = None
+        self.table: QTableWidget = None
 
+        super(LancamentosView, self).__init__()
+
+        self.setMinimumSize(800, 600)
+        self.resize(1600, 900)
         layout = QVBoxLayout()
-
-        self.table:QTableWidget = None
+        layout.addWidget(self.get_toolbar())
         layout.addWidget(self.get_table())
 
         self.setLayout(layout)
+
+    def get_toolbar(self):
+        self.toolbar = QToolBar()
+        add_act = self.toolbar.addAction(icons.add(), "Novo Lançamento")
+        add_act.triggered.connect(lambda: self.on_add_lancam())
+        self.toolbar.addSeparator()
+        import_act = self.toolbar.addAction(icons.import_file(), "Importar Lançamentos")
+        import_act.triggered.connect(lambda: self.on_import_lancam())
+
+        return self.toolbar
+
+    def on_add_lancam(self):
+        pass
+
+    def on_import_lancam(self):
+        pass
 
     def get_table(self):
         self.table = QTableWidget()
@@ -38,11 +58,11 @@ class LancamentoTableLine:
         pass
 
     @staticmethod
-    def get_number_input(parent:LancamentosTab):
+    def get_number_input(parent:LancamentosView):
         return QLineEdit("teste")
 
     @staticmethod
-    def get_del_button(parent:LancamentosTab, index):
+    def get_del_button(parent:LancamentosView, index):
         del_pbutt = QPushButton()
         del_pbutt.setToolTip("Eliminar Conta")
         del_pbutt.setIcon(icons.delete())

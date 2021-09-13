@@ -1,3 +1,4 @@
+import sys
 from PyQt5.QtWidgets import QApplication
 from view.main_window import MainWindow
 from model.db import Database
@@ -11,10 +12,11 @@ class MainApp:
 
         self.db = Database()
         self.db.run_initial_load()
-        self.window = MainWindow()
+        self.window = MainWindow(self.app)
         self.window.show()
+
 
 
 if __name__ == "__main__":
     app = MainApp()
-    app.app.exec_()
+    sys.exit(app.app.exec_())

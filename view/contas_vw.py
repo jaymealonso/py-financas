@@ -1,22 +1,25 @@
+
 import view.icons.icons as icons
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import *
-from util.toaster import QToaster
+# from PyQt5.QtWidgets import QWidget, QVBoxLayout, \
+#    QToolBar, QTableWidget, QTableWidgetItem, QComboBox, QLineEdit, QPushButton, *
 from model.Conta import ContasTipo, Contas, Conta
+from view.lanc_vw import LancamentosView
 
-
-class ContasTab(QWidget):
+class ContasView(QWidget):
     HEADER_LABELS = [
         "ID",
         "Descrição",
         "Número",
         "Moeda",
         "Tipo",
-        "Remover"
+        "Remover",
+        "Lanç."
     ]
 
     def __init__(self):
-        super(ContasTab, self).__init__()
+        super(ContasView, self).__init__()
 
         layout = QVBoxLayout()
 
@@ -24,6 +27,7 @@ class ContasTab(QWidget):
         self.table: QTableWidget = None
         self.tipos_conta: ContasTipo = ContasTipo()
         self.model_contas = Contas()
+        self.lanc_windows = {}
 
         layout.addWidget(self.get_toolbar())
         layout.addWidget(self.get_table())
@@ -51,6 +55,17 @@ class ContasTab(QWidget):
         print("Reloading data...")
         self.load_table_data()
 
+    def on_open_lancamentos(self, conta_id: str):
+        if conta_id not in self.lanc_windows:
+            lancamentos_window = LancamentosView()
+            self.lanc_windows[conta_id] = lancamentos_window
+        else:
+            lancamentos_window = self.lanc_windows[conta_id]
+
+        self.parent().parent().parent().parent().addDockWidget(Qt.NoDockWidgetArea, QDockWidget(lancamentos_window) )
+
+        lancamentos_window.show()
+        lancamentos_window.activateWindow()
 
     def get_table(self):
         self.table = QTableWidget()
@@ -78,15 +93,16 @@ class ContasTab(QWidget):
 
             self.table.setCellWidget(new_index, 4, ContaTableLine.get_tipo_conta_dropdown(self, row.tipo_id) )
             self.table.setCellWidget(new_index, 5, ContaTableLine.get_del_button(self, str(row.id)))
+            self.table.setCellWidget(new_index, 6, ContaTableLine.get_open_lanc_button(self, str(row.id)))
 
 
 class ContaTableLine:
     @staticmethod
-    def get_number_input(parent:ContasTab):
+    def get_number_input(parent:ContasView):
         return QLineEdit("teste")
 
     @staticmethod
-    def get_tipo_conta_dropdown(parent: ContasTab, tipo_id:str):
+    def get_tipo_conta_dropdown(parent: ContasView, tipo_id:str):
         combobox = QComboBox()
         index: int
         for key, item in enumerate(parent.tipos_conta.items()):
@@ -98,10 +114,18 @@ class ContaTableLine:
         return combobox
 
     @staticmethod
-    def get_del_button(parent: ContasTab, conta_id: str):
+    def get_del_button(parent: ContasView, conta_id: str):
         del_pbutt = QPushButton()
         del_pbutt.setToolTip("Eliminar Conta")
         del_pbutt.setIcon(icons.delete())
         del_pbutt.clicked.connect(lambda: parent.on_del_conta(conta_id))
         return del_pbutt
+
+    @staticmethod
+    def get_open_lanc_button(parent: ContasView, conta_id: str):
+        op_lanc_pbutt = QPushButton()
+        op_lanc_pbutt.setToolTip("Abrir Lançamentos")
+        op_lanc_pbutt.setIcon(icons.open_lancamentos())
+        op_lanc_pbutt.clicked.connect(lambda: parent.on_open_lancamentos(conta_id))
+        return op_lanc_pbutt
 

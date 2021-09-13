@@ -1,16 +1,16 @@
-from PyQt5.QtCore import *
-from PyQt5.QtWidgets import *
+from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QTabWidget, QToolBar, QMessageBox, QApplication
 from util.toaster import QToaster
-from view.lanc_tab import LancamentosTab
-from view.contas_tab import ContasTab
-from view.agenda_tab import AgendaTab
+from view.contas_vw import ContasView
+from view.agenda_vw import AgendaView
 import view.icons.icons as icons
 
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, app:QApplication):
         super(MainWindow, self).__init__()
 
+        self.app = app
         self.setWindowTitle("Finanças - Python")
         self.setMinimumSize(800, 600)
         self.resize(1600, 900)
@@ -26,12 +26,23 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(self.container)
 
+    def closeEvent(self, event) -> None:
+        print("Entrou evento close")
+        self.app.closeAllWindows()
+        # result = QMessageBox.question(self, "Sair?", "Deseja fechar o aplicativo?", QMessageBox.Yes | QMessageBox.No)
+        # event.ignore()
+        # if result == QMessageBox.Yes:
+        #     self.app.closeAllWindows()
+        #     event.accept()
+
+
+
     def get_tabbar(self):
         self.tabbar = QTabWidget()
 
-        self.tabbar.addTab(ContasTab(), "Contas")
-        self.tabbar.addTab(LancamentosTab(), "Lançamentos")
-        self.tabbar.addTab(AgendaTab(), "Agenda")
+        self.tabbar.addTab(ContasView(), "Contas")
+        # self.tabbar.addTab(LancamentosTab(), "Lançamentos")
+        self.tabbar.addTab(AgendaView(), "Agenda")
 
         return self.tabbar
 

@@ -21,20 +21,18 @@ Outras funcionalidades (planejadas):
 - [Setup](##Setup)
   - [Instalar o Python](###Instalar o Python)
   - [Instalar o PyQt5](###Instalar o PyQt5) 
-  - [Instalar o pandas](###Instalar o pandas)
+  - [Instalar o sqlite3](###Instalar o sqlite3)
+  - [Instalar o pyinstaller](###Instalar o pyinstaller)
 - [Para executar](##Para executar)
 
 ---
 
 ## Icones em
-Os icones foram pegos desta coleção, provavelmente irão mudar no fuguro.
+Os icones foram pegos desta coleção, provavelmente irão mudar no futuro.
 > https://iconarchive.com/show/farm-fresh-icons-by-fatcow.html
 
 ## Setup
-Para configurar o ambiente e executar o projeto
-
-- Instalar o Python
-- Instalar o PyQt5
+Para configurar o ambiente e executar o projeto deve-se instalar as bibliotecas abaixo:
 
 ### Instalar o Python
 > Baixar o python no link
@@ -43,16 +41,24 @@ Para configurar o ambiente e executar o projeto
 > Obs:. Eu estou utilizando a versão 3.9.7 
 
 ### Instalar o PyQt5
-> Depois de instalado o python o PyQt5 pode ser baixado com o instalado de pacotes ``pip``
+> PyQt5 é uma biblioteca port do C++ para criação de interfaces visuais com janelas, botões, etc.
 > 
 > `pip install PyQt5`
 
-### Instalar o pandas
-> Depois de instalado o python o pandas pode ser baixado com o instalado de pacotes ``pip``
+### Instalar o SqLite3
+> SqLite é um banco de dados simples que é utilizado para facilitar a persistência dos dados dentro do aplicativo
 > 
-> `pip install pandas`
+> `pip install sqlite3`
+
+### Instalar o pyinstaller
+> A Lib `pyinstaller` possibilita o empacotamento do script em um arquivo `.exe`
+> 
+> `pip install pyinstaller`
  
 ## Para executar
+Para executar via console use o comando abaixo:
 > `python main.py`
  
- 
+## Criar executavel
+Para gerar um arquivo executável(`.exe`) no diretório `/dist`:
+>`pyinstaller main.spec`
