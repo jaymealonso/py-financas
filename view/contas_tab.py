@@ -2,7 +2,7 @@ import view.icons.icons as icons
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import *
 from util.toaster import QToaster
-from model.Conta import ContasTipo, Contas
+from model.Conta import ContasTipo, Contas, Conta
 
 
 class ContasTab(QWidget):
@@ -38,20 +38,19 @@ class ContasTab(QWidget):
         return self.toolbar
 
     def on_add_conta(self, show_message=True):
-        new_index = self.table.rowCount()
-        self.table.insertRow(new_index)
+        print("Adding new conta in the database...")
+        self.model_contas.add_new(Conta(None, 'nova conta', '', 'BRL', '1'))
+        print("Done !!!")
+        print("Reloading data...")
+        self.load_table_data()
 
-        self.table.setCellWidget(new_index, 0, ContaTableLine.get_number_input(self))
-        self.table.setCellWidget(new_index, 4, ContaTableLine.get_tipo_conta_dropdown(self))
-        self.table.setCellWidget(new_index, 5, ContaTableLine.get_del_button(self))
-        if show_message:
-            QToaster.showMessage(self, "On ADD CONTA clicked", closable=False, timeout=2000, corner=Qt.BottomRightCorner)
+    def on_del_conta(self, conta_id: str):
+        print(f"Eliminando conta {conta_id} do banco de dados ...")
+        self.model_contas.delete(conta_id)
+        print("Done !!!")
+        print("Reloading data...")
+        self.load_table_data()
 
-    def on_del_conta(self, button: QPushButton):
-        cell = button.parent()
-        row_no = self.table.row(cell)
-        self.table.removeRow(row_no)
-        QToaster.showMessage(self, f"On DELETE CONTA index:{row_no} clicked", closable=False, timeout=2000, corner=Qt.BottomRightCorner)
 
     def get_table(self):
         self.table = QTableWidget()
@@ -66,6 +65,9 @@ class ContasTab(QWidget):
         model_contas = Contas()
         model_contas.load()
 
+        # Limpa a tabela
+        self.table.setRowCount(0)
+
         for row in model_contas.items():
             new_index = self.table.rowCount()
             self.table.insertRow(new_index)
@@ -73,10 +75,9 @@ class ContasTab(QWidget):
             self.table.setItem(new_index, 1, QTableWidgetItem(row.descricao))
             self.table.setItem(new_index, 2, QTableWidgetItem(row.numero))
             self.table.setItem(new_index, 3, QTableWidgetItem(row.moeda))
-            # self.table.setItem(new_index, 4, QTableWidgetItem(row.tipo_id))
 
             self.table.setCellWidget(new_index, 4, ContaTableLine.get_tipo_conta_dropdown(self, row.tipo_id) )
-            self.table.setCellWidget(new_index, 5, ContaTableLine.get_del_button(self))
+            self.table.setCellWidget(new_index, 5, ContaTableLine.get_del_button(self, str(row.id)))
 
 
 class ContaTableLine:
@@ -97,10 +98,10 @@ class ContaTableLine:
         return combobox
 
     @staticmethod
-    def get_del_button(parent: ContasTab):
+    def get_del_button(parent: ContasTab, conta_id: str):
         del_pbutt = QPushButton()
         del_pbutt.setToolTip("Eliminar Conta")
         del_pbutt.setIcon(icons.delete())
-        del_pbutt.clicked.connect(lambda: parent.on_del_conta(del_pbutt))
+        del_pbutt.clicked.connect(lambda: parent.on_del_conta(conta_id))
         return del_pbutt
 
