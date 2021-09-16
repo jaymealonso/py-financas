@@ -23,6 +23,12 @@ class ContasTipo:
     def items(self):
         return self.__items
 
+    def getByKey(self, i:int):
+        for key, item in enumerate(self.__items):
+            if item.id == i:
+                return item
+        return None
+
 @dataclass
 class Conta:
     id: str

@@ -1,5 +1,7 @@
 import view.icons.icons as icons
 import view.lanc_vw
+from PyQt5.QtCore import QObject, Qt, QRegExp
+from PyQt5.QtGui import QIntValidator, QValidator, QRegExpValidator
 from PyQt5.QtWidgets import *
 # from PyQt5.QtWidgets import QWidget, QVBoxLayout, \
 #    QToolBar, QTableWidget, QTableWidgetItem, QComboBox, QLineEdit, QPushButton, *
@@ -77,6 +79,7 @@ class ContasView(QWidget):
         self.table.setColumnCount(len(self.HEADER_LABELS))
         self.table.verticalHeader().setVisible(False)
         self.table.setHorizontalHeaderLabels(self.HEADER_LABELS)
+        # self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.load_table_data()
 
         return self.table
@@ -91,26 +94,73 @@ class ContasView(QWidget):
         for row in model_contas.items():
             new_index = self.table.rowCount()
             self.table.insertRow(new_index)
-            self.table.setItem(new_index, 0, QTableWidgetItem(str(row.id)))
+            # self.table.setItem(new_index, 0, QTableWidgetItem(str(row.id)))
             self.table.setItem(new_index, 1, QTableWidgetItem(row.descricao))
             self.table.setItem(new_index, 2, QTableWidgetItem(row.numero))
             self.table.setItem(new_index, 3, QTableWidgetItem(row.moeda))
+            self.table.setItem(new_index, 4, QTableWidgetItem(self.tipos_conta.getByKey(row.tipo_id).descricao))
 
-            self.table.setCellWidget(new_index, 4, ContaTableLine.get_tipo_conta_dropdown(self, row.tipo_id) )
-            self.table.setCellWidget(new_index, 5, ContaTableLine.get_del_button(self, str(row.id)))
-            self.table.setCellWidget(new_index, 6, ContaTableLine.get_open_lanc_button(self, str(row.id)))
+            line = ContaTableLine(self)
+
+            self.table.setCellWidget(new_index, 0, line.get_label(str(row.id)))
+            # self.table.setCellWidget(new_index, 2, line.get_number_input(row.numero))
+            # self.table.setCellWidget(new_index, 4, line.get_tipo_conta_dropdown(row.tipo_id))
+            self.table.setCellWidget(new_index, 5, line.get_del_button(str(row.id)))
+            self.table.setCellWidget(new_index, 6, line.get_open_lanc_button(str(row.id)))
+
+        self.table.resizeColumnsToContents()
+        numericD = NumericDelegate(self.table)
+        self.table.setItemDelegate(numericD)
 
 
-class ContaTableLine:
-    @staticmethod
-    def get_number_input(parent:ContasView):
-        return QLineEdit("teste")
+class NumericDelegate(QStyledItemDelegate):
+    def createEditor(self, parent, option, index):
+        editor = super(NumericDelegate, self).createEditor(parent, option, index)
+        print("numeric delegate is QlineEdit:", isinstance(editor, QLineEdit))
+        if isinstance(editor, QLineEdit):
+            reg_ex = QRegExp("[0-9]+.?[0-9]{,2}")
+            validator = QRegExpValidator(reg_ex, editor)
+            editor.setValidator(validator)
+        return editor
 
-    @staticmethod
-    def get_tipo_conta_dropdown(parent: ContasView, tipo_id:str):
+class ContaTableLine(QObject):
+    def __init__(self, parent: ContasView):
+        super(QObject, self).__init__()
+        self.parentOne: ContasView = parent
+
+    def get_label(self, value: str):
+        label = QLabel(value)
+        label.setStyleSheet("color:red")
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        # label.setFlags(Qt.ItemIsEnabled)
+        return label
+
+    def get_number_input(self, numero:int):
+        line_edit = QLineEdit()
+        line_edit.setText(numero)
+        line_edit.setValidator(QIntValidator())
+        line_edit.textChanged.connect(self.check_state)
+        line_edit.textChanged.emit(line_edit.text())
+
+        return line_edit
+
+    def check_state(self, *args, **kwargs):
+        print("entered validator", args[0])
+        sender = self.sender()
+        validator = sender.validator()
+        state = validator.validate(sender.text(), 0)[0]
+        if state == QValidator.Acceptable:
+            color = '#c4df9b'  # green
+        elif state == QValidator.Intermediate:
+            color = '#fff79a'  # yellow
+        else:
+            color = '#f6989d'  # red
+        sender.setStyleSheet('QLineEdit { background-color: %s }' % color)
+
+    def get_tipo_conta_dropdown(self, tipo_id:str):
         combobox = QComboBox()
         index: int
-        for key, item in enumerate(parent.tipos_conta.items()):
+        for key, item in enumerate(self.parentOne.tipos_conta.items()):
             if item.id == tipo_id:
                 index = key
             combobox.addItem(item.descricao, item.id)
@@ -118,19 +168,17 @@ class ContaTableLine:
         combobox.setCurrentIndex(index)
         return combobox
 
-    @staticmethod
-    def get_del_button(parent: ContasView, conta_id: str):
+    def get_del_button(self, conta_id: str):
         del_pbutt = QPushButton()
         del_pbutt.setToolTip("Eliminar Conta")
         del_pbutt.setIcon(icons.delete())
-        del_pbutt.clicked.connect(lambda: parent.on_del_conta(conta_id))
+        del_pbutt.clicked.connect(lambda: self.parentOne.on_del_conta(conta_id))
         return del_pbutt
 
-    @staticmethod
-    def get_open_lanc_button(parent: ContasView, conta_id: str):
+    def get_open_lanc_button(self, conta_id: str):
         op_lanc_pbutt = QPushButton()
         op_lanc_pbutt.setToolTip("Abrir Lançamentos")
         op_lanc_pbutt.setIcon(icons.open_lancamentos())
-        op_lanc_pbutt.clicked.connect(lambda: parent.on_open_lancamentos(conta_id))
+        op_lanc_pbutt.clicked.connect(lambda: self.parentOne.on_open_lancamentos(conta_id))
         return op_lanc_pbutt
 
