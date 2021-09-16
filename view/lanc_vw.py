@@ -1,13 +1,17 @@
 import view.icons.icons as icons
+import view.contas_vw as cv
+from PyQt5.QtGui import QCloseEvent
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QLineEdit, QPushButton, QToolBar
 from util.toaster import QToaster
 
 
 class LancamentosView(QWidget):
-    def __init__(self):
+    def __init__(self, parent: QWidget, conta_id: str):
         self.toolbar: QToolBar = None
         self.table: QTableWidget = None
+        self.parent:cv.ContasView = parent
+        self.conta_id = conta_id
 
         super(LancamentosView, self).__init__()
 
@@ -18,6 +22,10 @@ class LancamentosView(QWidget):
         layout.addWidget(self.get_table())
 
         self.setLayout(layout)
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        del self.parent.lanc_windows[self.conta_id]
+        print(f"Lancamento close event conta:{self.conta_id}")
 
     def get_toolbar(self):
         self.toolbar = QToolBar()
@@ -68,3 +76,4 @@ class LancamentoTableLine:
         del_pbutt.setIcon(icons.delete())
         del_pbutt.clicked.connect(lambda: parent.on_del_conta(index))
         return del_pbutt
+
