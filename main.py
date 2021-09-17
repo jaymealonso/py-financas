@@ -16,7 +16,6 @@ class MainApp:
         self.window.show()
 
 
-
 if __name__ == "__main__":
     app = MainApp()
     sys.exit(app.app.exec_())

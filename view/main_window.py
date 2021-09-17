@@ -29,18 +29,17 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event) -> None:
         print("Entrou evento close")
         self.app.closeAllWindows()
+        # @todo: descomentar antes de liberar
         # result = QMessageBox.question(self, "Sair?", "Deseja fechar o aplicativo?", QMessageBox.Yes | QMessageBox.No)
         # event.ignore()
         # if result == QMessageBox.Yes:
         #     self.app.closeAllWindows()
         #     event.accept()
 
-
-
     def get_tabbar(self):
         self.tabbar = QTabWidget()
 
-        self.tabbar.addTab(ContasView(), "Contas")
+        self.tabbar.addTab(ContasView(self), "Contas")
         # self.tabbar.addTab(LancamentosTab(), "Lançamentos")
         self.tabbar.addTab(AgendaView(), "Agenda")
 

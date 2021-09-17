@@ -3,8 +3,8 @@ import view.lanc_vw
 from PyQt5.QtCore import QObject, Qt, QRegExp
 from PyQt5.QtGui import QIntValidator, QValidator, QRegExpValidator
 from PyQt5.QtWidgets import *
-# from PyQt5.QtWidgets import QWidget, QVBoxLayout, \
-#    QToolBar, QTableWidget, QTableWidgetItem, QComboBox, QLineEdit, QPushButton, *
+# from PyQt5.QtWidgets import QWidget, QVBoxLayout, QToolBar, QTableWidget, QTableWidgetItem, QComboBox, \
+#    QLineEdit, QPushButton, QStyledItemDelegate, QLabel, QMainWindow
 from model.Conta import ContasTipo, Contas, Conta
 
 
@@ -19,11 +19,12 @@ class ContasView(QWidget):
         "Lanç."
     ]
 
-    def __init__(self):
+    def __init__(self, parent: QMainWindow):
         super(ContasView, self).__init__()
 
         layout = QVBoxLayout()
 
+        self.main_window = parent
         self.toolbar: QToolBar = None
         self.table: QTableWidget = None
         self.tipos_conta: ContasTipo = ContasTipo()
@@ -57,17 +58,18 @@ class ContasView(QWidget):
         self.load_table_data()
 
     def on_open_lancamentos(self, conta_id: str):
+        conta_dc = self.model_contas.findById(conta_id)
         if conta_id not in self.lanc_windows:
-            lancamentos_window = view.lanc_vw.LancamentosView(self, conta_id)
+            lancamentos_window = view.lanc_vw.LancamentosView(self, conta_dc)
             self.lanc_windows[conta_id] = lancamentos_window
         else:
             lancamentos_window = self.lanc_windows[conta_id]
 
         if lancamentos_window.isHidden():
-            position = self.pos()
-            print(f"> Open window Position X: {position.x()}, Y:{position.y()}.")
+            position = self.main_window.pos()  # self.pos()
             position.setX(position.x() + (50 * len(self.lanc_windows)))
             position.setY(position.y() + (50 * len(self.lanc_windows)))
+            print(f"> Abrir janela Lanç. (conta id:{conta_id}) posição (X: {position.x()}, Y: {position.y()}).")
             lancamentos_window.move(position)
 
             lancamentos_window.show()
@@ -85,30 +87,34 @@ class ContasView(QWidget):
         return self.table
 
     def load_table_data(self):
-        model_contas = Contas()
-        model_contas.load()
+        self.model_contas.load()
 
         # Limpa a tabela
         self.table.setRowCount(0)
 
-        for row in model_contas.items():
+        for row in self.model_contas.items():
             new_index = self.table.rowCount()
             self.table.insertRow(new_index)
             # self.table.setItem(new_index, 0, QTableWidgetItem(str(row.id)))
             self.table.setItem(new_index, 1, QTableWidgetItem(row.descricao))
             self.table.setItem(new_index, 2, QTableWidgetItem(row.numero))
             self.table.setItem(new_index, 3, QTableWidgetItem(row.moeda))
-            self.table.setItem(new_index, 4, QTableWidgetItem(self.tipos_conta.getByKey(row.tipo_id).descricao))
+            # self.table.setItem(new_index, 4, QTableWidgetItem(self.tipos_conta.getByKey(row.tipo_id).descricao))
 
             line = ContaTableLine(self)
 
             self.table.setCellWidget(new_index, 0, line.get_label(str(row.id)))
             # self.table.setCellWidget(new_index, 2, line.get_number_input(row.numero))
-            # self.table.setCellWidget(new_index, 4, line.get_tipo_conta_dropdown(row.tipo_id))
+            self.table.setCellWidget(new_index, 4, line.get_tipo_conta_dropdown(row.tipo_id))
             self.table.setCellWidget(new_index, 5, line.get_del_button(str(row.id)))
             self.table.setCellWidget(new_index, 6, line.get_open_lanc_button(str(row.id)))
 
-        self.table.resizeColumnsToContents()
+        self.table.resizeColumnToContents(0)
+        self.table.resizeColumnToContents(1)
+        self.table.resizeColumnToContents(2)
+        self.table.resizeColumnToContents(3)
+        self.table.resizeColumnToContents(4)
+
         numericD = NumericDelegate(self.table)
         self.table.setItemDelegate(numericD)
 

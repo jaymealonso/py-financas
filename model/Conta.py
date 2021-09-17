@@ -44,7 +44,9 @@ class Contas:
         self.__db = Database().db
 
     def load(self):
-        result = self.__db.execute('select * from contas').fetchall()
+        self.__items.clear()
+        sql = 'select * from contas'
+        result = self.__db.execute(sql).fetchall()
         for i in result:
             self.__items.append(Conta(*i))
 
@@ -64,3 +66,9 @@ class Contas:
     def items(self):
         return self.__items
 
+    def findById(self, id: str):
+        enc_conta = None
+        for item in self.__items:
+            if str(item.id) == id:
+                enc_conta = item
+        return enc_conta
