@@ -1,8 +1,13 @@
 import datetime
 import dataclasses
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from model.db import Database
 from model.Conta import Conta
+
+
+@dataclass
+class Categorias:
+    categorias: list()
 
 
 @dataclass
@@ -13,6 +18,13 @@ class Lancamento:
     descricao: str
     data: datetime.date
     value: float
+    _categorias: Categorias = field(init=False)
+
+    def __post_init__(self):
+        self._categorias = Categorias([])
+
+    def get_categorias(self):
+        return self._categorias
 
 
 class Lancamentos:
@@ -32,7 +44,7 @@ class Lancamentos:
         sql = 'insert into lancamentos (_id, conta_id, nr_referencia, descricao, data, valor) values(?,?,?,?,?,?)'
         data = dataclasses.astuple(lancam)
 
-        self.__db.execute(sql, data)
+        self.__db.execute(sql, data[:6])
         self.__db.commit()
 
     def delete(self, lancamento_id: str):

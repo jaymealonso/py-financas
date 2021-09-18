@@ -15,6 +15,7 @@ class ContasView(QWidget):
         "Número",
         "Moeda",
         "Tipo",
+        "Total",
         "Remover",
         "Lanç."
     ]
@@ -40,6 +41,9 @@ class ContasView(QWidget):
         self.toolbar = QToolBar()
         add_act = self.toolbar.addAction(icons.add(), "Adicionar Conta")
         add_act.triggered.connect(lambda: self.on_add_conta())
+        self.toolbar.addSeparator()
+        refresh_act = self.toolbar.addAction(icons.atualizar(), "Atualizar")
+        refresh_act.triggered.connect(lambda: self.load_table_data())
 
         return self.toolbar
 
@@ -51,6 +55,16 @@ class ContasView(QWidget):
         self.load_table_data()
 
     def on_del_conta(self, conta_id: str):
+        button = QMessageBox.critical(
+            self,
+            "Remove conta?",
+            f"Deseja remover a conta {conta_id} ?",
+            buttons=QMessageBox.Yes | QMessageBox.No,
+            defaultButton=QMessageBox.No,
+        )
+        if button == QMessageBox.No:
+            return
+
         print(f"Eliminando conta {conta_id} do banco de dados ...")
         self.model_contas.delete(conta_id)
         print("Done !!!")
@@ -81,7 +95,6 @@ class ContasView(QWidget):
         self.table.setColumnCount(len(self.HEADER_LABELS))
         self.table.verticalHeader().setVisible(False)
         self.table.setHorizontalHeaderLabels(self.HEADER_LABELS)
-        # self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.load_table_data()
 
         return self.table
@@ -92,6 +105,8 @@ class ContasView(QWidget):
         # Limpa a tabela
         self.table.setRowCount(0)
 
+        line = ContaTableLine(self)
+
         for row in self.model_contas.items():
             new_index = self.table.rowCount()
             self.table.insertRow(new_index)
@@ -101,13 +116,12 @@ class ContasView(QWidget):
             self.table.setItem(new_index, 3, QTableWidgetItem(row.moeda))
             # self.table.setItem(new_index, 4, QTableWidgetItem(self.tipos_conta.getByKey(row.tipo_id).descricao))
 
-            line = ContaTableLine(self)
-
-            self.table.setCellWidget(new_index, 0, line.get_label(str(row.id)))
+            self.table.setCellWidget(new_index, 0, line.get_label_for_id(str(row.id)))
             # self.table.setCellWidget(new_index, 2, line.get_number_input(row.numero))
             self.table.setCellWidget(new_index, 4, line.get_tipo_conta_dropdown(row.tipo_id))
-            self.table.setCellWidget(new_index, 5, line.get_del_button(str(row.id)))
-            self.table.setCellWidget(new_index, 6, line.get_open_lanc_button(str(row.id)))
+            self.table.setCellWidget(new_index, 5, line.get_label_for_total_curr(row.total))
+            self.table.setCellWidget(new_index, 6, line.get_del_button(str(row.id)))
+            self.table.setCellWidget(new_index, 7, line.get_open_lanc_button(str(row.id)))
 
         self.table.resizeColumnToContents(0)
         self.table.resizeColumnToContents(1)
@@ -115,30 +129,41 @@ class ContasView(QWidget):
         self.table.resizeColumnToContents(3)
         self.table.resizeColumnToContents(4)
 
-        numericD = NumericDelegate(self.table)
-        self.table.setItemDelegate(numericD)
+#         numericD = NumericDelegate(self.table)
+#         self.table.setItemDelegate(numericD)
+#
+#
+# class NumericDelegate(QStyledItemDelegate):
+#     def createEditor(self, parent, option, index):
+#         editor = super(NumericDelegate, self).createEditor(parent, option, index)
+#         print("numeric delegate is QlineEdit:", isinstance(editor, QLineEdit))
+#         if isinstance(editor, QLineEdit):
+#             reg_ex = QRegExp("[0-9]+.?[0-9]{,2}")
+#             validator = QRegExpValidator(reg_ex, editor)
+#             editor.setValidator(validator)
+#         return editor
 
-
-class NumericDelegate(QStyledItemDelegate):
-    def createEditor(self, parent, option, index):
-        editor = super(NumericDelegate, self).createEditor(parent, option, index)
-        print("numeric delegate is QlineEdit:", isinstance(editor, QLineEdit))
-        if isinstance(editor, QLineEdit):
-            reg_ex = QRegExp("[0-9]+.?[0-9]{,2}")
-            validator = QRegExpValidator(reg_ex, editor)
-            editor.setValidator(validator)
-        return editor
 
 class ContaTableLine(QObject):
     def __init__(self, parent: ContasView):
         super(QObject, self).__init__()
         self.parentOne: ContasView = parent
 
-    def get_label(self, value: str):
+    def get_label_for_id(self, value: str):
         label = QLabel(value)
         label.setStyleSheet("color:red")
         label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         # label.setFlags(Qt.ItemIsEnabled)
+        return label
+
+    def get_label_for_total_curr(self, value: float):
+        label = QLabel(str(value))
+        color = "color:darkgreen"
+        if value < 0:
+            color = "color:red"
+        stylesheet = f"font-weight:bold;{color}"
+        label.setStyleSheet(stylesheet)
+        label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         return label
 
     def get_number_input(self, numero:int):

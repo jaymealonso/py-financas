@@ -27,3 +27,11 @@ def import_file():
 def open_lancamentos():
     return QIcon(QPixmap(path + r".\table.png"))
 
+
+def configurar():
+    return QIcon(QPixmap(path + r".\cog.png"))
+
+
+def atualizar():
+    return QIcon(QPixmap(path + r".\update.png"))
+

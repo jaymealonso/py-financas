@@ -1,5 +1,6 @@
 from PyQt5.QtCore import Qt, QSize
-from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QTabWidget, QToolBar, QMessageBox, QApplication
+from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QTabWidget, QToolBar, QApplication, \
+    QSizePolicy
 from util.toaster import QToaster
 from view.contas_vw import ContasView
 from view.agenda_vw import AgendaView
@@ -62,32 +63,20 @@ class MainWindow(QMainWindow):
         )
         load_act.triggered.connect(self.on_save)
 
-        load_act = toolbar.addAction(
-            icons.add(), "Adicionar"
-        )
-        load_act.triggered.connect(self.on_add)
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        toolbar.addWidget(spacer)
 
-        load_act = toolbar.addAction(
-            icons.delete(), "Remover"
+        config_act = toolbar.addAction(
+            icons.configurar(), "Configurar"
         )
-        load_act.triggered.connect(self.on_remove)
+        config_act.triggered.connect(self.on_configure)
+
+    def on_configure(self):
+        QToaster.showMessage(self, "On CONFIGURAR clicked", closable=False, timeout=2000, corner=Qt.BottomRightCorner)
 
     def on_load(self, s):
         QToaster.showMessage(self, "On LOAD clicked", closable=False, timeout=2000, corner=Qt.BottomRightCorner)
 
     def on_save(self):
         QToaster.showMessage(self, "On SAVE clicked", closable=False, timeout=2000, corner=Qt.BottomRightCorner)
-
-    def on_add(self):
-        new_margin = [i+1 for i in self.container.getContentsMargins()]
-        print(f'new margins {new_margin}')
-        self.container.setContentsMargins(*new_margin)
-
-        QToaster.showMessage(self, "On ADD clicked", closable=False, timeout=2000, corner=Qt.BottomRightCorner)
-
-    def on_remove(self):
-        new_margin = [i-1 for i in self.container.getContentsMargins()]
-        print(f'new margins {new_margin}')
-        self.container.setContentsMargins(*new_margin)
-
-        QToaster.showMessage(self, "On REMOVE clicked", closable=False, timeout=2000, corner=Qt.BottomRightCorner)
