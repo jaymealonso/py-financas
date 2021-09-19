@@ -1,4 +1,5 @@
 import dataclasses
+from typing import List
 from dataclasses import dataclass, field
 from model.db import Database
 
@@ -11,7 +12,7 @@ class ContaTipo:
 
 class ContasTipo:
     def __init__(self):
-        self.__items = []
+        self.__items: List[ContaTipo] = []
         self.db = Database().db
         self.load()
 
@@ -73,21 +74,33 @@ class Conta:
 
 class Contas:
     def __init__(self):
-        self.__items = []
+        self.__items: List[Conta] = []
         self.__db = Database().db
 
     def load(self):
         self.__items.clear()
         sql = ''' 
-            select c._id, c.descricao, c.numero, c.moeda, c.tipo, ifnull(sum(l.valor),0) as total
+            select c._id, c.descricao, c.numero, c.moeda, c.tipo,
+				( select ifnull(sum(l.valor),0) 
+					from lancamentos as l 
+				where l.conta_id = c._id ) as total,
+				( select count(*) 
+					from lancamentos as l 
+						left outer join lancamento_categoria as lc on lc.lancamento_id = l._id
+				where l.conta_id = c._id 
+					and lc.lancamento_id is null ) as count_n_categ,
+				( select count(*) 
+					from lancamentos as l1 
+						inner join lancamento_categoria as lc1 on lc1.lancamento_id = l1._id
+            where l1.conta_id = c._id ) as count_categ		
               from contas as c
-                   left join lancamentos as l on l.conta_id = c._id
-             group by c._id, c.descricao, c.numero, c.moeda, c.tipo
         '''
         result = self.__db.execute(sql).fetchall()
         for i in result:
             conta = Conta(*i[:5])
             conta.total = i[5]
+            conta.lanc_n_class = i[6]
+            conta.lanc_classif = i[7]
             self.__items.append(conta)
 
     def add_new(self, conta: Conta):
@@ -106,7 +119,7 @@ class Contas:
     def items(self):
         return self.__items
 
-    def findById(self, id: str):
+    def find_by_id(self, id: str):
         enc_conta = None
         for item in self.__items:
             if str(item.id) == id:

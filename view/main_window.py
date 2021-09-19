@@ -1,6 +1,5 @@
 from PyQt5.QtCore import Qt, QSize
-from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QTabWidget, QToolBar, QApplication, \
-    QSizePolicy
+from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QTabWidget, QToolBar, QApplication, QSizePolicy
 from util.toaster import QToaster
 from view.contas_vw import ContasView
 from view.agenda_vw import AgendaView

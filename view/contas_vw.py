@@ -1,11 +1,13 @@
 import view.icons.icons as icons
 import view.lanc_vw
-from PyQt5.QtCore import QObject, Qt, QRegExp
-from PyQt5.QtGui import QIntValidator, QValidator, QRegExpValidator
-from PyQt5.QtWidgets import *
-# from PyQt5.QtWidgets import QWidget, QVBoxLayout, QToolBar, QTableWidget, QTableWidgetItem, QComboBox, \
-#    QLineEdit, QPushButton, QStyledItemDelegate, QLabel, QMainWindow
+import signal
+from typing import Tuple
+from PyQt5.QtCore import QObject, Qt
+from PyQt5.QtGui import QIntValidator, QValidator, QCloseEvent
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QToolBar, QTableWidget, QTableWidgetItem, QComboBox, \
+   QLineEdit, QPushButton, QLabel, QMainWindow, QMessageBox
 from model.Conta import ContasTipo, Contas, Conta
+from util.events import subscribe, unsubscribe_refs, Eventos
 
 
 class ContasView(QWidget):
@@ -16,6 +18,8 @@ class ContasView(QWidget):
         "Moeda",
         "Tipo",
         "Total",
+        "Ñ classif.",
+        "Classif.",
         "Remover",
         "Lanç."
     ]
@@ -30,7 +34,7 @@ class ContasView(QWidget):
         self.table: QTableWidget = None
         self.tipos_conta: ContasTipo = ContasTipo()
         self.model_contas = Contas()
-        self.lanc_windows = {}
+        self.lanc_windows: Tuple[view.lanc_vw.LancamentosView] = {}
 
         layout.addWidget(self.get_toolbar())
         layout.addWidget(self.get_table())
@@ -55,9 +59,8 @@ class ContasView(QWidget):
         self.load_table_data()
 
     def on_del_conta(self, conta_id: str):
-        button = QMessageBox.critical(
-            self,
-            "Remove conta?",
+        button = QMessageBox.question(
+            self, "Remove conta?",
             f"Deseja remover a conta {conta_id} ?",
             buttons=QMessageBox.Yes | QMessageBox.No,
             defaultButton=QMessageBox.No,
@@ -72,15 +75,17 @@ class ContasView(QWidget):
         self.load_table_data()
 
     def on_open_lancamentos(self, conta_id: str):
-        conta_dc = self.model_contas.findById(conta_id)
+        conta_dc = self.model_contas.find_by_id(conta_id)
         if conta_id not in self.lanc_windows:
             lancamentos_window = view.lanc_vw.LancamentosView(self, conta_dc)
+            subscribe(Eventos.LANCAMENTO_CREATED, self.handle_lancamento_created, lancamentos_window)
+            subscribe(Eventos.LANCAMENTO_WINDOW_CLOSED, self.handle_close_lancamento, lancamentos_window)
             self.lanc_windows[conta_id] = lancamentos_window
         else:
             lancamentos_window = self.lanc_windows[conta_id]
 
         if lancamentos_window.isHidden():
-            position = self.main_window.pos()  # self.pos()
+            position = self.main_window.pos()
             position.setX(position.x() + (50 * len(self.lanc_windows)))
             position.setY(position.y() + (50 * len(self.lanc_windows)))
             print(f"> Abrir janela Lanç. (conta id:{conta_id}) posição (X: {position.x()}, Y: {position.y()}).")
@@ -89,6 +94,15 @@ class ContasView(QWidget):
             lancamentos_window.show()
 
         lancamentos_window.activateWindow()
+
+    def handle_close_lancamento(self, conta_id: str):
+        print(f"Lancamento close event UNSUBSCRIBE conta: {conta_id}")
+        unsubscribe_refs(self.lanc_windows[conta_id])
+        del self.lanc_windows[conta_id]
+
+    def handle_lancamento_created(self, lancamento):
+        print(f"Lancamento criado {lancamento.id}, recarregando dados na contas view.")
+        self.load_table_data()
 
     def get_table(self):
         self.table = QTableWidget()
@@ -100,6 +114,7 @@ class ContasView(QWidget):
         return self.table
 
     def load_table_data(self):
+        print("Loading contas data...")
         self.model_contas.load()
 
         # Limpa a tabela
@@ -110,24 +125,32 @@ class ContasView(QWidget):
         for row in self.model_contas.items():
             new_index = self.table.rowCount()
             self.table.insertRow(new_index)
+
             # self.table.setItem(new_index, 0, QTableWidgetItem(str(row.id)))
+            self.table.setCellWidget(new_index, 0, line.get_label_for_id(str(row.id)))
             self.table.setItem(new_index, 1, QTableWidgetItem(row.descricao))
+            # self.table.setCellWidget(new_index, 2, line.get_number_input(row.numero))
             self.table.setItem(new_index, 2, QTableWidgetItem(row.numero))
             self.table.setItem(new_index, 3, QTableWidgetItem(row.moeda))
             # self.table.setItem(new_index, 4, QTableWidgetItem(self.tipos_conta.getByKey(row.tipo_id).descricao))
-
-            self.table.setCellWidget(new_index, 0, line.get_label_for_id(str(row.id)))
-            # self.table.setCellWidget(new_index, 2, line.get_number_input(row.numero))
             self.table.setCellWidget(new_index, 4, line.get_tipo_conta_dropdown(row.tipo_id))
             self.table.setCellWidget(new_index, 5, line.get_label_for_total_curr(row.total))
-            self.table.setCellWidget(new_index, 6, line.get_del_button(str(row.id)))
-            self.table.setCellWidget(new_index, 7, line.get_open_lanc_button(str(row.id)))
+            self.table.setCellWidget(new_index, 6, line.get_label_for_n_class(str(row.lanc_n_class)))
+            self.table.setCellWidget(new_index, 7, line.get_label_for_classif(str(row.lanc_classif)))
+            self.table.setCellWidget(new_index, 8, line.get_del_button(str(row.id)))
+            self.table.setCellWidget(new_index, 9, line.get_open_lanc_button(str(row.id)))
 
         self.table.resizeColumnToContents(0)
         self.table.resizeColumnToContents(1)
         self.table.resizeColumnToContents(2)
         self.table.resizeColumnToContents(3)
         self.table.resizeColumnToContents(4)
+        self.table.setColumnWidth(6, 140)
+        self.table.setColumnWidth(7, 140)
+        self.table.setColumnWidth(8, 100)
+        self.table.setColumnWidth(9, 100)
+        # self.table.resizeColumnToContents(6)
+        # self.table.resizeColumnToContents(7)
 
 #         numericD = NumericDelegate(self.table)
 #         self.table.setItemDelegate(numericD)
@@ -152,8 +175,20 @@ class ContaTableLine(QObject):
     def get_label_for_id(self, value: str):
         label = QLabel(value)
         label.setStyleSheet("color:red")
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        label.setAlignment(Qt.AlignCenter)
         # label.setFlags(Qt.ItemIsEnabled)
+        return label
+
+    def get_label_for_n_class(self, value: str):
+        label = QLabel(value)
+        label.setStyleSheet("color:red;font-weight:bold")
+        label.setAlignment(Qt.AlignCenter)
+        return label
+
+    def get_label_for_classif(self, value: str):
+        label = QLabel(value)
+        label.setStyleSheet("color:darkgreen;font-weight:bold")
+        label.setAlignment(Qt.AlignCenter)
         return label
 
     def get_label_for_total_curr(self, value: float):
@@ -161,14 +196,14 @@ class ContaTableLine(QObject):
         color = "color:darkgreen"
         if value < 0:
             color = "color:red"
-        stylesheet = f"font-weight:bold;{color}"
+        stylesheet = f"margin-right:3px; margin-left:3px; font-weight:bold;{color}"
         label.setStyleSheet(stylesheet)
         label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         return label
 
     def get_number_input(self, numero:int):
         line_edit = QLineEdit()
-        line_edit.setText(numero)
+        line_edit.setText(str(numero))
         line_edit.setValidator(QIntValidator())
         line_edit.textChanged.connect(self.check_state)
         line_edit.textChanged.emit(line_edit.text())
@@ -190,7 +225,7 @@ class ContaTableLine(QObject):
 
     def get_tipo_conta_dropdown(self, tipo_id:str):
         combobox = QComboBox()
-        index: int
+        index: int = 0
         for key, item in enumerate(self.parentOne.tipos_conta.items()):
             if item.id == tipo_id:
                 index = key

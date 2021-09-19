@@ -1,7 +1,15 @@
 import os
 from PyQt5.QtGui import QIcon, QPixmap
+from PyQt5.QtCore import QSize
 
 path = os.path.dirname(os.path.abspath(__file__))
+
+
+def app_icon():
+    _app_icon = QIcon()
+    _app_icon.addFile('view/icons/app-icon-16.png', QSize(16, 16))
+    _app_icon.addFile('view/icons/app-icon-32.png', QSize(32, 32))
+    return _app_icon
 
 
 def save():

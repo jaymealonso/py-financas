@@ -9,8 +9,8 @@ if getattr(sys, 'frozen', False):
 elif __file__:
     application_path = os.path.dirname(__file__)
 
-DATABASE_FILENAME = f"{application_path}\database.db"
-INITIAL_LOAD_FILENAME = f"{path}\initial_load\create_db.sql"
+DATABASE_FILENAME = f"{application_path}\\database.db"
+INITIAL_LOAD_FILENAME = f"{path}\\initial_load\\create_db.sql"
 
 
 class SingletonMeta(type):
