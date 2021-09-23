@@ -27,12 +27,6 @@ class ContasTipo:
     def items(self):
         return self.__items
 
-    def getByKey(self, i:int):
-        for key, item in enumerate(self.__items):
-            if item.id == i:
-                return item
-        return None
-
 
 @dataclass
 class Conta:
@@ -41,39 +35,14 @@ class Conta:
     numero: str
     moeda: str
     tipo_id: str
-    _lanc_n_class: int = field(init=False)
-    _lanc_classif: int = field(init=False)
-    _total: float = field(init=False)
+    lanc_n_class: int = field(init=False)
+    lanc_classif: int = field(init=False)
+    total: float = field(init=False)
 
     def __post_init__(self):
         self.total = 0
         self.lanc_n_class = 0
         self.lanc_classif = 0
-
-    @property
-    def lanc_classif(self) -> int:
-        return self._lanc_classif
-
-    @lanc_classif.setter
-    def lanc_classif(self, v: int) -> None:
-        self._lanc_classif = v
-
-    @property
-    def lanc_n_class(self) -> int:
-        return self._lanc_n_class
-
-    @lanc_n_class.setter
-    def lanc_n_class(self, v: int) -> None:
-        self._lanc_n_class = v
-
-    @property
-    def total(self) -> float:
-        return self._total
-
-    @total.setter
-    def total(self, v: float) -> None:
-        self._total = v
-
 
 class Contas:
     def __init__(self):

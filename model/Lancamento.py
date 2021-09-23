@@ -14,7 +14,7 @@ class Lancamento:
     nr_referencia: str
     descricao: str
     data: datetime.date
-    value: float
+    valor: float
     categoria_id: int
     # _categorias: Categorias = field(init=False)
 
@@ -57,6 +57,38 @@ class Lancamentos:
         sql = 'delete from lancamentos where _id = ?'
 
         self.__db.execute(sql, (lancamento_id,))
+        self.__db.commit()
+
+    def update(self, lancamento: Lancamento):
+        sql = '''
+            update lancamentos 
+               set conta_id = ?,
+                   nr_referencia = ?,
+                   descricao = ?,
+                   data = ?,
+                   valor = ?
+             where _id = ?
+        '''
+        self.__db.execute(sql, (
+            lancamento.conta_id,
+            lancamento.nr_referencia,
+            lancamento.descricao,
+            lancamento.data,
+            lancamento.valor,
+            lancamento.id)
+        )
+        sql2 = '''
+            delete from lancamento_categoria  
+             where lancamento_id = ?
+        '''
+        self.__db.execute(sql2, (lancamento.id,))
+
+        if lancamento.categoria_id and lancamento.categoria_id != "0":
+            sql3 = '''
+                INSERT INTO lancamento_categoria (lancamento_id, categoria_id) values (?, ?)
+            '''
+            self.__db.execute(sql3, (lancamento.id, lancamento.categoria_id))
+
         self.__db.commit()
 
     def items(self):

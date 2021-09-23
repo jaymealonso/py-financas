@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QToolBar, QTableWidget, QTable
    QLineEdit, QPushButton, QLabel, QMainWindow, QMessageBox
 from model.Conta import ContasTipo, Contas, Conta
 from util.events import subscribe, unsubscribe_refs, Eventos
+import util.curr_formatter as curr
 
 
 class ContasView(QWidget):
@@ -170,23 +171,6 @@ class ContasView(QWidget):
         self.table.cellChanged.connect(self.table_cell_changed)
         print("> Cellchanged connected again!")
 
-        # self.table.resizeColumnToContents(6)
-        # self.table.resizeColumnToContents(7)
-
-#         numericD = NumericDelegate(self.table)
-#         self.table.setItemDelegate(numericD)
-#
-#
-# class NumericDelegate(QStyledItemDelegate):
-#     def createEditor(self, parent, option, index):
-#         editor = super(NumericDelegate, self).createEditor(parent, option, index)
-#         print("numeric delegate is QlineEdit:", isinstance(editor, QLineEdit))
-#         if isinstance(editor, QLineEdit):
-#             reg_ex = QRegExp("[0-9]+.?[0-9]{,2}")
-#             validator = QRegExpValidator(reg_ex, editor)
-#             editor.setValidator(validator)
-#         return editor
-
 
 class ContaTableLine(QObject):
     def __init__(self, parent: ContasView):
@@ -213,7 +197,7 @@ class ContaTableLine(QObject):
         return label
 
     def get_label_for_total_curr(self, value: float):
-        label = QLabel(str(value))
+        label = QLabel(curr.float_to_locale(value))
         color = "color:darkgreen"
         if value < 0:
             color = "color:red"
