@@ -11,18 +11,18 @@ from util.events import subscribe, unsubscribe_refs, Eventos
 
 
 class ContasView(QWidget):
-    HEADER_LABELS = [
-        "ID",
-        "Descrição",
-        "Número",
-        "Moeda",
-        "Tipo",
-        "Total",
-        "Ñ classif.",
-        "Classif.",
-        "Remover",
-        "Lanç."
-    ]
+    COLUMNS = {
+        0: {"title": "ID", "sql_colname": "_id"},
+        1: {"title": "Descrição", "sql_colname": "descricao"},
+        2: {"title": "Número", "sql_colname": "numero"},
+        3: {"title": "Moeda", "sql_colname": "moeda" },
+        4: {"title": "Tipo", "sql_colname": "tipo"},
+        5: {"title": "Total"},
+        6: {"title": "Ñ classif."},
+        7: {"title": "Classif."},
+        8: {"title": "Remover"},
+        9: {"title": "Lanç."}
+    }
 
     def __init__(self, parent: QMainWindow):
         super(ContasView, self).__init__()
@@ -106,14 +106,30 @@ class ContasView(QWidget):
 
     def get_table(self):
         self.table = QTableWidget()
-        self.table.setColumnCount(len(self.HEADER_LABELS))
+        self.table.setColumnCount(len(self.COLUMNS))
         self.table.verticalHeader().setVisible(False)
-        self.table.setHorizontalHeaderLabels(self.HEADER_LABELS)
+        self.table.setHorizontalHeaderLabels([col["title"] for col in self.COLUMNS.values()])
         self.load_table_data()
 
         return self.table
 
+    def table_cell_changed(self, row: int, col: int):
+        conta_dc = self.model_contas.items()[row]
+        item = self.table.item(row, col)
+        column_data = self.COLUMNS.get(col)
+
+        print(f"Modificando conta numero:{conta_dc.id} campo \"{column_data['sql_colname']}\" para valor \"{item.text()}\"")
+        conta_dc.__setattr__(column_data["sql_colname"], item.text())
+        self.model_contas.update(conta_dc)
+
     def load_table_data(self):
+        try:
+            print("> Disconnecting table cellChanged... ", end=" ")
+            self.table.cellChanged.disconnect()
+            print("Disconnected!")
+        except:
+            print("Cellchanged not connected!")
+
         print("Loading contas data...")
         self.model_contas.load()
 
@@ -122,6 +138,7 @@ class ContasView(QWidget):
 
         line = ContaTableLine(self)
 
+        print("Preenchendo dados na tabela.")
         for row in self.model_contas.items():
             new_index = self.table.rowCount()
             self.table.insertRow(new_index)
@@ -133,7 +150,7 @@ class ContasView(QWidget):
             self.table.setItem(new_index, 2, QTableWidgetItem(row.numero))
             self.table.setItem(new_index, 3, QTableWidgetItem(row.moeda))
             # self.table.setItem(new_index, 4, QTableWidgetItem(self.tipos_conta.getByKey(row.tipo_id).descricao))
-            self.table.setCellWidget(new_index, 4, line.get_tipo_conta_dropdown(row.tipo_id))
+            self.table.setCellWidget(new_index, 4, line.get_tipo_conta_dropdown(row))
             self.table.setCellWidget(new_index, 5, line.get_label_for_total_curr(row.total))
             self.table.setCellWidget(new_index, 6, line.get_label_for_n_class(str(row.lanc_n_class)))
             self.table.setCellWidget(new_index, 7, line.get_label_for_classif(str(row.lanc_classif)))
@@ -149,6 +166,10 @@ class ContasView(QWidget):
         self.table.setColumnWidth(7, 140)
         self.table.setColumnWidth(8, 100)
         self.table.setColumnWidth(9, 100)
+
+        self.table.cellChanged.connect(self.table_cell_changed)
+        print("> Cellchanged connected again!")
+
         # self.table.resizeColumnToContents(6)
         # self.table.resizeColumnToContents(7)
 
@@ -223,16 +244,25 @@ class ContaTableLine(QObject):
             color = '#f6989d'  # red
         sender.setStyleSheet('QLineEdit { background-color: %s }' % color)
 
-    def get_tipo_conta_dropdown(self, tipo_id:str):
+    def get_tipo_conta_dropdown(self, conta: Conta):
         combobox = QComboBox()
         index: int = 0
-        for key, item in enumerate(self.parentOne.tipos_conta.items()):
-            if item.id == tipo_id:
+        # for tipo_conta in self.parentOne.tipos_conta.items():
+        items = self.parentOne.tipos_conta.items()
+        for key, item_index in enumerate(items):
+            item = items.get(item_index)
+            if item.id == conta.tipo_id:
                 index = key
             combobox.addItem(item.descricao, item.id)
 
         combobox.setCurrentIndex(index)
+        combobox.currentIndexChanged.connect(lambda: self.tipo_conta_dropdown_change(combobox, conta))
         return combobox
+
+    def tipo_conta_dropdown_change(self, combobox: QComboBox, conta: Conta):
+        data = combobox.currentData()
+        conta.tipo_id = data
+        self.parentOne.model_contas.update(conta)
 
     def get_del_button(self, conta_id: str):
         del_pbutt = QPushButton()

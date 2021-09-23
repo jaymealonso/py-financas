@@ -6,20 +6,23 @@ from model.db import Database
 
 @dataclass
 class ContaTipo:
-    id: str
+    id: int
     descricao: str
 
 
 class ContasTipo:
     def __init__(self):
-        self.__items: List[ContaTipo] = []
+        self.__items: dict[str, ContaTipo] = {}
         self.db = Database().db
         self.load()
 
     def load(self):
-        result = self.db.execute('select * from contas_tipo').fetchall()
+        cursor = self.db.execute('select * from contas_tipo')
+        # col_names = cursor.description
+        result = cursor.fetchall()
         for i in result:
-            self.__items.append(ContaTipo(*i))
+            row = ContaTipo(*i)
+            self.__items[row.id] = row
 
     def items(self):
         return self.__items
@@ -114,6 +117,19 @@ class Contas:
         sql = 'delete from contas where _id = ?'
 
         self.__db.execute(sql, (conta_id,))
+        self.__db.commit()
+
+    def update(self, conta: Conta):
+        sql = '''
+            update contas  
+               set descricao = ?,
+                   numero = ?,
+                   moeda = ?,
+                   tipo = ?
+             where _id = ?
+        '''
+
+        self.__db.execute(sql, (conta.descricao, conta.numero, conta.moeda, conta.tipo_id, conta.id))
         self.__db.commit()
 
     def items(self):

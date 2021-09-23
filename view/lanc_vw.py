@@ -109,7 +109,7 @@ class LancamentosView(QWidget):
         )
         self.model_lancamentos.add_new(new_lancamento)
         print(f"Done !!! Lancamento criado com id: {new_lancamento.id}")
-        post_event("lancamento_created", new_lancamento)
+        post_event(Eventos.LANCAMENTO_CREATED, new_lancamento)
         self.load_table_data()
         # self.parent.load_table_data()
 
