@@ -3,15 +3,18 @@ import datetime
 import typing
 import view.icons.icons as icons
 import view.contas_vw as cv
+from view.imp_lanc_vw import ImportarLancamentosView
 from model.Conta import Conta
-from model.Lancamento import Lancamentos, Lancamento, Categorias
-from PyQt5.QtGui import QCloseEvent, QValidator, QRegExpValidator
+from model.Categoria import Categorias
+from model.Lancamento import Lancamentos, Lancamento
+from PyQt5.QtGui import QCloseEvent, QValidator
 from PyQt5.QtCore import Qt, QObject, QRegExp, QDate, QLocale
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QLineEdit, QPushButton, QToolBar, QSizePolicy, \
     QMessageBox, QTableWidgetItem, QLabel, QComboBox, QDateEdit
 from util.toaster import QToaster
 from util.events import post_event, Eventos
 import util.curr_formatter as curr
+
 
 class LancamentosView(QWidget):
     COLUMNS = {
@@ -27,7 +30,10 @@ class LancamentosView(QWidget):
     def __init__(self, parent: QWidget, conta_dc: Conta):
         self.toolbar = QToolBar()
         self.table = QTableWidget()
+        self.tableline = LancamentoTableLine(self)
+        self.conta_dc = conta_dc
         self.parent: cv.ContasView = parent
+        self.import_lanc_view = None
         self.model_lancamentos = Lancamentos(conta_dc)
         self.model_categorias = Categorias()
         self.model_categorias.load()
@@ -52,12 +58,12 @@ class LancamentosView(QWidget):
     def get_toolbar(self):
         self.toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
 
-        save_act = self.toolbar.addAction(icons.save(), "Salvar")
-        save_act.triggered.connect(lambda: self.on_save())
-        self.toolbar.addSeparator()
+        # save_act = self.toolbar.addAction(icons.save(), "Salvar")
+        # save_act.triggered.connect(lambda: self.on_save())
+        # self.toolbar.addSeparator()
 
         import_act = self.toolbar.addAction(icons.import_file(), "Importar Lançamentos")
-        import_act.triggered.connect(lambda: self.on_import_lancam())
+        import_act.triggered.connect(self.on_import_lancam)
 
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -69,7 +75,8 @@ class LancamentosView(QWidget):
         return self.toolbar
 
     def on_import_lancam(self):
-        pass
+        self.import_lanc_view = ImportarLancamentosView(self, self.conta_dc)
+        self.import_lanc_view.show()
 
     def get_table(self):
         self.table.setColumnCount(len(self.COLUMNS))
@@ -86,6 +93,8 @@ class LancamentosView(QWidget):
             value = item.text()
         else:
             widget = self.table.cellWidget(row, col)
+            if not widget:
+                return
             if isinstance(widget, QDateEdit):
                 date = widget.date()
                 value = datetime.date(date.year(), date.month(), date.day()).isoformat()
@@ -100,6 +109,10 @@ class LancamentosView(QWidget):
         lancamento_dc.__setattr__(column_data["sql_colname"], value)
         self.model_lancamentos.update(lancamento_dc)
 
+        # self.load_table_data()
+        self.model_lancamentos.load()
+        total_value = sum([x.valor for x in self.model_lancamentos.items()])
+        self.table_add_total_line(total_value, replace=True)
         self.parent.load_table_data()
 
     def on_del_lancamento(self, lancamento_id: int):
@@ -129,7 +142,7 @@ class LancamentosView(QWidget):
             descricao='descr',
             data=datetime.date.today(),
             valor=0,
-            categoria_id=-1
+            categoria_id=0
         )
         self.model_lancamentos.add_new(new_lancamento)
         print(f"Done !!! Lancamento criado com id: {new_lancamento.id}")
@@ -149,40 +162,54 @@ class LancamentosView(QWidget):
         print(f"Loading lancamentos (conta id: {self.conta_id}) data...")
         self.model_lancamentos.load()
 
+        # clear table
         self.table.setRowCount(0)
 
-        line = LancamentoTableLine(self)
         total_value = 0.0
         for row in self.model_lancamentos.items():
             new_index = self.table.rowCount()
             self.table.insertRow(new_index)
-            # self.table.setItem(new_index, 0, QTableWidgetItem(str(row.id)))
+
+            self.table.setCellWidget(new_index, 0, self.tableline.get_label_for_id(str(row.id)))
             self.table.setItem(new_index, 1, QTableWidgetItem(row.nr_referencia))
             self.table.setItem(new_index, 2, QTableWidgetItem(row.descricao))
-            # self.table.setItem(new_index, 3, QTableWidgetItem(row.data))
-            # self.table.setItem(new_index, 4, QTableWidgetItem("categ"))
-
-            self.table.setCellWidget(new_index, 0, line.get_label_for_id(str(row.id)))
-            # self.table.setCellWidget(new_index, 2, line.get_number_input(row.numero))
-            self.table.setCellWidget(new_index, 3, line.get_date_input(row.data, new_index, 3))
-            self.table.setCellWidget(new_index, 4, line.get_categorias_lanc_dropdown(row.categoria_id, new_index, 4))
-            self.table.setCellWidget(new_index, 5, line.get_currency_input(row.valor, new_index, 5))
-            self.table.setCellWidget(new_index, 6, line.get_del_button(self, str(row.id)))
-            # self.table.setCellWidget(new_index, 6, line.get_open_lanc_button(str(row.id)))
+            self.table.setCellWidget(new_index, 3, self.tableline.get_date_input(row.data, new_index, 3))
+            # self.table.setItem(new_index, 4, QTableWidgetItem(str(row.categoria_id)))
+            self.table.setCellWidget(new_index, 4, self.tableline.get_categorias_lanc_dropdown(row.categoria_id, new_index, 4))
+            self.table.setCellWidget(new_index, 5, self.tableline.get_currency_input(row.valor, new_index, 5))
+            self.table.setCellWidget(new_index, 6, self.tableline.get_del_button(self, str(row.id)))
 
             total_value = total_value + float(row.valor)
 
-        new_index = self.table.rowCount()
-        self.table.insertRow(new_index)
-        # self.table.setCellWidget(new_index, 0, None)
-        # self.table.setCellWidget(new_index, 1, None)
-        self.table.setCellWidget(new_index, 5, line.get_label_for_total_curr(total_value))
+        # Adiciona linhe de TOTAL no final
+        self.table_add_total_line(total_value)
+        # new_index = self.table.rowCount()
+        # self.table.insertRow(new_index)
+        # self.table.setCellWidget(new_index, 5, self.tableline.get_label_for_total_curr(total_value))
+
+        self.table.cellDoubleClicked.connect(self.on_table_cell_doubleclick)
 
         self.table.cellChanged.connect(self.table_cell_changed)
         print("> Cellchanged connected again!")
 
-        self.table.resizeColumnToContents(0)
+        # self.table.resizeColumnToContents(0)
+        self.table.resizeColumnsToContents()
         self.table.setColumnWidth(6, 100)
+
+    def table_add_total_line(self, total: float, replace=False):
+        last_index = self.table.rowCount()
+        if not replace:
+            self.table.insertRow(last_index)
+        else:
+            last_index -= 1
+        self.table.setCellWidget(last_index, 5, self.tableline.get_label_for_total_curr(total))
+
+    def on_table_cell_doubleclick(self, row: int, col: int):
+        if col == 4:
+            item = self.model_lancamentos.items()[row]
+            combobox = self.tableline.get_categorias_lanc_dropdown(item.categoria_id, row, col)
+            self.table.setCellWidget(row, col, combobox)
+            combobox.setEditable(True)
 
 
 class LancamentoTableLine(QObject):
@@ -190,7 +217,8 @@ class LancamentoTableLine(QObject):
         super(QObject, self).__init__()
         self.parentOne: LancamentosView = parent
 
-    def get_label_for_total_curr(self, value: float):
+    @staticmethod
+    def get_label_for_total_curr(value: float):
         label = QLabel(curr.float_to_locale(value))
         color = "color:darkgreen"
         if value < 0:
@@ -200,37 +228,33 @@ class LancamentoTableLine(QObject):
         label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         return label
 
-    def get_label_for_id(self, value: str):
+    @staticmethod
+    def get_label_for_id(value: str):
         label = QLabel(value)
         label.setStyleSheet("color:red")
         label.setAlignment(Qt.AlignCenter)
-        # label.setFlags(Qt.ItemIsEnabled)
         return label
 
     def get_date_input(self, date: datetime.date, row:int, col:int):
-        # line_edit = QLineEdit(date)
         value = QDate(int(date[:4]), int(date[5:7]), int(date[8:10]))
         date_edit = QDateEdit()
         date_edit.setCalendarPopup(True)
         date_edit.setDate(value)
-        date_edit.dateChanged.connect(lambda: self.on_cell_changed(row, col))
+        date_edit.dateChanged.connect(lambda: self.parentOne.table.cellChanged.emit(row, col))
 
         return date_edit
 
-    def on_cell_changed(self, row:int, col:int):
-        self.parentOne.table.cellChanged.emit(row, col)
-
     def get_currency_input(self, valor: float, row:int, col:int):
         line_edit = QCurrencyLineEdit()
-        line_edit.setText(str(valor))
+        line_edit.setTextFloat(valor)
         line_edit.setAlignment(Qt.AlignRight)
         line_edit.setStyleSheet("border: none; margin-right:3px; margin-left:3px")
         line_edit.setLocale(QLocale(QLocale.Portuguese, QLocale.Brazil))
-        line_edit.setValidator(QCurrencyValidator())  #  preco_validator)
+        line_edit.setValidator(QCurrencyValidator())
 
         # SIGNALS
         line_edit.textChanged.connect(self.on_curr_input_text_changed)
-        line_edit.editingFinished.connect(lambda: self.on_curr_input_leave(row, col))
+        line_edit.editingFinished.connect(lambda: self.parentOne.table_cell_changed(row, col))
 
         return line_edit
 
@@ -247,14 +271,6 @@ class LancamentoTableLine(QObject):
             color = '#f6989d'  # red
         sender.setStyleSheet('QLineEdit { background-color: %s }' % color)
 
-    def on_curr_input_leave(self, row:int, col:int):
-        print("Input Leave")
-        self.on_cell_changed(row, col)
-        # source:QLineEdit = self.source()
-        # value = source.text()
-        # print(f"Input Leave {value}")
-        # value_as_float = float(value)
-
     def get_del_button(self, parent: LancamentosView, index):
         del_pbutt = QPushButton()
         del_pbutt.setToolTip("Eliminar Lançamento")
@@ -265,22 +281,33 @@ class LancamentoTableLine(QObject):
     def get_categorias_lanc_dropdown(self, categoria_id:str, row:int, col:int):
         combobox = QComboBox()
         index: int = 0
+        combobox.addItem("(vazio)", 0)
         for key, item in enumerate(self.parentOne.model_categorias.items()):
-            if item.id == categoria_id:
-                index = key
             combobox.addItem(item.nm_categoria, item.id)
 
+        index = combobox.findData(categoria_id)
+        if index == -1:
+            index = 0
         combobox.setCurrentIndex(index)
-        combobox.currentIndexChanged.connect(lambda: self.on_cell_changed(row, col))
+
+        combobox.currentIndexChanged.connect(
+            lambda: self.parentOne.table.cellChanged.emit(row, col))
         return combobox
 
 
 class QCurrencyLineEdit(QLineEdit):
+    def setTextFloat(self, a0: float) -> None:
+        try:
+            form_txt = locale.currency(val=a0, symbol=False, grouping=True)
+        except:
+            form_txt = ''
+        self.setText(form_txt)
+
     def setText(self, a0: str) -> None:
         try:
             form_txt = curr.str_curr_to_locale(a0)
         except:
-            form_txt = '0'
+            form_txt = ''
         super(QCurrencyLineEdit, self).setText(form_txt)
 
     def to_float(self) -> float:
@@ -301,8 +328,11 @@ class QCurrencyValidator(QValidator):
         regexp = QRegExp("^-?(\\d{1,3}(\\.\\d{1,3})*|(\\d+))*(\\,)?(\\d*)?$")
         if not regexp.exactMatch(a0):
             print(f"VALIDATED NOT OK = a0: '{a0}', a1: '{a1}'. Intermediateinv ")
-            a0 = self.fixup1(a0)
-            return QValidator.Invalid, a0, a1
+            try:
+                a0 = self.fixup1(a0)
+                return QValidator.Acceptable, a0, a1
+            except:
+                return QValidator.Invalid, a0, a1
         else:
             print(f"VALIDATED OK = a0: '{a0}', a1: '{a1}'. Acceptable")
             try:
@@ -314,16 +344,16 @@ class QCurrencyValidator(QValidator):
         # # return QValidator.Acceptable, a0, a1
         # return QValidator.Invalid, a0, a1
 
-    def str_format_number(self, str_value: str):
-        is_negative = "-" in str_value
-        value = str_value.replace(".", "").replace(",", ".").replace("-", "").strip()
-        value_float = float(value)
-        if is_negative:
-            value_float = value_float * -1
-        locale.setlocale(locale.LC_ALL, "pt-br")
-        str_formatted = locale.currency(val=value_float, symbol=False, grouping=True)
-        str_formatted = str_formatted.strip()
-        return str_formatted
+    # def str_format_number(self, str_value: str):
+    #     is_negative = "-" in str_value
+    #     value = str_value.replace(".", "").replace(",", ".").replace("-", "").strip()
+    #     value_float = float(value)
+    #     if is_negative:
+    #         value_float = value_float * -1
+    #     locale.setlocale(locale.LC_ALL, "pt_br")
+    #     str_formatted = locale.currency(val=value_float, symbol=False, grouping=True)
+    #     str_formatted = str_formatted.strip()
+    #     return str_formatted
 
     def fixup1(self, a0: str) -> str:
         try:

@@ -1,32 +1,25 @@
 import datetime
 import dataclasses
-from typing import List
+from typing import List, Optional
 from dataclasses import dataclass
 from model.db import Database
 from model.Conta import Conta
-from model.Categoria import Categoria, Categorias
 
 
 @dataclass
 class Lancamento:
-    id: str
+    id: Optional[str]
     conta_id: int
     nr_referencia: str
     descricao: str
     data: datetime.date
     valor: float
-    categoria_id: int
-    # _categorias: Categorias = field(init=False)
-
-    # def __post_init__(self):
-    #     pass  # self._categorias =
-    #
-    # def get_categorias(self):
-    #     return self._categorias
+    categoria_id: Optional[int]
 
 
 class Lancamentos:
     def __init__(self, conta_dc: Conta):
+        self.id = None
         self.__items: List[Lancamento] = []
         self.__db = Database().db
         self.conta: Conta = conta_dc
@@ -38,6 +31,7 @@ class Lancamentos:
                    left join lancamento_categoria as lc on lc.lancamento_id = l._id
                    left join categorias as c on c._id = lc.categoria_id
              where l.conta_id = ?
+             order by l.data
         '''
         result = self.__db.execute(sql, (self.conta.id,)).fetchall()
         for i in result:

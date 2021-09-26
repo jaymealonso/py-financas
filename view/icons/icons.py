@@ -43,3 +43,7 @@ def configurar():
 def atualizar():
     return QIcon(QPixmap(path + r".\update.png"))
 
+
+def visao_mensal():
+    return QIcon(QPixmap(path + r".\visao_mensal.png"))
+

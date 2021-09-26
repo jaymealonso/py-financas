@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QTabWidget, QTool
 from util.toaster import QToaster
 from view.contas_vw import ContasView
 from view.agenda_vw import AgendaView
+from view.categorias_vw import CategoriasView
 import view.icons.icons as icons
 
 
@@ -41,6 +42,7 @@ class MainWindow(QMainWindow):
 
         self.tabbar.addTab(ContasView(self), "Contas")
         # self.tabbar.addTab(LancamentosTab(), "Lançamentos")
+        self.tabbar.addTab(CategoriasView(), "Categorias")
         self.tabbar.addTab(AgendaView(), "Agenda")
 
         return self.tabbar

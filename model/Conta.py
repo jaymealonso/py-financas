@@ -1,6 +1,5 @@
-import dataclasses
 from typing import List
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, astuple
 from model.db import Database
 
 
@@ -77,7 +76,7 @@ class Contas:
 
     def add_new(self, conta: Conta):
         sql = 'insert into contas (_id, descricao, numero, moeda, tipo) values(?,?,?,?,?)'
-        data = dataclasses.astuple(conta)
+        data = astuple(conta)
 
         self.__db.execute(sql, data[:5])
         self.__db.commit()

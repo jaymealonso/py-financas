@@ -23,6 +23,8 @@ Outras funcionalidades (planejadas):
   - [Instalar o PyQt5](###Instalar o PyQt5) 
   - [Instalar o sqlite3](###Instalar o sqlite3)
   - [Instalar o pyinstaller](###Instalar o pyinstaller)
+  - [instalar o pandas]
+  - [instalar o openpyxl]
 - [Para executar](##Para executar)
 
 ---

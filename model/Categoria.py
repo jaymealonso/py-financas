@@ -1,5 +1,5 @@
 from typing import List
-from dataclasses import dataclass
+from dataclasses import dataclass, astuple
 from model.db import Database
 
 
@@ -19,9 +19,15 @@ class Categorias:
         sql = 'select * from categorias'
         result = self.__db.execute(sql,).fetchall()
         print(f"Carregadas {len(result)} categorias.")
-        self.__categorias.append(Categoria(id=0, nm_categoria="(vazio)"))
         for i in result:
             self.__categorias.append(Categoria(*i))
+
+    def add_new(self, categoria: Categoria):
+        sql = 'insert into categoria (_id, nm_categoria) values(?,?)'
+        data = astuple(categoria)
+
+        self.__db.execute(sql, data[:5])
+        self.__db.commit()
 
     def items(self):
         return self.__categorias

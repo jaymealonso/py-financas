@@ -1,14 +1,13 @@
 import view.icons.icons as icons
 import view.lanc_vw
-import signal
+from view.TableLine import TableLine
 from typing import Tuple
-from PyQt5.QtCore import QObject, Qt
-from PyQt5.QtGui import QIntValidator, QValidator, QCloseEvent
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QIntValidator, QValidator, QCursor
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QToolBar, QTableWidget, QTableWidgetItem, QComboBox, \
-   QLineEdit, QPushButton, QLabel, QMainWindow, QMessageBox
+   QLineEdit, QPushButton, QMainWindow, QMessageBox, QApplication
 from model.Conta import ContasTipo, Contas, Conta
 from util.events import subscribe, unsubscribe_refs, Eventos
-import util.curr_formatter as curr
 
 
 class ContasView(QWidget):
@@ -22,7 +21,8 @@ class ContasView(QWidget):
         6: {"title": "Ñ classif."},
         7: {"title": "Classif."},
         8: {"title": "Remover"},
-        9: {"title": "Lanç."}
+        9: {"title": "Lanç."},
+        10: {"title": "Vis. Mensal"}
     }
 
     def __init__(self, parent: QMainWindow):
@@ -96,6 +96,9 @@ class ContasView(QWidget):
 
         lancamentos_window.activateWindow()
 
+    def on_open_visao_mensal(self, conta_id: str):
+        pass
+
     def handle_close_lancamento(self, conta_id: str):
         print(f"Lancamento close event UNSUBSCRIBE conta: {conta_id}")
         unsubscribe_refs(self.lanc_windows[conta_id])
@@ -124,6 +127,7 @@ class ContasView(QWidget):
         self.model_contas.update(conta_dc)
 
     def load_table_data(self):
+        QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
         try:
             print("> Disconnecting table cellChanged... ", end=" ")
             self.table.cellChanged.disconnect()
@@ -153,57 +157,50 @@ class ContasView(QWidget):
             # self.table.setItem(new_index, 4, QTableWidgetItem(self.tipos_conta.getByKey(row.tipo_id).descricao))
             self.table.setCellWidget(new_index, 4, line.get_tipo_conta_dropdown(row))
             self.table.setCellWidget(new_index, 5, line.get_label_for_total_curr(row.total))
-            self.table.setCellWidget(new_index, 6, line.get_label_for_n_class(str(row.lanc_n_class)))
-            self.table.setCellWidget(new_index, 7, line.get_label_for_classif(str(row.lanc_classif)))
+            self.table.setCellWidget(new_index, 6, line.get_label_for_n_class(row.lanc_n_class))
+            self.table.setCellWidget(new_index, 7, line.get_label_for_classif(row.lanc_classif))
             self.table.setCellWidget(new_index, 8, line.get_del_button(str(row.id)))
             self.table.setCellWidget(new_index, 9, line.get_open_lanc_button(str(row.id)))
+            self.table.setCellWidget(new_index, 10, line.get_visao_mensal(str(row.id)))
 
         self.table.resizeColumnToContents(0)
         self.table.resizeColumnToContents(1)
         self.table.resizeColumnToContents(2)
         self.table.resizeColumnToContents(3)
         self.table.resizeColumnToContents(4)
-        self.table.setColumnWidth(6, 140)
-        self.table.setColumnWidth(7, 140)
+        self.table.setColumnWidth(6, 120)
+        self.table.setColumnWidth(7, 120)
         self.table.setColumnWidth(8, 100)
         self.table.setColumnWidth(9, 100)
+        self.table.setColumnWidth(10, 130)
 
         self.table.cellChanged.connect(self.table_cell_changed)
         print("> Cellchanged connected again!")
+        QApplication.restoreOverrideCursor()
 
 
-class ContaTableLine(QObject):
+class ContaTableLine(TableLine):
     def __init__(self, parent: ContasView):
-        super(QObject, self).__init__()
+        super(TableLine, self).__init__()
         self.parentOne: ContasView = parent
 
-    def get_label_for_id(self, value: str):
-        label = QLabel(value)
-        label.setStyleSheet("color:red")
-        label.setAlignment(Qt.AlignCenter)
-        # label.setFlags(Qt.ItemIsEnabled)
-        return label
-
-    def get_label_for_n_class(self, value: str):
-        label = QLabel(value)
+    def get_label_for_n_class(self, value: int):
+        label = super().get_label_for_integer(value)
         label.setStyleSheet("color:red;font-weight:bold")
-        label.setAlignment(Qt.AlignCenter)
         return label
 
-    def get_label_for_classif(self, value: str):
-        label = QLabel(value)
+    def get_label_for_classif(self, value: int):
+        label = super().get_label_for_integer(value)
         label.setStyleSheet("color:darkgreen;font-weight:bold")
-        label.setAlignment(Qt.AlignCenter)
         return label
 
     def get_label_for_total_curr(self, value: float):
-        label = QLabel(curr.float_to_locale(value))
+        label = super().get_label_for_currency(value)
         color = "color:darkgreen"
         if value < 0:
             color = "color:red"
         stylesheet = f"margin-right:3px; margin-left:3px; font-weight:bold;{color}"
         label.setStyleSheet(stylesheet)
-        label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         return label
 
     def get_number_input(self, numero:int):
@@ -260,5 +257,12 @@ class ContaTableLine(QObject):
         op_lanc_pbutt.setToolTip("Abrir Lançamentos")
         op_lanc_pbutt.setIcon(icons.open_lancamentos())
         op_lanc_pbutt.clicked.connect(lambda: self.parentOne.on_open_lancamentos(conta_id))
+        return op_lanc_pbutt
+
+    def get_visao_mensal(self, conta_id: str):
+        op_lanc_pbutt = QPushButton()
+        op_lanc_pbutt.setToolTip("Abrir Visão Mensal")
+        op_lanc_pbutt.setIcon(icons.visao_mensal())
+        op_lanc_pbutt.clicked.connect(lambda: self.parentOne.on_open_visao_mensal(conta_id))
         return op_lanc_pbutt
 
