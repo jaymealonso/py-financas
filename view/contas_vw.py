@@ -1,6 +1,7 @@
 import view.icons.icons as icons
 import view.lanc_vw
 from view.TableLine import TableLine
+from view.visao_mensa_vw import VisaoGeralView
 from typing import Tuple
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIntValidator, QValidator, QCursor
@@ -36,6 +37,7 @@ class ContasView(QWidget):
         self.tipos_conta: ContasTipo = ContasTipo()
         self.model_contas = Contas()
         self.lanc_windows: Tuple[view.lanc_vw.LancamentosView] = {}
+        self.visao_geral_window = None
 
         layout.addWidget(self.get_toolbar())
         layout.addWidget(self.get_table())
@@ -87,17 +89,17 @@ class ContasView(QWidget):
 
         if lancamentos_window.isHidden():
             position = self.main_window.pos()
-            position.setX(position.x() + (50 * len(self.lanc_windows)))
-            position.setY(position.y() + (50 * len(self.lanc_windows)))
             print(f"> Abrir janela Lanç. (conta id:{conta_id}) posição (X: {position.x()}, Y: {position.y()}).")
-            lancamentos_window.move(position)
 
             lancamentos_window.show()
 
         lancamentos_window.activateWindow()
 
     def on_open_visao_mensal(self, conta_id: str):
-        pass
+        conta_items = self.model_contas.items()
+        conta = [x for x in conta_items if x.id == int(conta_id)]
+        self.visao_geral_window = VisaoGeralView(self, conta[0])
+        self.visao_geral_window.show()
 
     def handle_close_lancamento(self, conta_id: str):
         print(f"Lancamento close event UNSUBSCRIBE conta: {conta_id}")

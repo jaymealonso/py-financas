@@ -186,6 +186,7 @@ class ImportarLancamentosTableLine(TableLine):
     }
 
     def __init__(self, parentView: ImportarLancamentosView):
+        super(TableLine, self).__init__()
         self.parentView = parentView
 
     def get_combo(self):

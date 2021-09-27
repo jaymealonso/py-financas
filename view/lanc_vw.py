@@ -14,6 +14,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QLineEdit, QPush
 from util.toaster import QToaster
 from util.events import post_event, Eventos
 import util.curr_formatter as curr
+from util.settings import Settings
 
 
 class LancamentosView(QWidget):
@@ -37,13 +38,15 @@ class LancamentosView(QWidget):
         self.model_lancamentos = Lancamentos(conta_dc)
         self.model_categorias = Categorias()
         self.model_categorias.load()
-        self.conta_id = conta_dc.id
+        self.settings = Settings()
 
         super(LancamentosView, self).__init__()
 
-        self.setWindowTitle(f"Lançamentos - (Conta {conta_dc.id} | {conta_dc.descricao})")
+        self.setWindowTitle(f"Lançamentos - (Conta {self.conta_dc.id} | {self.conta_dc.descricao})")
         self.setMinimumSize(800, 600)
-        self.resize(1600, 900)
+        if not self.settings.load_lanc_settings(self, self.conta_dc):
+            self.resize(1600, 900)
+
         layout = QVBoxLayout()
         layout.addWidget(self.get_toolbar())
         layout.addWidget(self.get_table())
@@ -51,16 +54,12 @@ class LancamentosView(QWidget):
         self.setLayout(layout)
 
     def closeEvent(self, event: QCloseEvent) -> None:
-        print(f"Lancamento close event INSIDE LANCAMENTOS conta: {self.conta_id}")
-        post_event(Eventos.LANCAMENTO_WINDOW_CLOSED, str(self.conta_id))
-        # del self.parent.lanc_windows[str(self.conta_id)]
+        print(f"Lancamento close event INSIDE LANCAMENTOS conta: {self.conta_dc.id}")
+        post_event(Eventos.LANCAMENTO_WINDOW_CLOSED, str(self.conta_dc.id))
+        self.settings.save_lanc_settings(self, self.conta_dc)
 
     def get_toolbar(self):
         self.toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-
-        # save_act = self.toolbar.addAction(icons.save(), "Salvar")
-        # save_act.triggered.connect(lambda: self.on_save())
-        # self.toolbar.addSeparator()
 
         import_act = self.toolbar.addAction(icons.import_file(), "Importar Lançamentos")
         import_act.triggered.connect(self.on_import_lancam)
@@ -101,7 +100,7 @@ class LancamentosView(QWidget):
             elif isinstance(widget, QComboBox):
                 value = widget.currentData()
             elif isinstance(widget, QCurrencyLineEdit):
-                value = widget.to_float()
+                value = curr.str_curr_to_float(widget.text())
 
         column_data = self.COLUMNS.get(col)
 
@@ -137,7 +136,7 @@ class LancamentosView(QWidget):
         print("Adding new lancamento in the database...")
         new_lancamento = Lancamento(
             id=None,
-            conta_id=int(self.conta_id),
+            conta_id=int(self.conta_dc.id),
             nr_referencia='ref',
             descricao='descr',
             data=datetime.date.today(),
@@ -159,7 +158,7 @@ class LancamentosView(QWidget):
         except:
             print("Cellchanged not connected!")
 
-        print(f"Loading lancamentos (conta id: {self.conta_id}) data...")
+        print(f"Loading lancamentos (conta id: {self.conta_dc.id}) data...")
         self.model_lancamentos.load()
 
         # clear table
@@ -247,10 +246,6 @@ class LancamentoTableLine(QObject):
     def get_currency_input(self, valor: float, row:int, col:int):
         line_edit = QCurrencyLineEdit()
         line_edit.setTextFloat(valor)
-        line_edit.setAlignment(Qt.AlignRight)
-        line_edit.setStyleSheet("border: none; margin-right:3px; margin-left:3px")
-        line_edit.setLocale(QLocale(QLocale.Portuguese, QLocale.Brazil))
-        line_edit.setValidator(QCurrencyValidator())
 
         # SIGNALS
         line_edit.textChanged.connect(self.on_curr_input_text_changed)
@@ -271,7 +266,8 @@ class LancamentoTableLine(QObject):
             color = '#f6989d'  # red
         sender.setStyleSheet('QLineEdit { background-color: %s }' % color)
 
-    def get_del_button(self, parent: LancamentosView, index):
+    @staticmethod
+    def get_del_button(parent: LancamentosView, index):
         del_pbutt = QPushButton()
         del_pbutt.setToolTip("Eliminar Lançamento")
         del_pbutt.setIcon(icons.delete())
@@ -296,6 +292,15 @@ class LancamentoTableLine(QObject):
 
 
 class QCurrencyLineEdit(QLineEdit):
+    DEFAULT_STYLESHEET = "border: none; margin-right:3px; margin-left:3px"
+
+    def __init__(self):
+        super(QCurrencyLineEdit, self).__init__()
+        self.setAlignment(Qt.AlignRight)
+        self.setStyleSheet(self.DEFAULT_STYLESHEET)
+        self.setLocale(QLocale(QLocale.Portuguese, QLocale.Brazil))
+        self.setValidator(QCurrencyValidator())
+
     def setTextFloat(self, a0: float) -> None:
         try:
             form_txt = locale.currency(val=a0, symbol=False, grouping=True)
@@ -309,9 +314,14 @@ class QCurrencyLineEdit(QLineEdit):
         except:
             form_txt = ''
         super(QCurrencyLineEdit, self).setText(form_txt)
+        self.setTextFormat()
 
-    def to_float(self) -> float:
-        return curr.str_curr_to_float(self.text())
+    def setTextFormat(self):
+        float_value = curr.str_curr_to_float(self.text())
+        if float_value < 0:
+            self.setStyleSheet(self.DEFAULT_STYLESHEET + ";color: red")
+        else:
+            self.setStyleSheet(self.DEFAULT_STYLESHEET + ";color: darkgreen")
 
 
 class QCurrencyValidator(QValidator):
