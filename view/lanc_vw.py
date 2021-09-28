@@ -222,7 +222,7 @@ class LancamentoTableLine(QObject):
         color = "color:darkgreen"
         if value < 0:
             color = "color:red"
-        stylesheet = f"margin-right:3px; margin-left:3px; font-weight:bold;{color}"
+        stylesheet = f"margin-right:3px; margin-left:3px; font-weight:bold; {color}"
         label.setStyleSheet(stylesheet)
         label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         return label
@@ -254,17 +254,7 @@ class LancamentoTableLine(QObject):
         return line_edit
 
     def on_curr_input_text_changed(self, *args, **kwargs):
-        print("entered validator", args[0])
-        sender = self.sender()
-        validator = sender.validator()
-        state = validator.validate(sender.text(), 0)[0]
-        if state == QValidator.Acceptable:
-            color = '#c4df9b'  # green
-        elif state == QValidator.Intermediate:
-            color = '#fff79a'  # yellow
-        else:
-            color = '#f6989d'  # red
-        sender.setStyleSheet('QLineEdit { background-color: %s }' % color)
+        self.sender().setTextFormat()
 
     @staticmethod
     def get_del_button(parent: LancamentosView, index):
@@ -274,14 +264,13 @@ class LancamentoTableLine(QObject):
         del_pbutt.clicked.connect(lambda: parent.on_del_lancamento(index))
         return del_pbutt
 
-    def get_categorias_lanc_dropdown(self, categoria_id:str, row:int, col:int):
+    def get_categorias_lanc_dropdown(self, categoria_id: str, row: int, col: int):
         combobox = QComboBox()
-        index: int = 0
         combobox.addItem("(vazio)", 0)
         for key, item in enumerate(self.parentOne.model_categorias.items()):
             combobox.addItem(item.nm_categoria, item.id)
 
-        index = combobox.findData(categoria_id)
+        index = int(combobox.findData(categoria_id))
         if index == -1:
             index = 0
         combobox.setCurrentIndex(index)
@@ -301,13 +290,6 @@ class QCurrencyLineEdit(QLineEdit):
         self.setLocale(QLocale(QLocale.Portuguese, QLocale.Brazil))
         self.setValidator(QCurrencyValidator())
 
-    def setTextFloat(self, a0: float) -> None:
-        try:
-            form_txt = locale.currency(val=a0, symbol=False, grouping=True)
-        except:
-            form_txt = ''
-        self.setText(form_txt)
-
     def setText(self, a0: str) -> None:
         try:
             form_txt = curr.str_curr_to_locale(a0)
@@ -316,12 +298,19 @@ class QCurrencyLineEdit(QLineEdit):
         super(QCurrencyLineEdit, self).setText(form_txt)
         self.setTextFormat()
 
+    def setTextFloat(self, a0: float) -> None:
+        try:
+            form_txt = locale.currency(val=a0, symbol=False, grouping=True)
+        except:
+            form_txt = ''
+        self.setText(form_txt)
+
     def setTextFormat(self):
         float_value = curr.str_curr_to_float(self.text())
         if float_value < 0:
-            self.setStyleSheet(self.DEFAULT_STYLESHEET + ";color: red")
+            self.setStyleSheet(f"{self.DEFAULT_STYLESHEET}; color: red")
         else:
-            self.setStyleSheet(self.DEFAULT_STYLESHEET + ";color: darkgreen")
+            self.setStyleSheet(f"{self.DEFAULT_STYLESHEET}; color: darkgreen")
 
 
 class QCurrencyValidator(QValidator):
@@ -350,20 +339,6 @@ class QCurrencyValidator(QValidator):
             except:
                 pass
             return QValidator.Acceptable, a0, a1
-
-        # # return QValidator.Acceptable, a0, a1
-        # return QValidator.Invalid, a0, a1
-
-    # def str_format_number(self, str_value: str):
-    #     is_negative = "-" in str_value
-    #     value = str_value.replace(".", "").replace(",", ".").replace("-", "").strip()
-    #     value_float = float(value)
-    #     if is_negative:
-    #         value_float = value_float * -1
-    #     locale.setlocale(locale.LC_ALL, "pt_br")
-    #     str_formatted = locale.currency(val=value_float, symbol=False, grouping=True)
-    #     str_formatted = str_formatted.strip()
-    #     return str_formatted
 
     def fixup1(self, a0: str) -> str:
         try:
