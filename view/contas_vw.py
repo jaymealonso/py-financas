@@ -1,7 +1,7 @@
 import view.icons.icons as icons
 import view.lanc_vw
 from view.TableLine import TableLine
-from view.visao_mensa_vw import VisaoGeralView
+from view.visao_mensal_vw import VisaoGeralView
 from typing import Tuple
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIntValidator, QValidator, QCursor

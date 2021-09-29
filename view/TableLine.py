@@ -1,5 +1,5 @@
 from PyQt5.QtCore import QObject, Qt
-from PyQt5.QtWidgets import QLabel
+from PyQt5.QtWidgets import QLabel, QWidget
 import util.curr_formatter as curr
 
 
@@ -21,7 +21,16 @@ class TableLine(QObject):
     def get_label_for_currency(value: float):
         label = QLabel(curr.float_to_locale(value))
         label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        TableLine.__set_gr_rd_stylesheet(value, label)
         return label
+
+    @staticmethod
+    def __set_gr_rd_stylesheet(value_float: float, source: QWidget):
+        default_stylesheet = "border: none; margin-right:3px; margin-left:3px"
+        if value_float < 0:
+            source.setStyleSheet(f"{default_stylesheet}; color: red")
+        else:
+            source.setStyleSheet(f"{default_stylesheet}; color: darkgreen")
 
 
 

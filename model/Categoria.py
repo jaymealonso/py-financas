@@ -3,7 +3,7 @@ from dataclasses import dataclass, astuple
 from model.db import Database
 
 
-@dataclass(frozen=True, order=True)
+@dataclass(order=True)
 class Categoria:
     id: int
     nm_categoria: str
@@ -23,10 +23,18 @@ class Categorias:
             self.__categorias.append(Categoria(*i))
 
     def add_new(self, categoria: Categoria):
-        sql = 'insert into categoria (_id, nm_categoria) values(?,?)'
-        data = astuple(categoria)
+        sql = 'insert into categorias (_id, nm_categoria) values(?,?)'
+        data = (categoria.id, categoria.nm_categoria)
 
-        self.__db.execute(sql, data[:5])
+        self.__db.execute(sql, data)
+        self.__db.commit()
+
+    def update(self, categoria: Categoria):
+        sql = ''' 
+          update categorias set nm_categoria = ? 
+          where _id = ? 
+        '''
+        self.__db.execute(sql, (categoria.nm_categoria, categoria.id))
         self.__db.commit()
 
     def items(self):

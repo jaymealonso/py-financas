@@ -1,18 +1,40 @@
+from dataclasses import dataclass
 from model.db import Database
 from model.Conta import Conta
+from typing import List
+
+
+@dataclass
+class VisaoGeralRow:
+    conta_dc: Conta
+    ano_mes: str
+    nm_categoria: str
+    categoria_id: int
+    valor: float
+    moeda: str
+
+@dataclass
+class VisaoGeralColumn:
+    conta_dc: Conta
+    ano_mes: str
 
 
 class VisaoMensal:
     def __init__(self, conta_dc: Conta):
         self.__conta_dc = conta_dc
         self.__db = Database().db
-        self.values = []
-        self.columns = []
+        self.values: List[VisaoGeralRow] = []
+        self.columns: List[VisaoGeralColumn] = []
 
     def load(self):
-        self.values.clear()
-        self.columns.clear()
+        self.__load_values()
+        self.__load_columns()
 
+    def get_unique_row_labels(self):
+        return list(dict.fromkeys([row.nm_categoria for row in self.values]))
+
+    def __load_values(self):
+        self.values.clear()
         sql = '''
             select l.conta_id,
                    substr( l.data, 0, 8) as ano_mes,
@@ -30,20 +52,22 @@ class VisaoMensal:
              group by conta_id, nm_categoria, categoria_id, ano_mes
              order by conta_id, nm_categoria, categoria_id, ano_mes
         '''
-        self.values = self.__db.execute(sql, (self.__conta_dc.id,)).fetchall()
+        values = self.__db.execute(sql, (self.__conta_dc.id,)).fetchall()
+        self.values = [VisaoGeralRow(*value) for value in values]
 
+    def __load_columns(self):
+        self.columns.clear()
         sql = '''
-            select l.conta_id,
-                   substr( l.data, 0, 8) as ano_mes
-              from lancamentos as l
-                   left outer join lancamento_categoria as lc 
-                                on lc.lancamento_id = l._id
-             where l.conta_id = ?
-             group by conta_id, ano_mes
-             order by conta_id, ano_mes
-        '''
-        self.columns = self.__db.execute(sql, (self.__conta_dc.id,)).fetchall()
-        self.columns.insert(0, (self.__conta_dc.id, "Categoria"))
+             select l.conta_id,
+                    substr( l.data, 0, 8) as ano_mes
+               from lancamentos as l
+                    left outer join lancamento_categoria as lc 
+                                 on lc.lancamento_id = l._id
+              where l.conta_id = ?
+              group by conta_id, ano_mes
+              order by conta_id, ano_mes
+         '''
 
-
+        values = self.__db.execute(sql, (self.__conta_dc.id,)).fetchall()
+        self.columns = [VisaoGeralColumn(*value) for value in values]
 

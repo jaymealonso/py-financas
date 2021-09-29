@@ -4,6 +4,7 @@ import typing
 import view.icons.icons as icons
 import view.contas_vw as cv
 from view.imp_lanc_vw import ImportarLancamentosView
+from view.TableLine import TableLine
 from model.Conta import Conta
 from model.Categoria import Categorias
 from model.Lancamento import Lancamentos, Lancamento
@@ -173,7 +174,6 @@ class LancamentosView(QWidget):
             self.table.setItem(new_index, 1, QTableWidgetItem(row.nr_referencia))
             self.table.setItem(new_index, 2, QTableWidgetItem(row.descricao))
             self.table.setCellWidget(new_index, 3, self.tableline.get_date_input(row.data, new_index, 3))
-            # self.table.setItem(new_index, 4, QTableWidgetItem(str(row.categoria_id)))
             self.table.setCellWidget(new_index, 4, self.tableline.get_categorias_lanc_dropdown(row.categoria_id, new_index, 4))
             self.table.setCellWidget(new_index, 5, self.tableline.get_currency_input(row.valor, new_index, 5))
             self.table.setCellWidget(new_index, 6, self.tableline.get_del_button(self, str(row.id)))
@@ -182,16 +182,12 @@ class LancamentosView(QWidget):
 
         # Adiciona linhe de TOTAL no final
         self.table_add_total_line(total_value)
-        # new_index = self.table.rowCount()
-        # self.table.insertRow(new_index)
-        # self.table.setCellWidget(new_index, 5, self.tableline.get_label_for_total_curr(total_value))
 
         self.table.cellDoubleClicked.connect(self.on_table_cell_doubleclick)
 
         self.table.cellChanged.connect(self.table_cell_changed)
         print("> Cellchanged connected again!")
 
-        # self.table.resizeColumnToContents(0)
         self.table.resizeColumnsToContents()
         self.table.setColumnWidth(6, 100)
 
@@ -211,7 +207,7 @@ class LancamentosView(QWidget):
             combobox.setEditable(True)
 
 
-class LancamentoTableLine(QObject):
+class LancamentoTableLine(TableLine):
     def __init__(self, parent: LancamentosView):
         super(QObject, self).__init__()
         self.parentOne: LancamentosView = parent
@@ -225,13 +221,6 @@ class LancamentoTableLine(QObject):
         stylesheet = f"margin-right:3px; margin-left:3px; font-weight:bold; {color}"
         label.setStyleSheet(stylesheet)
         label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        return label
-
-    @staticmethod
-    def get_label_for_id(value: str):
-        label = QLabel(value)
-        label.setStyleSheet("color:red")
-        label.setAlignment(Qt.AlignCenter)
         return label
 
     def get_date_input(self, date: datetime.date, row:int, col:int):

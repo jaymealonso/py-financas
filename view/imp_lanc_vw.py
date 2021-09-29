@@ -10,6 +10,7 @@ from model.Lancamento import Lancamentos, Lancamento
 from view.TableLine import TableLine
 from util.toaster import QToaster
 
+
 class ImportarLancamentosView(QWidget):
     def __init__(self, parent: QWidget, conta_dc: Conta):
 
