@@ -4,11 +4,12 @@ from view.TableLine import TableLine
 from view.visao_mensal_vw import VisaoGeralView
 from typing import Tuple
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIntValidator, QValidator, QCursor
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QToolBar, QTableWidget, QTableWidgetItem, QComboBox, \
-   QLineEdit, QPushButton, QMainWindow, QMessageBox, QApplication
+from PyQt5.QtGui import QIntValidator, QValidator, QCursor, QStandardItemModel, QStandardItem
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QToolBar, QComboBox, QLineEdit, QPushButton, QMainWindow, \
+    QMessageBox, QApplication, QTableView
 from model.Conta import ContasTipo, Contas, Conta
 from util.events import subscribe, unsubscribe_refs, Eventos
+from util.custom_component import ComboBoxDelegate
 
 
 class ContasView(QWidget):
@@ -17,7 +18,7 @@ class ContasView(QWidget):
         1: {"title": "Descrição", "sql_colname": "descricao"},
         2: {"title": "Número", "sql_colname": "numero"},
         3: {"title": "Moeda", "sql_colname": "moeda" },
-        4: {"title": "Tipo", "sql_colname": "tipo"},
+        4: {"title": "Tipo", "sql_colname": "tipo_id"},
         5: {"title": "Total"},
         6: {"title": "Ñ classif."},
         7: {"title": "Classif."},
@@ -32,9 +33,9 @@ class ContasView(QWidget):
         layout = QVBoxLayout()
 
         self.main_window = parent
-        self.toolbar: QToolBar = None
-        self.table: QTableWidget = None
-        self.tipos_conta: ContasTipo = ContasTipo()
+        self.toolbar = QToolBar()
+        self.table = QTableView()
+        self.model_tps_conta: ContasTipo = ContasTipo()
         self.model_contas = Contas()
         self.lanc_windows: Tuple[view.lanc_vw.LancamentosView] = {}
         self.visao_geral_window = None
@@ -43,9 +44,9 @@ class ContasView(QWidget):
         layout.addWidget(self.get_table())
 
         self.setLayout(layout)
+        self.on_open_lancamentos("5")
 
     def get_toolbar(self):
-        self.toolbar = QToolBar()
         add_act = self.toolbar.addAction(icons.add(), "Adicionar Conta")
         add_act.triggered.connect(lambda: self.on_add_conta())
         self.toolbar.addSeparator()
@@ -111,18 +112,18 @@ class ContasView(QWidget):
         self.load_table_data()
 
     def get_table(self):
-        self.table = QTableWidget()
-        self.table.setColumnCount(len(self.COLUMNS))
+        model = QStandardItemModel(0, len(self.COLUMNS))
+        model.setHorizontalHeaderLabels([col["title"] for col in self.COLUMNS.values()])
+        self.table.setModel(model)
         self.table.verticalHeader().setVisible(False)
-        self.table.setHorizontalHeaderLabels([col["title"] for col in self.COLUMNS.values()])
         self.load_table_data()
 
         return self.table
 
-    def table_cell_changed(self, row: int, col: int):
-        conta_dc = self.model_contas.items()[row]
-        item = self.table.item(row, col)
-        column_data = self.COLUMNS.get(col)
+    # def table_cell_changed(self, row: int, col: int):
+    def model_item_changed(self, item):
+        conta_dc = self.model_contas.items()[item.row()]
+        column_data = self.COLUMNS.get(item.column())
 
         print(f"Modificando conta numero:{conta_dc.id} campo \"{column_data['sql_colname']}\" para valor \"{item.text()}\"")
         conta_dc.__setattr__(column_data["sql_colname"], item.text())
@@ -130,54 +131,60 @@ class ContasView(QWidget):
 
     def load_table_data(self):
         QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
+        model = self.table.model()
         try:
-            print("> Disconnecting table cellChanged... ", end=" ")
-            self.table.cellChanged.disconnect()
+            print("> Disconnecting model.itemChanged ... ", end=" ")
+            model.itemChanged.disconnect()
             print("Disconnected!")
         except:
-            print("Cellchanged not connected!")
+            print("was not connected!")
 
         print("Loading contas data...")
         self.model_contas.load()
 
         # Limpa a tabela
-        self.table.setRowCount(0)
+        model.setRowCount(0)
 
         line = ContaTableLine(self)
 
-        print("Preenchendo dados na tabela.")
-        for row in self.model_contas.items():
-            new_index = self.table.rowCount()
-            self.table.insertRow(new_index)
+        self.table.setItemDelegateForColumn(4, line.get_tipo_conta_dropdown_delegate())
 
-            # self.table.setItem(new_index, 0, QTableWidgetItem(str(row.id)))
-            self.table.setCellWidget(new_index, 0, line.get_label_for_id(str(row.id)))
-            self.table.setItem(new_index, 1, QTableWidgetItem(row.descricao))
-            # self.table.setCellWidget(new_index, 2, line.get_number_input(row.numero))
-            self.table.setItem(new_index, 2, QTableWidgetItem(row.numero))
-            self.table.setItem(new_index, 3, QTableWidgetItem(row.moeda))
-            # self.table.setItem(new_index, 4, QTableWidgetItem(self.tipos_conta.getByKey(row.tipo_id).descricao))
-            self.table.setCellWidget(new_index, 4, line.get_tipo_conta_dropdown(row))
-            self.table.setCellWidget(new_index, 5, line.get_label_for_total_curr(row.total))
-            self.table.setCellWidget(new_index, 6, line.get_label_for_n_class(row.lanc_n_class))
-            self.table.setCellWidget(new_index, 7, line.get_label_for_classif(row.lanc_classif))
-            self.table.setCellWidget(new_index, 8, line.get_del_button(str(row.id)))
-            self.table.setCellWidget(new_index, 9, line.get_open_lanc_button(str(row.id)))
-            self.table.setCellWidget(new_index, 10, line.get_visao_mensal(str(row.id)))
+        rows = self.model_contas.items()
+
+        print("Preenchendo dados na tabela.")
+        for row in rows:
+            new_index = model.rowCount()
+            model.insertRow(new_index)
+
+            self.table.setIndexWidget(model.index(new_index, 0),
+                                      line.get_label_for_id(str(row.id)))
+
+            model.setItem(new_index, 1, QStandardItem(row.descricao))
+            model.setItem(new_index, 2, QStandardItem(row.numero))
+            model.setItem(new_index, 3, QStandardItem(row.moeda))
+
+            model.setItemData(model.index(new_index, 4), {0: row.tipo_id})
+
+            self.table.setIndexWidget(model.index(new_index, 5), line.get_label_for_total_curr(row.total))
+            self.table.setIndexWidget(model.index(new_index, 6), line.get_label_for_n_class(row.lanc_n_class))
+            self.table.setIndexWidget(model.index(new_index, 7), line.get_label_for_classif(row.lanc_classif))
+            self.table.setIndexWidget(model.index(new_index, 8), line.get_del_button(str(row.id)))
+            self.table.setIndexWidget(model.index(new_index, 9), line.get_open_lanc_button(str(row.id)))
+            self.table.setIndexWidget(model.index(new_index, 10), line.get_visao_mensal(str(row.id)))
 
         self.table.resizeColumnToContents(0)
         self.table.resizeColumnToContents(1)
         self.table.resizeColumnToContents(2)
         self.table.resizeColumnToContents(3)
-        self.table.resizeColumnToContents(4)
+        self.table.setColumnWidth(4, 260)
         self.table.setColumnWidth(6, 120)
         self.table.setColumnWidth(7, 120)
         self.table.setColumnWidth(8, 100)
         self.table.setColumnWidth(9, 100)
         self.table.setColumnWidth(10, 130)
 
-        self.table.cellChanged.connect(self.table_cell_changed)
-        print("> Cellchanged connected again!")
+        model.itemChanged.connect(self.model_item_changed)
+        print("> itemChanged connected again!")
         QApplication.restoreOverrideCursor()
 
 
@@ -227,11 +234,20 @@ class ContaTableLine(TableLine):
             color = '#f6989d'  # red
         sender.setStyleSheet('QLineEdit { background-color: %s }' % color)
 
+    def get_tipo_conta_dropdown_delegate(self):
+        tipos_conta = {}
+        for item in self.parentOne.model_tps_conta.items():
+            tipos_conta[item.id] = item.descricao
+
+        cmb_delegate = ComboBoxDelegate(tipos_conta, self.parentOne.table)
+
+        return cmb_delegate
+
     def get_tipo_conta_dropdown(self, conta: Conta):
         combobox = QComboBox()
         index: int = 0
         # for tipo_conta in self.parentOne.tipos_conta.items():
-        items = self.parentOne.tipos_conta.items()
+        items = self.parentOne.model_tps_conta.items()
         for key, item_index in enumerate(items):
             item = items.get(item_index)
             if item.id == conta.tipo_id:
@@ -267,4 +283,3 @@ class ContaTableLine(TableLine):
         op_lanc_pbutt.setIcon(icons.visao_mensal())
         op_lanc_pbutt.clicked.connect(lambda: self.parentOne.on_open_visao_mensal(conta_id))
         return op_lanc_pbutt
-

@@ -7,12 +7,10 @@ def str_curr_to_locale(value: str) -> str:
     return float_to_locale(str_curr_to_float(value))
 
 
-def str_curr_to_float(str: str) -> float:
-    # is_negative = "-" in str
-    # value = str.replace(".", "").replace(",", ".").replace("-", "").strip()
-    value_float = locale.atof(str)
-    # if is_negative:
-    #     value_float = value_float * -1
+def str_curr_to_float(value: str) -> float:
+    if value == "":
+        value = "0"
+    value_float = locale.atof(value)
     return value_float
 
 

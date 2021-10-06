@@ -23,7 +23,7 @@ class MainWindow(QMainWindow):
         self.toolbar = self.addToolBar("Main")
         self.fill_toolbar(self.toolbar)
 
-        layout = QVBoxLayout()
+        layout = QVBoxLayout(self.window())
         layout.addWidget(self.tabbar)
         self.container = QWidget()
         self.container.setLayout(layout)
@@ -44,7 +44,7 @@ class MainWindow(QMainWindow):
         #     event.accept()
 
     def get_tabbar(self):
-        self.tabbar = QTabWidget()
+        self.tabbar = QTabWidget(self.window())
 
         self.tabbar.addTab(ContasView(self), "Contas")
         self.tabbar.addTab(CategoriasView(), "Categorias")

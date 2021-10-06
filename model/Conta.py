@@ -11,17 +11,16 @@ class ContaTipo:
 
 class ContasTipo:
     def __init__(self):
-        self.__items: dict[str, ContaTipo] = {}
+        self.__items: List[ContaTipo] = []
         self.db = Database().db
         self.load()
 
     def load(self):
         cursor = self.db.execute('select * from contas_tipo')
-        # col_names = cursor.description
         result = cursor.fetchall()
         for i in result:
             row = ContaTipo(*i)
-            self.__items[row.id] = row
+            self.__items.append(row)
 
     def items(self):
         return self.__items

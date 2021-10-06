@@ -40,21 +40,32 @@ class VisaoGeralView(QWidget):
         self.model_visao_mensal.load()
 
         # unique row_labels
-        row_labels = self.model_visao_mensal.get_unique_row_labels()
-        self.table.setRowCount(len(row_labels))
-        for key, row_label in enumerate(row_labels):
+        categorias_labels = self.model_visao_mensal.get_unique_row_labels()
+        self.table.setRowCount(len(categorias_labels) + 1)
+        self.table.setColumnCount(len(self.model_visao_mensal.columns) + 1)
+
+        for key, row_label in enumerate(categorias_labels):
             self.table.setItem(key, 0, QTableWidgetItem(row_label or "(vazio)"))
-
-        self.table.setColumnCount(len(self.model_visao_mensal.columns))
         header_labels = [col.ano_mes for col in self.model_visao_mensal.columns]
+        header_labels.insert(0, "Categoria")
         self.table.setHorizontalHeaderLabels(header_labels)
-        self.table.setVerticalHeaderLabels(row_labels)
+        # self.table.setVerticalHeaderLabels(row_labels)
 
+        row_index = 0
         for cell in self.model_visao_mensal.values:
             col_index = header_labels.index(cell.ano_mes)
-            row_index = row_labels.index(cell.nm_categoria)
+            row_index = categorias_labels.index(cell.nm_categoria)
             # self.table.setItem(row_index, col_index, QTableWidgetItem(curr.float_to_locale(cell.valor)))
             self.table.setCellWidget(row_index, col_index, self.line.get_label_for_currency(cell.valor))
+
+        # TOTAL
+        row_index += 1
+        for key, col_label in enumerate(header_labels):
+            if key < 1:
+                self.table.setCellWidget(row_index, key, self.line.get_label_for_total_text("TOTAL"))
+                continue
+            total = sum([cell.valor for cell in self.model_visao_mensal.values if cell.ano_mes == col_label])
+            self.table.setCellWidget(row_index, key, self.line.get_label_for_total(total))
 
 
 class VisaoGeralViewLine(TableLine):
@@ -62,6 +73,15 @@ class VisaoGeralViewLine(TableLine):
         label = super().get_label_for_currency(value)
         return label
 
+    def get_label_for_total(self, value: float):
+        label = super().get_label_for_currency(value)
+        label.setStyleSheet(f"{label.styleSheet()}; font-weight: bold")
+        return label
+
+    def get_label_for_total_text(self, value: str):
+        label = QLabel(value)
+        label.setStyleSheet("font-weight: bold")
+        return label
 
 
 
