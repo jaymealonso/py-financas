@@ -1,11 +1,12 @@
+import os.path
 from datetime import datetime
 import openpyxl
 import view.icons.icons as icons
 from model.Conta import Conta
 from PyQt5.QtGui import QCursor
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QLineEdit, \
-    QPushButton, QFileDialog, QTableWidgetItem, QToolBar, QApplication, QLabel, QComboBox
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QLineEdit, QPushButton, QFileDialog, \
+    QTableWidgetItem, QToolBar, QApplication, QLabel, QComboBox, QMessageBox
 from model.Lancamento import Lancamentos, Lancamento
 from view.TableLine import TableLine
 from util.toaster import QToaster
@@ -122,18 +123,26 @@ class ImportarLancamentosView(QWidget):
     def on_procurar_clicked(self):
         dialog = QFileDialog()
         dialog.setFileMode(QFileDialog.ExistingFile)
-        path = dialog.getOpenFileName()
-        self.file_path.setText(path[0])
-        self.on_importar_clicked()
+        (fileName, selectedFilter) = dialog.getOpenFileName()
+        if os.path.isfile(fileName):
+            self.file_path.setText(fileName)
+            self.on_importar_clicked()
 
     def on_importar_clicked(self):
-        QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
         path = self.file_path.text()
         if not path:
             return
-
-        wb = openpyxl.load_workbook(path)
+        try:
+            wb = openpyxl.load_workbook(path)
+        except:
+            QMessageBox(QMessageBox.Warning, "Erro no formato",
+                        f"Arquivo \"{self.file_path.text()}\" não parece estar no formato excel.",
+                        QMessageBox.Ok).exec_()
+            self.file_path.setText("")
+            return
         ws = wb.active
+
+        QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
 
         column_count = len(list(ws.columns))
         self.table.setColumnCount(column_count)
@@ -186,9 +195,9 @@ class ImportarLancamentosTableLine(TableLine):
         4: {"name": "Valor", "sql_colname": "valor"}
     }
 
-    def __init__(self, parentView: ImportarLancamentosView):
+    def __init__(self, parent_view: ImportarLancamentosView):
         super(TableLine, self).__init__()
-        self.parentView = parentView
+        self.parentView = parent_view
 
     def get_combo(self):
         combo = QComboBox()

@@ -9,23 +9,23 @@ from util.settings import Settings
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, app:QApplication):
+    def __init__(self, app: QApplication):
         super(MainWindow, self).__init__()
 
         self.app = app
-        self.setWindowTitle("Finanças - Python")
-        self.setMinimumSize(800, 600)
         self.settings = Settings()
-        if not self.settings.load_main_w_settings(self):
-            self.resize(1600, 900)
-
         self.tabbar = self.get_tabbar()
         self.toolbar = self.addToolBar("Main")
         self.fill_toolbar(self.toolbar)
 
+        self.setWindowTitle("Finanças - Python")
+        self.setMinimumSize(800, 600)
+        if not self.settings.load_main_w_settings(self):
+            self.resize(1600, 900)
+
         layout = QVBoxLayout(self.window())
         layout.addWidget(self.tabbar)
-        self.container = QWidget()
+        self.container = QWidget(self)
         self.container.setLayout(layout)
 
         self.setCentralWidget(self.container)

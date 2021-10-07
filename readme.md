@@ -24,7 +24,7 @@ Outras funcionalidades (planejadas):
   - [Instalar o sqlite3](#instalar-o-sqlite3)
   - [Instalar o pyinstaller](#instalar-o-pyinstaller)
   - [Instalar o openpyxl](#instalar-o-openpyxl)
-- [Para executar](#pra-executar)
+- [Para executar](#para-executar)
 
 ---
 
@@ -36,13 +36,14 @@ Os icones foram pegos desta coleção, provavelmente irão mudar no futuro.
 Para configurar o ambiente e executar o projeto deve-se instalar as bibliotecas abaixo:
 
 ### Instalar o Python
-> Baixar o python no link
+Baixar o python no link
 > `https://www.python.org/downloads/`
 > 
 > Obs:. Eu estou utilizando a versão 3.9.7 
 
 ### Instalar o PyQt5
 PyQt5 é uma biblioteca port do C++ para criação de interfaces visuais com janelas, botões, etc.
+[mais sobre PyQt aqui](https://realpython.com/python-pyqt-gui-calculator/#understanding-pyqt) 
 > 
 > `pip install PyQt5`
 
@@ -52,13 +53,13 @@ SqLite é um banco de dados simples que é utilizado para facilitar a persistên
 > `pip install sqlite3`
 
 ### Instalar o pyinstaller
-A Lib `pyinstaller` possibilita o empacotamento do script em um arquivo `.exe`
+A Lib `pyinstaller` possibilita o empacotamento do script em um arquivo `.exe` e também pode gerar um arquivo de instalação.
 >
 > `pip install pyinstaller`
  
 ### Instalar o openpyxl
 A biblioteca `openpyxl` é usado para importar e interpretar dados em arquivo excel (geralmente exportado pelo banco)
-
+>
 > `pip install openpyxl`
 
 ## Para executar

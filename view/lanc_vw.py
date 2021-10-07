@@ -67,6 +67,9 @@ class LancamentosView(QWidget):
         import_act = self.toolbar.addAction(icons.import_file(), "Importar Lançamentos")
         import_act.triggered.connect(self.on_import_lancam)
 
+        refresh_act = self.toolbar.addAction(icons.atualizar(), "Atualizar")
+        refresh_act.triggered.connect(lambda: self.load_table_data())
+
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.toolbar.addWidget(spacer)
@@ -94,6 +97,7 @@ class LancamentosView(QWidget):
     def table_cell_changed(self, row: int, col: int):
         lancamento_dc = self.model_lancamentos.items()[row]
         model = self.table.model()
+        print(f"Cell changed row/col: {row}/{col}")
         item = model.item(row, col)
         if item:
             value = item.text()
@@ -183,12 +187,10 @@ class LancamentosView(QWidget):
                                       self.tableline.get_label_for_id(str(row.id)))
             model.setItem(new_index, 1, QStandardItem(row.nr_referencia))
             model.setItem(new_index, 2, QStandardItem(row.descricao))
-            # self.table.setIndexWidget(model.index(new_index, 3),
-            #                           self.tableline.get_date_input(row.data, new_index, 3))
+
             model.setItemData(model.index(new_index, 3), {0: row.data})
             model.setItemData(model.index(new_index, 4), {0: row.categoria_id or 0})
-            # self.table.setIndexWidget(model.index(new_index, 4),
-            #                           self.tableline.get_categorias_lanc_dropdown(row.categoria_id, new_index, 4))
+
             self.table.setIndexWidget(model.index(new_index, 5),
                                       self.tableline.get_currency_input(row.valor, new_index, 5))
             self.table.setIndexWidget(model.index(new_index, 6),
@@ -205,7 +207,7 @@ class LancamentosView(QWidget):
         self.table.resizeColumnToContents(0)
         self.table.resizeColumnToContents(1)
         self.table.resizeColumnToContents(2)
-        # self.table.resizeColumnToContents(3)
+        self.table.setColumnWidth(3, 160)
         self.table.setColumnWidth(4, 260)
         self.table.resizeColumnToContents(5)
         self.table.setColumnWidth(6, 100)
@@ -263,14 +265,6 @@ class LancamentoTableLine(TableLine):
     def get_date_input(self):
         date = DateEditDelegate(self.parentOne.table)
         return date
-
-        # value = QDate(int(date[:4]), int(date[5:7]), int(date[8:10]))
-        # date_edit = QDateEdit()
-        # date_edit.setCalendarPopup(True)
-        # date_edit.setDate(value)
-        # date_edit.dateChanged.connect(lambda: self.parentOne.table.cellChanged.emit(row, col))
-        #
-        # return date_edit
 
     def get_currency_input(self, valor: float, row: int, col: int):
         line_edit = QCurrencyLineEdit()
@@ -344,39 +338,31 @@ class QCurrencyLineEdit(QLineEdit):
 
 
 class QCurrencyValidator(QValidator):
-    def validate(self, a0: str, a1: int) -> typing.Tuple['QValidator.State', str, int]:
-        print(f"Enter check validation a0: '{a0}', a1: '{a1}'.")
+    def validate(self, text_to_validate: str, new_char_index: int) -> typing.Tuple['QValidator.State', str, int]:
+        print(f"Enter check validation a0: '{text_to_validate}', a1: '{new_char_index}'.")
 
         # Check if there is a char that do not belong here
         regexp = QRegExp("[\\-0-9,. ]*")
-        if not regexp.exactMatch(a0):
-            print(f"VALIDATED a0: '{a0}', a1: '{a1}'. Invalid")
-            return QValidator.Invalid, a0, a1
+        if not regexp.exactMatch(text_to_validate):
+            print(f"VALIDATED text: '{text_to_validate}', new char index: '{new_char_index}'. Invalid")
+            return QValidator.Invalid, text_to_validate, new_char_index
 
         # Check number format
         regexp = QRegExp("^-?(\\d{1,3}(\\.\\d{1,3})*|(\\d+))*(\\,)?(\\d*)?$")
-        if not regexp.exactMatch(a0):
-            print(f"VALIDATED NOT OK = a0: '{a0}', a1: '{a1}'. Intermediateinv ")
+        if not regexp.exactMatch(text_to_validate):
+            print(f"VALIDATED NOT OK = text: '{text_to_validate}', new char index: '{new_char_index}'. Intermediateinv ")
             try:
-                a0 = self.fixup1(a0)
-                return QValidator.Acceptable, a0, a1
+                text_to_validate = curr.str_curr_to_locale(text_to_validate)
+                return QValidator.Acceptable, text_to_validate, new_char_index
             except:
-                return QValidator.Invalid, a0, a1
+                return QValidator.Invalid, text_to_validate, new_char_index
         else:
-            print(f"VALIDATED OK = a0: '{a0}', a1: '{a1}'. Acceptable")
+            print(f"VALIDATED OK = text: '{text_to_validate}', new char index: '{new_char_index}'. Acceptable")
             try:
-                a0 = curr.str_curr_to_locale(a0)
+                text_to_validate = curr.str_curr_to_locale(text_to_validate)
             except:
                 pass
-            return QValidator.Acceptable, a0, a1
+            return QValidator.Acceptable, text_to_validate, new_char_index
 
-    def fixup1(self, a0: str) -> str:
-        try:
-            value_str = curr.str_curr_to_locale(a0)
-            print(f"FIXUP a0: {a0} ==> {value_str}.")
-            return value_str
-        except Exception as e:
-            print(f"Exception, return{a0}.")
-            return a0
 
 
