@@ -16,9 +16,11 @@ Outras funcionalidades (planejadas):
 
 ---
 
+__TOC__
+
 ## Sumário
 - [Icones em](##Icones em)
-- [Setup](##Setup)
+- [Setup](#setup)
   - [Instalar o Python](###Instalar o Python)
   - [Instalar o PyQt5](###Instalar o PyQt5) 
   - [Instalar o sqlite3](###Instalar o sqlite3)
