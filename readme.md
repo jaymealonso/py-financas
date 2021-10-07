@@ -7,25 +7,24 @@ Este projeto tem como inspiração o Microsoft Money mas com a adição de outra
 
 Outras funcionalidades (planejadas):
 
-- Exibição de tabela/planilha receitas e despesas no movimento bancário(extrato) agrupadas por categorias 
-- Importação de XLS/XLSX com movimento bancário
-- Exportação para Excel
-- Agendamento de despesas recorrentes para controle do que foi pago
-- Organização de uma estrututa de arquivos(PDF/IMG/Outros) em diretórios com fatura, comprovantes de pagamento e outros.
-- Associação das despesas agendadas com os arquivos relacionados de fatura, comprovantes de pagamento e outros.
+- [x] Visão Mensal: Exibição de tabela/planilha receitas e despesas no movimento bancário(extrato) agrupadas por categorias 
+- [x] Importar Lançamentos: Importação de XLS/XLSX com movimento bancário
+- [ ] Exportação para Excel
+- [ ] Agendamento de despesas recorrentes para controle do que foi pago
+- [ ] Organização de uma estrututa de arquivos(PDF/IMG/Outros) em diretórios com fatura, comprovantes de pagamento e outros.
+- [ ] Associação das despesas agendadas com os arquivos relacionados de fatura, comprovantes de pagamento e outros.
 
 ---
 
 ## Sumário
-- [Icones em](##Icones em)
-- [Setup](##Setup)
-  - [Instalar o Python](###Instalar o Python)
-  - [Instalar o PyQt5](###Instalar o PyQt5) 
-  - [Instalar o sqlite3](###Instalar o sqlite3)
-  - [Instalar o pyinstaller](###Instalar o pyinstaller)
-  - [instalar o pandas]
-  - [instalar o openpyxl]
-- [Para executar](##Para executar)
+- [Icones em](#icones-em)
+- [Setup](#setup)
+  - [Instalar o Python](#instalar-o-python)
+  - [Instalar o PyQt5](#instalar-o-pyqt5) 
+  - [Instalar o sqlite3](#instalar-o-sqlite3)
+  - [Instalar o pyinstaller](#instalar-o-pyinstaller)
+  - [Instalar o openpyxl](#Instalar-o-openpyxl)
+- [Para executar](#pra-executar)
 
 ---
 
@@ -43,22 +42,28 @@ Para configurar o ambiente e executar o projeto deve-se instalar as bibliotecas 
 > Obs:. Eu estou utilizando a versão 3.9.7 
 
 ### Instalar o PyQt5
-> PyQt5 é uma biblioteca port do C++ para criação de interfaces visuais com janelas, botões, etc.
+PyQt5 é uma biblioteca port do C++ para criação de interfaces visuais com janelas, botões, etc.
 > 
 > `pip install PyQt5`
 
 ### Instalar o SqLite3
-> SqLite é um banco de dados simples que é utilizado para facilitar a persistência dos dados dentro do aplicativo
+SqLite é um banco de dados simples que é utilizado para facilitar a persistência dos dados dentro do aplicativo
 > 
 > `pip install sqlite3`
 
 ### Instalar o pyinstaller
-> A Lib `pyinstaller` possibilita o empacotamento do script em um arquivo `.exe`
-> 
+A Lib `pyinstaller` possibilita o empacotamento do script em um arquivo `.exe`
+>
 > `pip install pyinstaller`
  
+### Instalar o openpyxl
+A biblioteca `openpyxl` é usado para importar e interpretar dados em arquivo excel (geralmente exportado pelo banco)
+
+> `pip install openpyxl`
+
 ## Para executar
 Para executar via console use o comando abaixo:
+
 > `python main.py`
  
 ## Criar executavel
