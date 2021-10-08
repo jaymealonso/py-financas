@@ -16,7 +16,7 @@ class Categorias:
 
     def load(self):
         self.__categorias.clear()
-        sql = 'select * from categorias'
+        sql = 'select * from categorias order by nm_categoria'
         result = self.__db.execute(sql,).fetchall()
         print(f"Carregadas {len(result)} categorias.")
         for i in result:

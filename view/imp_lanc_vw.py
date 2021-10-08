@@ -132,6 +132,8 @@ class ImportarLancamentosView(QWidget):
         path = self.file_path.text()
         if not path:
             return
+        # Limpa toda a tabela
+        self.table.clear()
         try:
             wb = openpyxl.load_workbook(path)
         except:
@@ -163,13 +165,19 @@ class ImportarLancamentosView(QWidget):
 
             self.table.insertRow(row_no)
             column_no = 0
-            print(f"Adding row {row_no}...", end=" ")
-            print("Added!")
+            print(f"Adding row {row_no} cols: ", end=" ")
             for cell in row:
-                cell = QTableWidgetItem(cell.value)
-                cell.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
-                self.table.setItem(row_no, column_no, cell)
+                if hasattr(cell, "is_date") and cell.is_date:
+                    cell_widget = QTableWidgetItem(cell.value.isoformat()[:10])
+                elif isinstance(cell.value, float) or isinstance(cell.value, int):
+                    cell_widget = QTableWidgetItem(str(cell.value))
+                else:
+                    cell_widget = QTableWidgetItem(cell.value)
+                cell_widget.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+                self.table.setItem(row_no, column_no, cell_widget)
+                print(f"{column_no},", end=" ")
                 column_no += 1
+            print(" Finished ROW!")
 
             row_no += 1
 

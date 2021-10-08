@@ -10,8 +10,8 @@ from model.Categoria import Categorias
 from model.Lancamento import Lancamentos, Lancamento
 from PyQt5.QtGui import QCloseEvent, QValidator, QStandardItemModel, QCursor, QStandardItem
 from PyQt5.QtCore import Qt, QObject, QRegExp, QDate, QLocale
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTableView, QLineEdit, QPushButton, QToolBar, QSizePolicy, \
-    QMessageBox, QLabel, QComboBox, QDateEdit, QCheckBox, QApplication
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QTableView, QLineEdit, QPushButton, QToolBar, \
+    QSizePolicy, QMessageBox, QLabel, QComboBox, QDateEdit, QCheckBox, QApplication
 from util.toaster import QToaster
 from util.events import post_event, Eventos
 import util.curr_formatter as curr
@@ -38,6 +38,7 @@ class LancamentosView(QWidget):
         self.conta_dc = conta_dc
         self.parent: cv.ContasView = parent
         self.import_lanc_view = None
+        self.total_label = TotalCurrLabel()
         self.model_lancamentos = Lancamentos(conta_dc)
         self.model_categorias = Categorias()
         self.model_categorias.load()
@@ -53,8 +54,23 @@ class LancamentosView(QWidget):
         layout = QVBoxLayout()
         layout.addWidget(self.get_toolbar())
         layout.addWidget(self.get_table())
+        layout.addWidget(self.get_footer())
 
         self.setLayout(layout)
+
+    def get_footer(self):
+        layout = QHBoxLayout()
+
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+        layout.insertStretch(0)
+        layout.addWidget(QLabel("TOTAL"))
+        layout.addWidget(self.total_label)
+
+        footer = QWidget(self)
+        footer.setLayout(layout)
+        return footer
 
     def closeEvent(self, event: QCloseEvent) -> None:
         print(f"Lancamento close event INSIDE LANCAMENTOS conta: {self.conta_dc.id}")
@@ -121,8 +137,10 @@ class LancamentosView(QWidget):
 
         self.model_lancamentos.load()
         total_value = sum([x.valor for x in self.model_lancamentos.items()])
-        self.table_add_total_line(total_value, replace=True)
+        self.total_label.set_float_value(total_value)
+        # self.table_add_total_line(total_value, replace=True)
         self.parent.load_table_data()
+        self.table.setFocus()
 
     def on_del_lancamento(self, lancamento_id: int):
         if not self.check_del_not_ask.isChecked():
@@ -141,7 +159,6 @@ class LancamentosView(QWidget):
         print("Done !!!")
         self.load_table_data()
         self.parent.load_table_data()
-        pass
 
     def on_add_lancamento(self, show_message=True):
         print("Adding new lancamento in the database...")
@@ -163,6 +180,7 @@ class LancamentosView(QWidget):
 
     def load_table_data(self):
         QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
+        vert_scr_position = self.table.verticalScrollBar().value()
         model = self.table.model()
         try:
             print("> Disconnecting table itemChanged... ", end=" ")
@@ -201,8 +219,9 @@ class LancamentosView(QWidget):
         self.table.setItemDelegateForColumn(3, self.tableline.get_date_input())
         self.table.setItemDelegateForColumn(4, self.tableline.get_tipo_conta_dropdown_delegate())
 
-        # Adiciona linhe de TOTAL no final
-        self.table_add_total_line(total_value)
+        # Adiciona linha de TOTAL no final
+        self.total_label.set_float_value(total_value)
+        # self.table_add_total_line(total_value)
 
         self.table.resizeColumnToContents(0)
         self.table.resizeColumnToContents(1)
@@ -214,6 +233,7 @@ class LancamentosView(QWidget):
 
         model.itemChanged.connect(self.on_model_item_changed)
         print("> itemChanged connected again!")
+        self.table.verticalScrollBar().setValue(vert_scr_position)
         QApplication.restoreOverrideCursor()
 
     def on_model_item_changed(self, item):
@@ -237,21 +257,33 @@ class LancamentosView(QWidget):
             combobox.setEditable(True)
 
 
+class TotalCurrLabel(QLabel):
+    def set_float_value(self, value_float: float):
+        self.setText(curr.float_to_locale(value_float))
+        color = "color:darkgreen"
+        if value_float < 0:
+            color = "color:red"
+        stylesheet = f"margin-right:3px; margin-left:3px; font-weight:bold; {color}"
+        self.setStyleSheet(stylesheet)
+        self.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+
+
 class LancamentoTableLine(TableLine):
     def __init__(self, parent: LancamentosView):
         super(QObject, self).__init__()
         self.parentOne: LancamentosView = parent
 
-    @staticmethod
-    def get_label_for_total_curr(value: float):
-        label = QLabel(curr.float_to_locale(value))
-        color = "color:darkgreen"
-        if value < 0:
-            color = "color:red"
-        stylesheet = f"margin-right:3px; margin-left:3px; font-weight:bold; {color}"
-        label.setStyleSheet(stylesheet)
-        label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        return label
+    # @staticmethod
+    # def get_label_for_total_curr(value: float):
+    #
+    #     label = QLabel(curr.float_to_locale(value))
+    #     color = "color:darkgreen"
+    #     if value < 0:
+    #         color = "color:red"
+    #     stylesheet = f"margin-right:3px; margin-left:3px; font-weight:bold; {color}"
+    #     label.setStyleSheet(stylesheet)
+    #     label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+    #     return label
 
     def get_tipo_conta_dropdown_delegate(self):
         categorias = {0: "(vazio)"}

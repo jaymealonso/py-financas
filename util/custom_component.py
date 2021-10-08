@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QItemDelegate, QComboBox, QApplication, QStyle, QTab
 
 locale.setlocale(locale.LC_ALL, "pt_br")
 
+
 class ComboBoxDelegate(QStyledItemDelegate):
     def __init__(self, values: dict, parent_table: QTableView):
         super(ComboBoxDelegate, self).__init__(parent_table)
