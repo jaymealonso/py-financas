@@ -24,7 +24,7 @@ class Settings:
             print(f"Error loading window settings {e}.")
             return False
 
-    def save_lanc_settings(self, window: QWidget, conta_dc:Conta):
+    def save_lanc_settings(self, window: QWidget, conta_dc: Conta):
         """ Salvar configuracoes de posicao nas janelas de lançamento """
         self.settings.setValue(
             f"lanc-{conta_dc.id}/geometry",

@@ -65,12 +65,24 @@ class MainWindow(QMainWindow):
         load_act = toolbar.addAction(icons.save(), "Salvar")
         load_act.triggered.connect(self.on_save)
 
+        undo_act = toolbar.addAction(icons.undo(), "Desfazer")
+        undo_act.triggered.connect(self.on_undo)
+
+        redo_act = toolbar.addAction(icons.redo(), "Refazer")
+        redo_act.triggered.connect(self.on_redo)
+
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         toolbar.addWidget(spacer)
 
         config_act = toolbar.addAction(icons.configurar(), "Configurar")
         config_act.triggered.connect(self.on_configure)
+
+    def on_undo(self):
+        pass
+
+    def on_redo(self):
+        pass
 
     def on_configure(self):
         QToaster.showMessage(self, "On CONFIGURAR clicked", closable=False, timeout=2000, corner=Qt.BottomRightCorner)

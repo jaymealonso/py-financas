@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS lancamentos (
     nr_referencia TYPE TEXT NOT NULL,
     descricao type TEXT NOT NULL,
     data TYPE TEXT NOT NULL,
-    valor TYPE NUMERIC NOT NULL
+    valor TYPE INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS categorias (
@@ -105,11 +105,11 @@ INSERT INTO contas VALUES (null, 'BPI-CC', '4477889-888555', 'EUR', 1);
 INSERT INTO "lancamentos" ("_id","conta_id","nr_referencia","descricao","data","valor") VALUES (null,1,'334562','Transf China','2019-11-30',-2200);
 INSERT INTO "lancamentos" ("_id","conta_id","nr_referencia","descricao","data","valor") VALUES (null,1,'334563','Transf Port.','2019-11-30',-120);
 
-INSERT INTO "lancamentos" ("_id","conta_id","nr_referencia","descricao","data","valor") VALUES (null,2, '334562', 'Salário', '2019-11-30', 5000.00);
-INSERT INTO "lancamentos" ("_id","conta_id","nr_referencia","descricao","data","valor") VALUES (null,2, '334563', 'Compra bala', '2019-11-30', -100.00);
-INSERT INTO "lancamentos" ("_id","conta_id","nr_referencia","descricao","data","valor") VALUES (null,2, '334564', 'Comprar chiclete', '2019-11-30', -120.00);
-INSERT INTO "lancamentos" ("_id","conta_id","nr_referencia","descricao","data","valor") VALUES (null,2, '334565', 'Aluguel', '2019-12-01', -650.50);
-INSERT INTO "lancamentos" ("_id","conta_id","nr_referencia","descricao","data","valor") VALUES (null,2, '334566', 'Carro', '2019-12-02', -360.50);
+INSERT INTO "lancamentos" ("_id","conta_id","nr_referencia","descricao","data","valor") VALUES (null,2, '334562', 'Salário', '2019-11-30', 500000);
+INSERT INTO "lancamentos" ("_id","conta_id","nr_referencia","descricao","data","valor") VALUES (null,2, '334563', 'Compra bala', '2019-11-30', -10000);
+INSERT INTO "lancamentos" ("_id","conta_id","nr_referencia","descricao","data","valor") VALUES (null,2, '334564', 'Comprar chiclete', '2019-11-30', -12000);
+INSERT INTO "lancamentos" ("_id","conta_id","nr_referencia","descricao","data","valor") VALUES (null,2, '334565', 'Aluguel', '2019-12-01', -65050);
+INSERT INTO "lancamentos" ("_id","conta_id","nr_referencia","descricao","data","valor") VALUES (null,2, '334566', 'Carro', '2019-12-02', -36050);
 
 INSERT INTO lancamento_categoria values (1, 1);
 INSERT INTO lancamento_categoria values (2, 1);

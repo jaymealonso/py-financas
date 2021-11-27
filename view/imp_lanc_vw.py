@@ -219,12 +219,12 @@ class ImportarLancamentosTableLine(TableLine):
         mil_separator = self.parentView.mil_separator.text()
         try:
             curr_str = curr_str.replace(mil_separator, "").replace(decimal_separator, ".")
-            curr_float = float(curr_str)
+            curr_int = int(curr_str)
         except:
             print("Erro importando valor em currency!")
-            curr_float = 0
+            curr_int = 0
 
-        return curr_float
+        return curr_int
 
     def parse_date(self, date_str: str) -> datetime.date:
         date_format = self.parentView.date_format.text()

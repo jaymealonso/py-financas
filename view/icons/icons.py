@@ -47,3 +47,10 @@ def atualizar():
 def visao_mensal():
     return QIcon(QPixmap(path + r".\visao_mensal.png"))
 
+
+def undo():
+    return QIcon(QPixmap(path + r".\arrow_undo.png"))
+
+
+def redo():
+    return QIcon(QPixmap(path + r".\arrow_redo.png"))

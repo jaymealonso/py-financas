@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import QWidget, QVBoxLayout, QToolBar, QComboBox, QLineEdit
     QMessageBox, QApplication, QTableView
 from model.Conta import ContasTipo, Contas, Conta
 from util.events import subscribe, unsubscribe_refs, Eventos
-from util.custom_component import ComboBoxDelegate
+from util.custom_table_delegates import ComboBoxDelegate
 
 
 class ContasView(QWidget):
@@ -203,7 +203,7 @@ class ContaTableLine(TableLine):
         label.setStyleSheet("color:darkgreen;font-weight:bold")
         return label
 
-    def get_label_for_total_curr(self, value: float):
+    def get_label_for_total_curr(self, value: int):
         label = super().get_label_for_currency(value)
         color = "color:darkgreen"
         if value < 0:

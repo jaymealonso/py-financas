@@ -35,7 +35,7 @@ class Conta:
     tipo_id: str
     lanc_n_class: int = field(init=False)
     lanc_classif: int = field(init=False)
-    total: float = field(init=False)
+    total: int = field(init=False)
 
     def __post_init__(self):
         self.total = 0

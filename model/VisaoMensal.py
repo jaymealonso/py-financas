@@ -10,7 +10,7 @@ class VisaoGeralRow:
     ano_mes: str
     nm_categoria: str
     categoria_id: int
-    valor: float
+    valor: int
     moeda: str
 
 @dataclass

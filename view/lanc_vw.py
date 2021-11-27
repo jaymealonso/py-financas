@@ -1,6 +1,4 @@
-import locale
 import datetime
-import typing
 import view.icons.icons as icons
 import view.contas_vw as cv
 from view.imp_lanc_vw import ImportarLancamentosView
@@ -14,9 +12,10 @@ from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QTableView, QLine
     QSizePolicy, QMessageBox, QLabel, QComboBox, QDateEdit, QCheckBox, QApplication
 from util.toaster import QToaster
 from util.events import post_event, Eventos
+from util.currency_editor import QCurrencyLineEdit
 import util.curr_formatter as curr
 from util.settings import Settings
-from util.custom_component import ComboBoxDelegate, DateEditDelegate
+from util.custom_table_delegates import ComboBoxDelegate, DateEditDelegate, CurrencyEditDelegate
 
 
 class LancamentosView(QWidget):
@@ -127,7 +126,7 @@ class LancamentosView(QWidget):
             elif isinstance(widget, QComboBox):
                 value = widget.currentData()
             elif isinstance(widget, QCurrencyLineEdit):
-                value = curr.str_curr_to_float(widget.text())
+                value = curr.str_curr_to_int(widget.text())
 
         column_data = self.COLUMNS.get(col)
 
@@ -137,8 +136,7 @@ class LancamentosView(QWidget):
 
         self.model_lancamentos.load()
         total_value = sum([x.valor for x in self.model_lancamentos.items()])
-        self.total_label.set_float_value(total_value)
-        # self.table_add_total_line(total_value, replace=True)
+        self.total_label.set_int_value(total_value)
         self.parent.load_table_data()
         self.table.setFocus()
 
@@ -195,7 +193,7 @@ class LancamentosView(QWidget):
         # clear table
         model.setRowCount(0)
 
-        total_value = 0.0
+        total_value: int = 0
 
         for row in self.model_lancamentos.items():
             new_index = model.rowCount()
@@ -208,27 +206,26 @@ class LancamentosView(QWidget):
 
             model.setItemData(model.index(new_index, 3), {0: row.data})
             model.setItemData(model.index(new_index, 4), {0: row.categoria_id or 0})
+            model.setItemData(model.index(new_index, 5), {0: row.valor or 0})
 
-            self.table.setIndexWidget(model.index(new_index, 5),
-                                      self.tableline.get_currency_input(row.valor, new_index, 5))
             self.table.setIndexWidget(model.index(new_index, 6),
                                       self.tableline.get_del_button(self, str(row.id)))
 
-            total_value = total_value + float(row.valor)
+            total_value = total_value + row.valor
 
         self.table.setItemDelegateForColumn(3, self.tableline.get_date_input())
         self.table.setItemDelegateForColumn(4, self.tableline.get_tipo_conta_dropdown_delegate())
+        self.table.setItemDelegateForColumn(5, self.tableline.get_currency_value_delegate())
 
         # Adiciona linha de TOTAL no final
-        self.total_label.set_float_value(total_value)
-        # self.table_add_total_line(total_value)
+        self.total_label.set_int_value(total_value)
 
         self.table.resizeColumnToContents(0)
         self.table.resizeColumnToContents(1)
         self.table.resizeColumnToContents(2)
         self.table.setColumnWidth(3, 160)
         self.table.setColumnWidth(4, 260)
-        self.table.resizeColumnToContents(5)
+        self.table.setColumnWidth(5, 160)
         self.table.setColumnWidth(6, 100)
 
         model.itemChanged.connect(self.on_model_item_changed)
@@ -239,16 +236,6 @@ class LancamentosView(QWidget):
     def on_model_item_changed(self, item):
         self.table_cell_changed(item.row(), item.column())
 
-    def table_add_total_line(self, total: float, replace=False):
-        model = self.table.model()
-        last_index = model.rowCount()
-        if not replace:
-            model.insertRow(last_index)
-        else:
-            last_index -= 1
-        self.table.setIndexWidget(model.index(last_index, 5),
-                                  self.tableline.get_label_for_total_curr(total))
-
     def on_table_cell_doubleclick(self, row: int, col: int):
         if col == 4:
             item = self.model_lancamentos.items()[row]
@@ -258,10 +245,10 @@ class LancamentosView(QWidget):
 
 
 class TotalCurrLabel(QLabel):
-    def set_float_value(self, value_float: float):
-        self.setText(curr.float_to_locale(value_float))
+    def set_int_value(self, value_int: int):
+        self.setText(curr.int_to_locale(value_int))
         color = "color:darkgreen"
-        if value_float < 0:
+        if value_int < 0:
             color = "color:red"
         stylesheet = f"margin-right:3px; margin-left:3px; font-weight:bold; {color}"
         self.setStyleSheet(stylesheet)
@@ -273,17 +260,8 @@ class LancamentoTableLine(TableLine):
         super(QObject, self).__init__()
         self.parentOne: LancamentosView = parent
 
-    # @staticmethod
-    # def get_label_for_total_curr(value: float):
-    #
-    #     label = QLabel(curr.float_to_locale(value))
-    #     color = "color:darkgreen"
-    #     if value < 0:
-    #         color = "color:red"
-    #     stylesheet = f"margin-right:3px; margin-left:3px; font-weight:bold; {color}"
-    #     label.setStyleSheet(stylesheet)
-    #     label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-    #     return label
+    def get_currency_value_delegate(self) -> CurrencyEditDelegate:
+        return CurrencyEditDelegate(self.parentOne.table)
 
     def get_tipo_conta_dropdown_delegate(self):
         categorias = {0: "(vazio)"}
@@ -298,9 +276,9 @@ class LancamentoTableLine(TableLine):
         date = DateEditDelegate(self.parentOne.table)
         return date
 
-    def get_currency_input(self, valor: float, row: int, col: int):
+    def get_currency_input(self, valor: int, row: int, col: int):
         line_edit = QCurrencyLineEdit()
-        line_edit.setTextFloat(valor)
+        line_edit.setTextInt(valor)
 
         # SIGNALS
         line_edit.textChanged.connect(self.on_curr_input_text_changed)
@@ -336,65 +314,6 @@ class LancamentoTableLine(TableLine):
         return combobox
 
 
-class QCurrencyLineEdit(QLineEdit):
-    DEFAULT_STYLESHEET = "border: none; margin-right:3px; margin-left:3px"
-
-    def __init__(self):
-        super(QCurrencyLineEdit, self).__init__()
-        self.setAlignment(Qt.AlignRight)
-        self.setStyleSheet(self.DEFAULT_STYLESHEET)
-        self.setLocale(QLocale(QLocale.Portuguese, QLocale.Brazil))
-        self.setValidator(QCurrencyValidator())
-
-    def setText(self, a0: str) -> None:
-        try:
-            form_txt = curr.str_curr_to_locale(a0)
-        except:
-            form_txt = ''
-        super(QCurrencyLineEdit, self).setText(form_txt)
-        self.setTextFormat()
-
-    def setTextFloat(self, a0: float) -> None:
-        try:
-            form_txt = locale.currency(val=a0, symbol=False, grouping=True)
-        except:
-            form_txt = ''
-        self.setText(form_txt)
-
-    def setTextFormat(self):
-        float_value = curr.str_curr_to_float(self.text())
-        if float_value < 0:
-            self.setStyleSheet(f"{self.DEFAULT_STYLESHEET}; color: red")
-        else:
-            self.setStyleSheet(f"{self.DEFAULT_STYLESHEET}; color: darkgreen")
-
-
-class QCurrencyValidator(QValidator):
-    def validate(self, text_to_validate: str, new_char_index: int) -> typing.Tuple['QValidator.State', str, int]:
-        print(f"Enter check validation a0: '{text_to_validate}', a1: '{new_char_index}'.")
-
-        # Check if there is a char that do not belong here
-        regexp = QRegExp("[\\-0-9,. ]*")
-        if not regexp.exactMatch(text_to_validate):
-            print(f"VALIDATED text: '{text_to_validate}', new char index: '{new_char_index}'. Invalid")
-            return QValidator.Invalid, text_to_validate, new_char_index
-
-        # Check number format
-        regexp = QRegExp("^-?(\\d{1,3}(\\.\\d{1,3})*|(\\d+))*(\\,)?(\\d*)?$")
-        if not regexp.exactMatch(text_to_validate):
-            print(f"VALIDATED NOT OK = text: '{text_to_validate}', new char index: '{new_char_index}'. Intermediateinv ")
-            try:
-                text_to_validate = curr.str_curr_to_locale(text_to_validate)
-                return QValidator.Acceptable, text_to_validate, new_char_index
-            except:
-                return QValidator.Invalid, text_to_validate, new_char_index
-        else:
-            print(f"VALIDATED OK = text: '{text_to_validate}', new char index: '{new_char_index}'. Acceptable")
-            try:
-                text_to_validate = curr.str_curr_to_locale(text_to_validate)
-            except:
-                pass
-            return QValidator.Acceptable, text_to_validate, new_char_index
 
 
 

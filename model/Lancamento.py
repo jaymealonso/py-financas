@@ -13,7 +13,7 @@ class Lancamento:
     nr_referencia: str
     descricao: str
     data: datetime.date
-    valor: float
+    valor: int
     categoria_id: Optional[int]
 
 
@@ -38,7 +38,7 @@ class Lancamentos:
             self.__items.append(Lancamento(*i))
 
     def add_new(self, lancam: Lancamento):
-        sql = 'insert into lancamentos (_id, conta_id, nr_referencia, descricao, data, valor) values(?,?,?,?,?,?)'
+        sql = 'insert into lancamentos (_id, cont_id, nr_referencia, descricao, data, valor) values(?,?,?,?,?,?)'
         data = dataclasses.astuple(lancam)
 
         self.__db.execute(sql, data[:6])

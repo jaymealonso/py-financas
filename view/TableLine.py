@@ -18,16 +18,16 @@ class TableLine(QObject):
         return label
 
     @staticmethod
-    def get_label_for_currency(value: float):
-        label = QLabel(curr.float_to_locale(value))
+    def get_label_for_currency(value: int):
+        label = QLabel(curr.int_to_locale(value))
         label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         TableLine.__set_gr_rd_stylesheet(value, label)
         return label
 
     @staticmethod
-    def __set_gr_rd_stylesheet(value_float: float, source: QWidget):
+    def __set_gr_rd_stylesheet(value_int: int, source: QWidget):
         default_stylesheet = "border: none; margin-right:3px; margin-left:3px"
-        if value_float < 0:
+        if value_int < 0:
             source.setStyleSheet(f"{default_stylesheet}; color: red")
         else:
             source.setStyleSheet(f"{default_stylesheet}; color: darkgreen")

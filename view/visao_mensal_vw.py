@@ -69,11 +69,11 @@ class VisaoGeralView(QWidget):
 
 
 class VisaoGeralViewLine(TableLine):
-    def get_label_for_currency(self, value: float):
+    def get_label_for_currency(self, value: int):
         label = super().get_label_for_currency(value)
         return label
 
-    def get_label_for_total(self, value: float):
+    def get_label_for_total(self, value: int):
         label = super().get_label_for_currency(value)
         label.setStyleSheet(f"{label.styleSheet()}; font-weight: bold")
         return label
