@@ -1,17 +1,14 @@
-import locale
 import datetime
+import locale
 import logging
-
-from PyQt5.QtGui import QPalette, QColor
-
-# from util.log import Logger
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QComboBox, QApplication, QStyle, QTableView, QDateEdit, QStyledItemDelegate, QLabel, \
-    QPushButton, QStyleOptionViewItem
-from util.currency_editor import QCurrencyLineEdit
 import util.curr_formatter as curr
-locale.setlocale(locale.LC_ALL, "pt_br")
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QColor
+from PyQt5.QtWidgets import QComboBox, QApplication, QStyle, QTableView, QDateEdit, QStyledItemDelegate, \
+    QStyleOptionViewItem
+from util.currency_editor import QCurrencyLineEdit
 
+locale.setlocale(locale.LC_ALL, "pt_br")
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -30,16 +27,16 @@ class CurrencyEditDelegate(QStyledItemDelegate):
         logging.debug(f"Create Currency Editor, row: {index.row()}, col: {index.column()}")
         model = self.parent_table.model()
         value = model.itemData(index)[0]
-        curr_edit = QCurrencyLineEdit(self.parent_table)
-        curr_edit.setTextInt(value)
+        curr_edit = QCurrencyLineEdit(self.parent_table, value)
+        # curr_edit.setTextInt(value)
         return curr_edit
 
-    def setEditorData(self, editor: QCurrencyLineEdit, index):
-        model = self.parent_table.model()
-
-        value_str = model.itemData(index)[0]
-        editor.setText(value_str)
-        logging.debug(f"setEditorData {index.row()}/{index.column()} = str {value_str}")
+    # def setEditorData(self, editor: QCurrencyLineEdit, index):
+    #     model = self.parent_table.model()
+    #
+    #     # value_str = model.itemData(index)[0]
+    #     # editor.setText(value_str)
+    #     logging.debug(f"setEditorData {index.row()}/{index.column()} = ???")
 
     def setModelData(self, editor: QCurrencyLineEdit, model, index):
         logging.debug(f"Before setModelData {index.row()}/{index.column()} = int {editor.text()}")
