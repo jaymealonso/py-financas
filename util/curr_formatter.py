@@ -1,6 +1,6 @@
 import locale
 
-locale.setlocale(locale.LC_ALL, "pt_br")
+# locale.setlocale(locale.LC_ALL, "pt_br")
 
 
 def str_curr_to_locale(value: str) -> str:

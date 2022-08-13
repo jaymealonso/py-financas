@@ -7,50 +7,51 @@ path = os.path.dirname(os.path.abspath(__file__))
 
 def app_icon():
     _app_icon = QIcon()
-    _app_icon.addFile('view/icons/app-icon-16.png', QSize(16, 16))
-    _app_icon.addFile('view/icons/app-icon-32.png', QSize(32, 32))
+    _app_icon.addFile('view/icons/app-icon-16.png', QSize(8, 8))
+    _app_icon.addFile('view/icons/app-icon-32.png', QSize(16, 16))
     return _app_icon
 
 
 def save():
-    return QIcon(QPixmap(path + r".\save_as.png"))
+    return QIcon(QPixmap(path + r"/save_as.png"))
 
 
 def add():
-    return QIcon(QPixmap(path + r".\add.png"))
+    pixmap_path = path + r"/add.png"
+    return QIcon(QPixmap(pixmap_path))
 
 
 def delete():
-    return QIcon(QPixmap(path + r".\delete.png"))
+    return QIcon(QPixmap(path + r"/delete.png"))
 
 
 def load():
-    return QIcon(QPixmap(path + r".\open_folder.png"))
+    return QIcon(QPixmap(path + r"/open_folder.png"))
 
 
 def import_file():
-    return QIcon(QPixmap(path + r".\book_go.png"))
+    return QIcon(QPixmap(path + r"/book_go.png"))
 
 
 def open_lancamentos():
-    return QIcon(QPixmap(path + r".\table.png"))
+    return QIcon(QPixmap(path + r"/table.png"))
 
 
 def configurar():
-    return QIcon(QPixmap(path + r".\cog.png"))
+    return QIcon(QPixmap(path + r"/cog.png"))
 
 
 def atualizar():
-    return QIcon(QPixmap(path + r".\update.png"))
+    return QIcon(QPixmap(path + r"/update.png"))
 
 
 def visao_mensal():
-    return QIcon(QPixmap(path + r".\visao_mensal.png"))
+    return QIcon(QPixmap(path + r"/visao_mensal.png"))
 
 
 def undo():
-    return QIcon(QPixmap(path + r".\arrow_undo.png"))
+    return QIcon(QPixmap(path + r"/arrow_undo.png"))
 
 
 def redo():
-    return QIcon(QPixmap(path + r".\arrow_redo.png"))
+    return QIcon(QPixmap(path + r"/arrow_redo.png"))

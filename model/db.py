@@ -9,9 +9,8 @@ if getattr(sys, 'frozen', False):
 elif __file__:
     application_path = os.path.dirname(__file__)
 
-DATABASE_FILENAME = f"{application_path}\\database.db"
-INITIAL_LOAD_FILENAME = f"{path}\\initial_load\\create_db.sql"
-
+DATABASE_FILENAME = os.path.join(application_path, 'database.db')
+INITIAL_LOAD_FILENAME = os.path.join(path, "initial_load", "create_db.sql")
 
 class SingletonMeta(type):
     _instances = {}
@@ -40,7 +39,7 @@ class Database(metaclass=SingletonMeta):
     def run_initial_load(self):
         if not self.is_initial_load():
             sql_command = ""
-            sql_command = sql_command.join(line for line in open(INITIAL_LOAD_FILENAME).readlines())
+            sql_command = sql_command.join(line for line in open(INITIAL_LOAD_FILENAME, encoding="ISO-8859-1").readlines())
             print("Executando initial load!")
             print("------------------------")
             print(sql_command)

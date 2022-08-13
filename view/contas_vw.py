@@ -44,7 +44,7 @@ class ContasView(QWidget):
         layout.addWidget(self.get_table())
 
         self.setLayout(layout)
-        self.on_open_lancamentos("5")
+        # self.on_open_lancamentos("4")
 
     def get_toolbar(self):
         add_act = self.toolbar.addAction(icons.add(), "Adicionar Conta")
