@@ -2,13 +2,13 @@ import sys
 import view.icons.icons as icons
 from PyQt5.QtWidgets import QApplication
 from view.main_window import MainWindow
-from model.db import Database
+from model.db.db import Database
 
 
 class MainApp:
     def __init__(self):
         self.app = QApplication([])
-        self.app.setStyle('Fusion')
+        self.app.setStyle("Fusion")
         # self.app.setStyleSheet('QWidget {font-size: 24px}')
 
         self.app.setWindowIcon(icons.app_icon())

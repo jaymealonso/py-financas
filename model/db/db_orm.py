@@ -9,6 +9,7 @@ from sqlalchemy.orm import relationship
 
 Base = declarative_base()
 
+
 class ContasTipo(Base):
     __tablename__ = "contas_tipo"
 
@@ -23,9 +24,10 @@ class Contas(Base):
     descricao = Column(String)
     numero = Column(String)
     moeda = Column(String)
-    
+
     tipo_id = Column(Integer, ForeignKey("contas_tipo.id"), nullable=False)
     Tipo = relationship("ContasTipo")
+
 
 association_lanc_categ = Table(
     "lancamentos_categorias",
@@ -33,6 +35,7 @@ association_lanc_categ = Table(
     Column("lancamento_id", ForeignKey("lancamentos.id"), primary_key=True),
     Column("categoria_id", ForeignKey("categorias.id"), primary_key=True)
 )
+
 
 class Lancamentos(Base):
     __tablename__ = "lancamentos"
@@ -48,12 +51,13 @@ class Lancamentos(Base):
     categoria_id = Column(Integer, ForeignKey("categorias.id"), nullable=False)
     Categorias = relationship("Categorias", secondary=association_lanc_categ)
 
-class Categorias(Base): 
+
+class Categorias(Base):
     __tablename__ = "categorias"
 
     id = Column(Integer, primary_key=True, autoincrement="auto")
     nm_categoria = Column(String)
-    
+
     lancamento_id = Column(Integer)
     Lancamentos = relationship("Lancamentos", secondary=association_lanc_categ)
 
@@ -63,6 +67,7 @@ class Anexos(Base):
 
     id = Column(Integer, primary_key=True, autoincrement="auto")
     descricao = Column(String)
+    
     caminho = Column(String)
 
     lancamento_id = Column(Integer, ForeignKey("lancamentos.id"), nullable=False)

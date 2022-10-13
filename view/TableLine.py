@@ -31,6 +31,3 @@ class TableLine(QObject):
             source.setStyleSheet(f"{default_stylesheet}; color: red")
         else:
             source.setStyleSheet(f"{default_stylesheet}; color: darkgreen")
-
-
-

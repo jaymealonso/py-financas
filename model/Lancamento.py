@@ -2,7 +2,7 @@ import datetime
 import dataclasses
 from typing import List, Optional
 from dataclasses import dataclass
-from model.db import Database
+from model.db.db import Database
 from model.Conta import Conta
 
 

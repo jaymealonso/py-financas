@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from model.db import Database
+from model.db.db import Database
 from model.Conta import Conta
 from typing import List
 
