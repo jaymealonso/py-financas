@@ -1,17 +1,10 @@
-import sqlite3
-import os
-import sys
-from .create import create
+from sqlalchemy import create_engine, event
+from sqlalchemy.engine import Engine
+from pathlib import Path
+from model.db.db_orm import Base
+from model.initial_load.initial_db_data import DataLoader
 
-path = os.path.dirname(os.path.abspath(__file__))
-# determine if application is a script file or frozen exe
-if getattr(sys, "frozen", False):
-    application_path = os.path.dirname(sys.executable)
-elif __file__:
-    application_path = os.path.dirname(__file__)
-
-DATABASE_FILENAME = os.path.join(application_path, "database.db")
-INITIAL_LOAD_FILENAME = os.path.join(path, "..", "initial_load", "create_db.sql")
+DATABASE_FILE = Path.cwd() / "model" / "db" / "database.db"
 
 
 class SingletonMeta(type):
@@ -19,38 +12,59 @@ class SingletonMeta(type):
 
     def __call__(cls, *args, **kwargs):
         if cls not in cls._instances:
-            cls._instances[cls] = super(SingletonMeta, cls).__call__(*args, **kwargs)
+            cls._instances[cls] = super(
+                SingletonMeta, cls).__call__(*args, **kwargs)
         return cls._instances[cls]
 
 
 class Database(metaclass=SingletonMeta):
     def __init__(self):
-        print(f"Connecting to {DATABASE_FILENAME}")
-        self.db = sqlite3.connect(DATABASE_FILENAME)
-        print("Connected!")
+        self.engine: Engine = self.connect()
 
-    def is_initial_load(self):
-        try:
-            tuple_result = self.db.execute(
-                "select count(*) from contas_tipo"
-            ).fetchone()
-            contas_lines = int(tuple_result[0])
-        except:
-            return False
-        return contas_lines > 0
+    def connect(self) -> Engine:
+        print(f"Conectando a base de dados: {DATABASE_FILE}")
+        engine = create_engine(f"sqlite:///{DATABASE_FILE}", echo=True)
+        return engine
 
-    def run_initial_load(self):
+    @event.listens_for(Engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        """
+        Turn Foreing keys ON for SQLite, executes always when a new connection
+        is open.
+        """
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
+    def drop_all(self) -> None:
+        print("=====================================")
+        print("Eliminando todas as tabelas")
+        print("=====================================")
+        Base.metadata.drop_all(self.engine)
+
+    def create_structure(self) -> None:
+        print("=====================================")
+        print("Criando banco de dados...(create_all)")
+        print("=====================================")
+        Base.metadata.create_all(self.engine)
+
+    def is_initial_load(self) -> bool:
+        """
+        Verifica se a tabela "contas_tipo" já foi criada, se sim o banco já
+        tem os metadados preenchidos
+        """
+        return "contas_tipo" in self.engine.table_names()
+
+    def run_initial_load(self, populate_sample: bool):
+        startup = DataLoader(self.engine)
         if not self.is_initial_load():
-            create()
-            # sql_command = "":qa
-            # print(INITIAL_LOAD_FILENAME)
-            # sql_command = sql_command.join(line for line in open(INITIAL_LOAD_FILENAME, encoding="ISO-8859-1").readlines())
-            # print("Executando initial load!")
-            # print("------------------------")
-            # print(sql_command)
-            # self.db.executescript(sql_command)
-            # print("------------------------")
-            # print("Initial load finalizado")
+            self.create_structure()
+            startup.insert_all()
         else:
-            print("Dados já carregados pulando Initial load")
+            print("Dados já carregados, pulando Initial load")
             print("------------------------")
+
+        if populate_sample:
+            print("Populando dados de exemplo")
+            print("------------------------")
+            startup.insert_sample_db()

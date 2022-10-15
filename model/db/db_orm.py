@@ -33,7 +33,7 @@ association_lanc_categ = Table(
     "lancamentos_categorias",
     Base.metadata,
     Column("lancamento_id", ForeignKey("lancamentos.id"), primary_key=True),
-    Column("categoria_id", ForeignKey("categorias.id"), primary_key=True)
+    Column("categoria_id", ForeignKey("categorias.id"), primary_key=True),
 )
 
 
@@ -67,7 +67,6 @@ class Anexos(Base):
 
     id = Column(Integer, primary_key=True, autoincrement="auto")
     descricao = Column(String)
-    
     caminho = Column(String)
 
     lancamento_id = Column(Integer, ForeignKey("lancamentos.id"), nullable=False)
