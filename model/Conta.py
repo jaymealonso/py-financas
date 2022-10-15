@@ -1,8 +1,8 @@
 from typing import List
-from dataclasses import dataclass, field, astuple
-from sqlalchemy import select
+from dataclasses import dataclass, field
+from sqlalchemy import select, insert, update
 from model.db.db import Database
-from model.db.db_orm import ContasTipo as ORMContasTipo
+from model.db.db_orm import ContasTipo as ORMContasTipo, Contas as ORMContas
 
 
 @dataclass
@@ -19,7 +19,6 @@ class ContasTipo:
 
     def __load(self):
         stmt = select(ORMContasTipo)
-        print(stmt)
         with self.db.connect() as conn:
             result = conn.execute(stmt)
             print(f">>> Carregadas {result.rowcount} Tipo de Contas.")
@@ -81,13 +80,20 @@ class Contas:
                 self.__items.append(conta)
 
     def add_new(self, conta: Conta):
-        sql = (
-            "insert into contas (_id, descricao, numero, moeda, tipo) values(?,?,?,?,?)"
-        )
-        data = astuple(conta)
 
-        self.__db.execute(sql, data[:5])
-        self.__db.commit()
+        stmt = insert(ORMContas).values(
+            {
+                "descricao": conta.descricao,
+                "numero": conta.numero,
+                "moeda": conta.moeda,
+                "tipo_id": conta.tipo,
+            }
+        )
+
+        with self.__db.connect() as conn:
+            trans = conn.begin()
+            conn.execute(stmt)
+            trans.commit()
 
     def delete(self, conta_id: str):
         sql = "delete from contas where _id = ?"
@@ -96,20 +102,23 @@ class Contas:
         self.__db.commit()
 
     def update(self, conta: Conta):
-        sql = """
-            update contas  
-               set descricao = ?,
-                   numero = ?,
-                   moeda = ?,
-                   tipo = ?
-             where _id = ?
-        """
-
-        self.__db.execute(
-            sql, (conta.descricao, conta.numero,
-                  conta.moeda, conta.tipo_id, conta.id)
+        stmt = (
+            update(ORMContas)
+            .where(ORMContas.id == conta.id)
+            .values(
+                {
+                    "descricao": conta.descricao,
+                    "numero": conta.numero,
+                    "moeda": conta.moeda,
+                    "tipo_id": conta.tipo,
+                }
+            )
         )
-        self.__db.commit()
+
+        with self.__db.connect() as conn:
+            trans = conn.begin()
+            conn.execute(stmt)
+            trans.commit()
 
     def items(self):
         return self.__items

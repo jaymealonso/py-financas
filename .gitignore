@@ -1,6 +1,8 @@
+.coverage
 .idea/*
 *__pycache__*
 model/db/database*
 dist
 output
 build
+htmlcov

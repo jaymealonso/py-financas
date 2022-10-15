@@ -67,6 +67,14 @@ Moment é uma lib para tratar data e hora.
 
 > pip install moment
 
+### Instalar pytest/pytest-coverage
+
+Para os testes usarei a biblioteca do pytest
+
+> `pip intall pytest`
+
+> `pip intall pytest-coverage`
+
 ### Instalar o pyinstaller
 
 A Lib `pyinstaller` possibilita o empacotamento do script em um arquivo `.exe` e também pode gerar um arquivo de instalação.
