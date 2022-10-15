@@ -1,3 +1,4 @@
+import moment
 from sqlalchemy.engine import Engine
 from sqlalchemy import insert
 from model.db.db_orm import (
@@ -117,49 +118,49 @@ class DataLoader:
                     "conta_id": 1,
                     "nr_referencia": "334562",
                     "descricao": "Transf China",
-                    "data": "2019-11-30",
+                    "data": moment.date("2019-11-30").date,
                     "valor": -2200,
                 },
                 {
                     "conta_id": 1,
                     "nr_referencia": "334563",
                     "descricao": "Transf Port.",
-                    "data": "2019-11-30",
+                    "data": moment.date("2019-11-30").date,
                     "valor": -120,
                 },
                 {
                     "conta_id": 2,
                     "nr_referencia": "334562",
                     "descricao": "Salário",
-                    "data": "2019-11-30",
+                    "data": moment.date("2019-11-30").date,
                     "valor": 500000,
                 },
                 {
                     "conta_id": 2,
                     "nr_referencia": "334563",
                     "descricao": "Compra bala",
-                    "data": "2019-11-30",
+                    "data": moment.date("2019-11-30").date,
                     "valor": -10000,
                 },
                 {
                     "conta_id": 2,
                     "nr_referencia": "334564",
                     "descricao": "Comprar chiclete",
-                    "data": "2019-11-30",
+                    "data": moment.date("2019-11-30").date,
                     "valor": -12000,
                 },
                 {
                     "conta_id": 2,
                     "nr_referencia": "334565",
                     "descricao": "Aluguel",
-                    "data": "2019-12-01",
+                    "data": moment.date("2019-12-01").date,
                     "valor": -65050,
                 },
                 {
                     "conta_id": 2,
                     "nr_referencia": "334566",
                     "descricao": "Carro",
-                    "data": "2019-12-02",
+                    "data": moment.date("2019-12-02").date,
                     "valor": -36050,
                 },
             ]

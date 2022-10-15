@@ -1,6 +1,6 @@
 .idea/*
 *__pycache__*
-model/database*
+model/db/database*
 dist
 output
 build

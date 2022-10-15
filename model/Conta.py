@@ -1,6 +1,8 @@
 from typing import List
 from dataclasses import dataclass, field, astuple
+from sqlalchemy import select
 from model.db.db import Database
+from model.db.db_orm import ContasTipo as ORMContasTipo
 
 
 @dataclass
@@ -12,15 +14,18 @@ class ContaTipo:
 class ContasTipo:
     def __init__(self):
         self.__items: List[ContaTipo] = []
-        self.db = Database().db
-        self.load()
+        self.db = Database().engine
+        self.__load()
 
-    def load(self):
-        cursor = self.db.execute("select * from contas_tipo")
-        result = cursor.fetchall()
-        for i in result:
-            row = ContaTipo(*i)
-            self.__items.append(row)
+    def __load(self):
+        stmt = select(ORMContasTipo)
+        print(stmt)
+        with self.db.connect() as conn:
+            result = conn.execute(stmt)
+            print(f">>> Carregadas {result.rowcount} Tipo de Contas.")
+            for i in result:
+                row = ContaTipo(*i)
+                self.__items.append(row)
 
     def items(self):
         return self.__items
@@ -46,33 +51,34 @@ class Conta:
 class Contas:
     def __init__(self):
         self.__items: List[Conta] = []
-        self.__db = Database().db
+        self.__db = Database().engine
 
     def load(self):
         self.__items.clear()
         sql = """ 
-            select c._id, c.descricao, c.numero, c.moeda, c.tipo,
+            select c.id, c.descricao, c.numero, c.moeda, c.tipo_id,
 				( select ifnull(sum(l.valor),0) 
 					from lancamentos as l 
-				where l.conta_id = c._id ) as total,
+				where l.conta_id = c.id ) as total,
 				( select count(*) 
 					from lancamentos as l 
-						left outer join lancamento_categoria as lc on lc.lancamento_id = l._id
-				where l.conta_id = c._id 
+						left outer join lancamentos_categorias as lc on lc.lancamento_id = l.id
+				where l.conta_id = c.id 
 					and lc.lancamento_id is null ) as count_n_categ,
 				( select count(*) 
 					from lancamentos as l1 
-						inner join lancamento_categoria as lc1 on lc1.lancamento_id = l1._id
-            where l1.conta_id = c._id ) as count_categ		
+						inner join lancamentos_categorias as lc1 on lc1.lancamento_id = l1.id
+            where l1.conta_id = c.id ) as count_categ		
               from contas as c
         """
-        result = self.__db.execute(sql).fetchall()
-        for i in result:
-            conta = Conta(*i[:5])
-            conta.total = i[5]
-            conta.lanc_n_class = i[6]
-            conta.lanc_classif = i[7]
-            self.__items.append(conta)
+        with self.__db.connect() as conn:
+            result = conn.execute(sql)
+            for i in result:
+                conta = Conta(*i[:5])
+                conta.total = i[5]
+                conta.lanc_n_class = i[6]
+                conta.lanc_classif = i[7]
+                self.__items.append(conta)
 
     def add_new(self, conta: Conta):
         sql = (
@@ -100,7 +106,8 @@ class Contas:
         """
 
         self.__db.execute(
-            sql, (conta.descricao, conta.numero, conta.moeda, conta.tipo_id, conta.id)
+            sql, (conta.descricao, conta.numero,
+                  conta.moeda, conta.tipo_id, conta.id)
         )
         self.__db.commit()
 

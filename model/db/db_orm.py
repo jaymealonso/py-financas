@@ -46,9 +46,9 @@ class Lancamentos(Base):
     data = Column(DateTime)
     valor = Column(Integer)
 
-    conta_id = Column(Integer, ForeignKey("contas_tipo.id"), nullable=False)
+    conta_id = Column(Integer, ForeignKey("contas.id"), nullable=False)
     Conta = relationship("Contas")
-    categoria_id = Column(Integer, ForeignKey("categorias.id"), nullable=False)
+    # categoria_id = Column(Integer, ForeignKey("categorias.id"), nullable=False)
     Categorias = relationship("Categorias", secondary=association_lanc_categ)
 
 
@@ -58,7 +58,7 @@ class Categorias(Base):
     id = Column(Integer, primary_key=True, autoincrement="auto")
     nm_categoria = Column(String)
 
-    lancamento_id = Column(Integer)
+    # lancamento_id = Column(Integer)
     Lancamentos = relationship("Lancamentos", secondary=association_lanc_categ)
 
 
@@ -69,5 +69,6 @@ class Anexos(Base):
     descricao = Column(String)
     caminho = Column(String)
 
-    lancamento_id = Column(Integer, ForeignKey("lancamentos.id"), nullable=False)
+    lancamento_id = Column(Integer, ForeignKey(
+        "lancamentos.id"), nullable=False)
     Lancamento = relationship("Lancamentos")
