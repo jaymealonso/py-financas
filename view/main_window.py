@@ -1,5 +1,13 @@
 from PyQt5.QtCore import Qt, QSize
-from PyQt5.QtWidgets import QMainWindow, QVBoxLayout, QWidget, QTabWidget, QToolBar, QApplication, QSizePolicy
+from PyQt5.QtWidgets import (
+    QMainWindow,
+    QVBoxLayout,
+    QWidget,
+    QTabWidget,
+    QToolBar,
+    QApplication,
+    QSizePolicy,
+)
 from util.toaster import QToaster
 from view.contas_vw import ContasView
 from view.agenda_vw import AgendaView
@@ -29,6 +37,9 @@ class MainWindow(QMainWindow):
         self.container.setLayout(layout)
 
         self.setCentralWidget(self.container)
+
+        # @todo: abre automaticamente a conta 2, remover antes de lançar
+        self.tabbar.widget(0).on_open_lancamentos("1")
 
     def closeEvent(self, event) -> None:
         print("Entrou evento close")
@@ -85,14 +96,28 @@ class MainWindow(QMainWindow):
         pass
 
     def on_configure(self):
-        QToaster.showMessage(self, "On CONFIGURAR clicked", closable=False, timeout=2000, corner=Qt.BottomRightCorner)
+        QToaster.showMessage(
+            self,
+            "On CONFIGURAR clicked",
+            closable=False,
+            timeout=2000,
+            corner=Qt.BottomRightCorner,
+        )
 
     def on_load(self, s):
-        QToaster.showMessage(self, "On LOAD clicked", closable=False, timeout=2000, corner=Qt.BottomRightCorner)
+        QToaster.showMessage(
+            self,
+            "On LOAD clicked",
+            closable=False,
+            timeout=2000,
+            corner=Qt.BottomRightCorner,
+        )
 
     def on_save(self):
-        QToaster.showMessage(self, "On SAVE clicked", closable=False, timeout=2000, corner=Qt.BottomRightCorner)
-
-
-
-
+        QToaster.showMessage(
+            self,
+            "On SAVE clicked",
+            closable=False,
+            timeout=2000,
+            corner=Qt.BottomRightCorner,
+        )

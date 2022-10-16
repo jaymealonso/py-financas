@@ -1,6 +1,7 @@
 from typing import List
 from dataclasses import dataclass, field
-from sqlalchemy import select, insert, update
+from sqlalchemy import insert, update
+from sqlalchemy.orm import Session
 from model.db.db import Database
 from model.db.db_orm import ContasTipo as ORMContasTipo, Contas as ORMContas
 
@@ -14,17 +15,18 @@ class ContaTipo:
 class ContasTipo:
     def __init__(self):
         self.__items: List[ContaTipo] = []
-        self.db = Database().engine
+        self.__db = Database().engine
         self.__load()
 
     def __load(self):
-        stmt = select(ORMContasTipo)
-        with self.db.connect() as conn:
-            result = conn.execute(stmt)
-            print(f">>> Carregadas {result.rowcount} Tipo de Contas.")
-            for i in result:
-                row = ContaTipo(*i)
-                self.__items.append(row)
+        self.__items.clear()
+
+        with Session(self.__db) as session:
+            contas_tipo = session.query(ORMContasTipo)
+            for conta_tipo in contas_tipo:
+                self.__items.append(
+                    ContaTipo(id=conta_tipo.id, descricao=conta_tipo.descricao)
+                )
 
     def items(self):
         return self.__items
@@ -86,7 +88,7 @@ class Contas:
                 "descricao": conta.descricao,
                 "numero": conta.numero,
                 "moeda": conta.moeda,
-                "tipo_id": conta.tipo,
+                "tipo_id": conta.tipo_id,
             }
         )
 
@@ -96,10 +98,10 @@ class Contas:
             trans.commit()
 
     def delete(self, conta_id: str):
-        sql = "delete from contas where _id = ?"
 
-        self.__db.execute(sql, (conta_id,))
-        self.__db.commit()
+        with Session(self.__db) as session:
+            session.query(ORMContas).filter_by(id=conta_id).delete()
+            session.commit()
 
     def update(self, conta: Conta):
         stmt = (
@@ -110,7 +112,7 @@ class Contas:
                     "descricao": conta.descricao,
                     "numero": conta.numero,
                     "moeda": conta.moeda,
-                    "tipo_id": conta.tipo,
+                    "tipo_id": conta.tipo_id,
                 }
             )
         )

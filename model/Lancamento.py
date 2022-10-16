@@ -1,8 +1,10 @@
 import moment
 import dataclasses
 from typing import List, Optional
+from sqlalchemy.orm import Session
 from dataclasses import dataclass
 from model.db.db import Database
+from model.db.db_orm import Lancamentos as ORMLancamentos
 from model.Conta import Conta
 
 
@@ -26,16 +28,25 @@ class Lancamentos:
 
     def load(self):
         self.__items.clear()
-        sql = """
-            select l.*, c._id as categoria_id from lancamentos as l
-                   left join lancamento_categoria as lc on lc.lancamento_id = l._id
-                   left join categorias as c on c._id = lc.categoria_id
-             where l.conta_id = ?
-             order by l.data
-        """
-        result = self.__db.execute(sql, (self.conta.id,)).fetchall()
-        for i in result:
-            self.__items.append(Lancamento(*i))
+
+        with Session(self.__db) as session:
+            lancamentos = (
+                session.query(ORMLancamentos)
+                .filter(ORMLancamentos.conta_id == self.conta.id)
+                .all()
+            )
+            for lancamento in lancamentos:
+                self.__items.append(
+                    Lancamento(
+                        id=lancamento.id,
+                        conta_id=lancamento.conta_id,
+                        nr_referencia=lancamento.nr_referencia,
+                        descricao=lancamento.descricao,
+                        data=moment.date(lancamento.data).date,
+                        valor=lancamento.valor,
+                        categoria_id=lancamento.Categorias[0].id,
+                    )
+                )
 
     def add_new(self, lancam: Lancamento):
         sql = "insert into lancamentos (_id, cont_id, nr_referencia, descricao, data, valor) values(?,?,?,?,?,?)"
