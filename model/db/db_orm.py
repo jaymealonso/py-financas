@@ -69,6 +69,5 @@ class Anexos(Base):
     descricao = Column(String)
     caminho = Column(String)
 
-    lancamento_id = Column(Integer, ForeignKey(
-        "lancamentos.id"), nullable=False)
+    lancamento_id = Column(Integer, ForeignKey("lancamentos.id"), nullable=False)
     Lancamento = relationship("Lancamentos")

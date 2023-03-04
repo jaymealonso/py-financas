@@ -77,7 +77,6 @@ class Lancamentos:
         self.__db.commit()
 
     def update(self, lancamento: Lancamento):
-
         stmt_update = (
             update(ORMLancamentos)
             .where(ORMLancamentos.id == lancamento.id)
@@ -95,56 +94,23 @@ class Lancamentos:
         with Session(self.__db) as session:
             session.query(ORMLancCateg).filter_by(lancamento_id=lancamento.id).delete()
 
-        # stmt_delete = delete(ORMLancCateg).where(
-        #      ORMLancCateg.lancamento_id == lancamento.id
-        #  )
-        stmt_insert = insert(ORMLancCateg).values(
-            {
-                "lancamento_id": lancamento.id,
-                "categoria_id": lancamento.categoria_id,
-            }
+        stmt_delete = delete(ORMLancCateg).where(
+            ORMLancCateg.c.lancamento_id == lancamento.id
         )
 
         with self.__db.connect() as conn:
             trans = conn.begin()
             conn.execute(stmt_update)
-            # conn.execute(stmt_delete)
-            conn.execute(stmt_insert)
+            conn.execute(stmt_delete)
+            if lancamento.categoria_id != "":
+                stmt_insert = insert(ORMLancCateg).values(
+                    {
+                        "lancamento_id": lancamento.id,
+                        "categoria_id": lancamento.categoria_id,
+                    }
+                )
+                conn.execute(stmt_insert)
             trans.commit()
-
-        # sql = """
-        #     update lancamentos
-        #        set conta_id = ?,
-        #            nr_referencia = ?,
-        #            descricao = ?,
-        #            data = ?,
-        #            valor = ?
-        #      where _id = ?
-        # """
-        # self.__db.execute(
-        #     sql,
-        #     (
-        #         lancamento.conta_id,
-        #         lancamento.nr_referencia,
-        #         lancamento.descricao,
-        #         lancamento.data,
-        #         lancamento.valor,
-        #         lancamento.id,
-        #     ),
-        # )
-        # sql2 = """
-        #     delete from lancamento_categoria
-        #      where lancamento_id = ?
-        # """
-        # self.__db.execute(sql2, (lancamento.id,))
-        #
-        # if lancamento.categoria_id and lancamento.categoria_id != "0":
-        #     sql3 = """
-        #         INSERT INTO lancamento_categoria (lancamento_id, categoria_id) values (?, ?)
-        #     """
-        #     self.__db.execute(sql3, (lancamento.id, lancamento.categoria_id))
-        #
-        # self.__db.commit()
 
     def items(self):
         return self.__items

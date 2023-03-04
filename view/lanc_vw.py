@@ -6,16 +6,41 @@ from view.TableLine import TableLine
 from model.Conta import Conta
 from model.Categoria import Categorias
 from model.Lancamento import Lancamentos, Lancamento
-from PyQt5.QtGui import QCloseEvent, QValidator, QStandardItemModel, QCursor, QStandardItem
-from PyQt5.QtCore import Qt, QObject, QRegExp, QDate, QLocale
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QTableView, QLineEdit, QPushButton, QToolBar, \
-    QSizePolicy, QMessageBox, QLabel, QComboBox, QDateEdit, QCheckBox, QApplication
+from PyQt5.QtGui import (
+    QCloseEvent,
+    QValidator,
+    QStandardItemModel,
+    QCursor,
+    QStandardItem,
+)
+from PyQt5.QtCore import Qt, QObject, QRegExp, QDate, QLocale, QModelIndex
+from PyQt5.QtWidgets import (
+    QWidget,
+    QHBoxLayout,
+    QVBoxLayout,
+    QTableView,
+    QLineEdit,
+    QPushButton,
+    QToolBar,
+    QSizePolicy,
+    QMessageBox,
+    QLabel,
+    QComboBox,
+    QDateEdit,
+    QCheckBox,
+    QApplication,
+)
 from util.toaster import QToaster
 from util.events import post_event, Eventos
 from util.currency_editor import QCurrencyLineEdit
 import util.curr_formatter as curr
 from util.settings import Settings
-from util.custom_table_delegates import ComboBoxDelegate, DateEditDelegate, CurrencyEditDelegate
+from util.custom_table_delegates import (
+    GenericInputDelegate,
+    ComboBoxDelegate,
+    DateEditDelegate,
+    CurrencyEditDelegate,
+)
 
 
 class LancamentosView(QWidget):
@@ -26,7 +51,7 @@ class LancamentosView(QWidget):
         3: {"title": "Data", "sql_colname": "data"},
         4: {"title": "Categorias", "sql_colname": "categoria_id"},
         5: {"title": "Valor", "sql_colname": "valor"},
-        6: {"title": "Remover"}
+        6: {"title": "Remover"},
     }
 
     def __init__(self, parent: QWidget, conta_dc: Conta):
@@ -45,7 +70,9 @@ class LancamentosView(QWidget):
 
         super(LancamentosView, self).__init__()
 
-        self.setWindowTitle(f"Lançamentos - (Conta {self.conta_dc.id} | {self.conta_dc.descricao})")
+        self.setWindowTitle(
+            f"Lançamentos - (Conta {self.conta_dc.id} | {self.conta_dc.descricao})"
+        )
         self.setMinimumSize(800, 600)
         if not self.settings.load_lanc_settings(self, self.conta_dc):
             self.resize(1600, 900)
@@ -109,28 +136,34 @@ class LancamentosView(QWidget):
 
         return self.table
 
-    def table_cell_changed(self, row: int, col: int):
+    def table_cell_changed(self, item: QModelIndex):
+        row = item.row()
+        col = item.column()
+
         lancamento_dc = self.model_lancamentos.items()[row]
-        model = self.table.model()
+        # model = self.table.model()
         print(f"Cell changed row/col: {row}/{col}")
-        item = model.item(row, col)
-        if item:
-            value = item.text()
-        else:
-            widget = self.table.indexWidget(model.index(row, col))
-            if not widget:
-                return
-            if isinstance(widget, QDateEdit):
-                date = widget.date()
-                value = datetime.date(date.year(), date.month(), date.day()).isoformat()
-            elif isinstance(widget, QComboBox):
-                value = widget.currentData()
-            elif isinstance(widget, QCurrencyLineEdit):
-                value = curr.str_curr_to_int(widget.text())
+        value = item.data(Qt.EditRole)
+        # value = model.itemData(model.index(row, col))[Qt.EditRole]
+        # if item:
+        #     value = item.text()
+        # else:
+        #     widget = self.table.indexWidget(model.index(row, col))
+        #     if not widget:
+        #         return
+        #     if isinstance(widget, QDateEdit):
+        #         date = widget.date()
+        #         value = datetime.date(date.year(), date.month(), date.day()).isoformat()
+        #     elif isinstance(widget, QComboBox):
+        #         value = widget.currentData()
+        #     elif isinstance(widget, QCurrencyLineEdit):
+        #         value = curr.str_curr_to_int(widget.text())
 
         column_data = self.COLUMNS.get(col)
 
-        print(f"Modificando lancamento numero:{lancamento_dc.id} campo \"{column_data['sql_colname']}\" para valor \"{value}\"")
+        print(
+            f"Modificando lancamento numero:{lancamento_dc.id} campo \"{column_data['sql_colname']}\" para valor \"{value}\""
+        )
         lancamento_dc.__setattr__(column_data["sql_colname"], value)
         self.model_lancamentos.update(lancamento_dc)
 
@@ -163,18 +196,24 @@ class LancamentosView(QWidget):
         new_lancamento = Lancamento(
             id=None,
             conta_id=int(self.conta_dc.id),
-            nr_referencia='ref',
-            descricao='descr',
+            nr_referencia="ref",
+            descricao="descr",
             data=datetime.date.today(),
             valor=0,
-            categoria_id=0
+            categoria_id=0,
         )
         self.model_lancamentos.add_new(new_lancamento)
         print(f"Done !!! Lancamento criado com id: {new_lancamento.id}")
         post_event(Eventos.LANCAMENTO_CREATED, new_lancamento)
         self.load_table_data()
         if show_message:
-            QToaster.showMessage(self, "On ADD CONTA clicked", closable=False, timeout=2000, corner=Qt.BottomRightCorner)
+            QToaster.showMessage(
+                self,
+                "On ADD CONTA clicked",
+                closable=False,
+                timeout=2000,
+                corner=Qt.BottomRightCorner,
+            )
 
     def load_table_data(self):
         QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
@@ -199,23 +238,59 @@ class LancamentosView(QWidget):
             new_index = model.rowCount()
             model.insertRow(new_index)
 
-            self.table.setIndexWidget(model.index(new_index, 0),
-                                      self.tableline.get_label_for_id(str(row.id)))
-            model.setItem(new_index, 1, QStandardItem(row.nr_referencia))
-            model.setItem(new_index, 2, QStandardItem(row.descricao))
+            self.table.setIndexWidget(
+                model.index(new_index, 0), self.tableline.get_label_for_id(str(row.id))
+            )
+            model.setItemData(
+                model.index(new_index, 1),
+                {Qt.DisplayRole: row.nr_referencia, Qt.EditRole: row.nr_referencia},
+            )
+            model.setItemData(
+                model.index(new_index, 2),
+                {Qt.DisplayRole: row.descricao, Qt.EditRole: row.descricao},
+            )
+            model.setItemData(
+                model.index(new_index, 3),
+                {Qt.DisplayRole: row.data.strftime("%x"), Qt.EditRole: row.data},
+            )
+            model.setItemData(
+                model.index(new_index, 4),
+                {
+                    Qt.DisplayRole: row.categoria_id or 0,
+                    Qt.EditRole: row.categoria_id or 0,
+                },
+            )
+            model.setItemData(
+                model.index(new_index, 5),
+                {
+                    Qt.DisplayRole: curr.str_curr_to_locale((row.valor or 0).__str__()),
+                    Qt.EditRole: row.valor or 0,
+                },
+            )
 
-            model.setItemData(model.index(new_index, 3), {0: row.data})
-            model.setItemData(model.index(new_index, 4), {0: row.categoria_id or 0})
-            model.setItemData(model.index(new_index, 5), {0: row.valor or 0})
-
-            self.table.setIndexWidget(model.index(new_index, 6),
-                                      self.tableline.get_del_button(self, str(row.id)))
+            self.table.setIndexWidget(
+                model.index(new_index, 6),
+                self.tableline.get_del_button(self, str(row.id)),
+            )
 
             total_value = total_value + row.valor
 
-        self.table.setItemDelegateForColumn(3, self.tableline.get_date_input())
-        self.table.setItemDelegateForColumn(4, self.tableline.get_tipo_conta_dropdown_delegate())
-        self.table.setItemDelegateForColumn(5, self.tableline.get_currency_value_delegate())
+        col1_del = GenericInputDelegate(self.table)
+        col1_del.changed.connect(self.on_model_item_changed)
+        col2_del = GenericInputDelegate(self.table)
+        col2_del.changed.connect(self.on_model_item_changed)
+        col3_del = self.tableline.get_date_input()
+        col3_del.changed.connect(self.on_model_item_changed)
+        col4_del = self.tableline.get_tipo_conta_dropdown_delegate()
+        col4_del.changed.connect(self.on_model_item_changed)
+        col5_del = self.tableline.get_currency_value_delegate()
+        col5_del.changed.connect(self.on_model_item_changed)
+
+        self.table.setItemDelegateForColumn(1, col1_del)
+        self.table.setItemDelegateForColumn(2, col2_del)
+        self.table.setItemDelegateForColumn(3, col3_del)
+        self.table.setItemDelegateForColumn(4, col4_del)
+        self.table.setItemDelegateForColumn(5, col5_del)
 
         # Adiciona linha de TOTAL no final
         self.total_label.set_int_value(total_value)
@@ -228,18 +303,20 @@ class LancamentosView(QWidget):
         self.table.setColumnWidth(5, 160)
         self.table.setColumnWidth(6, 100)
 
-        model.itemChanged.connect(self.on_model_item_changed)
+        # model.itemChanged.connect(self.on_model_item_changed)
         print("> itemChanged connected again!")
         self.table.verticalScrollBar().setValue(vert_scr_position)
         QApplication.restoreOverrideCursor()
 
-    def on_model_item_changed(self, item):
-        self.table_cell_changed(item.row(), item.column())
+    def on_model_item_changed(self, item: QStandardItem):
+        self.table_cell_changed(item)
 
     def on_table_cell_doubleclick(self, row: int, col: int):
         if col == 4:
             item = self.model_lancamentos.items()[row]
-            combobox = self.tableline.get_categorias_lanc_dropdown(item.categoria_id, row, col)
+            combobox = self.tableline.get_categorias_lanc_dropdown(
+                item.categoria_id, row, col
+            )
             self.table.setCellWidget(row, col, combobox)
             combobox.setEditable(True)
 
@@ -280,9 +357,11 @@ class LancamentoTableLine(TableLine):
         line_edit = QCurrencyLineEdit()
         line_edit.setTextInt(valor)
 
-        # SIGNALS
-        line_edit.textChanged.connect(self.on_curr_input_text_changed)
-        line_edit.editingFinished.connect(lambda: self.parentOne.table_cell_changed(row, col))
+        # # SIGNALS
+        # line_edit.textChanged.connect(self.on_curr_input_text_changed)
+        # line_edit.editingFinished.connect(
+        #     lambda: self.parentOne.table_cell_changed(row, col)
+        # )
 
         return line_edit
 
@@ -309,11 +388,5 @@ class LancamentoTableLine(TableLine):
         combobox.setCurrentIndex(index)
 
         model = self.parentOne.table.model()
-        combobox.currentIndexChanged.connect(
-            lambda: model.itemChanged(row, col))
+        combobox.currentIndexChanged.connect(lambda: model.itemChanged(row, col))
         return combobox
-
-
-
-
-
