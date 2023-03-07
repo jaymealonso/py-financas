@@ -71,10 +71,12 @@ class Lancamentos:
             trans.commit()
 
     def delete(self, lancamento_id: str):
-        sql = "delete from lancamentos where _id = ?"
+        stmt = delete(ORMLancamentos).where(ORMLancamentos.id == lancamento_id)
 
-        self.__db.execute(sql, (lancamento_id,))
-        self.__db.commit()
+        with self.__db.connect() as conn:
+            trans = conn.begin()
+            conn.execute(stmt)
+            trans.commit()
 
     def update(self, lancamento: Lancamento):
         stmt_update = (

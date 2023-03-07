@@ -141,23 +141,8 @@ class LancamentosView(QWidget):
         col = item.column()
 
         lancamento_dc = self.model_lancamentos.items()[row]
-        # model = self.table.model()
         print(f"Cell changed row/col: {row}/{col}")
-        value = item.data(Qt.EditRole)
-        # value = model.itemData(model.index(row, col))[Qt.EditRole]
-        # if item:
-        #     value = item.text()
-        # else:
-        #     widget = self.table.indexWidget(model.index(row, col))
-        #     if not widget:
-        #         return
-        #     if isinstance(widget, QDateEdit):
-        #         date = widget.date()
-        #         value = datetime.date(date.year(), date.month(), date.day()).isoformat()
-        #     elif isinstance(widget, QComboBox):
-        #         value = widget.currentData()
-        #     elif isinstance(widget, QCurrencyLineEdit):
-        #         value = curr.str_curr_to_int(widget.text())
+        value = item.data(Qt.UserRole)
 
         column_data = self.COLUMNS.get(col)
 
@@ -243,28 +228,28 @@ class LancamentosView(QWidget):
             )
             model.setItemData(
                 model.index(new_index, 1),
-                {Qt.DisplayRole: row.nr_referencia, Qt.EditRole: row.nr_referencia},
+                {Qt.DisplayRole: row.nr_referencia, Qt.UserRole: row.nr_referencia},
             )
             model.setItemData(
                 model.index(new_index, 2),
-                {Qt.DisplayRole: row.descricao, Qt.EditRole: row.descricao},
+                {Qt.DisplayRole: row.descricao, Qt.UserRole: row.descricao},
             )
             model.setItemData(
                 model.index(new_index, 3),
-                {Qt.DisplayRole: row.data.strftime("%x"), Qt.EditRole: row.data},
+                {Qt.DisplayRole: row.data.strftime("%x"), Qt.UserRole: row.data},
             )
             model.setItemData(
                 model.index(new_index, 4),
                 {
-                    Qt.DisplayRole: row.categoria_id or 0,
-                    Qt.EditRole: row.categoria_id or 0,
+                    Qt.DisplayRole: self.model_categorias[row.categoria_id or 0],
+                    Qt.UserRole: row.categoria_id or 0,
                 },
             )
             model.setItemData(
                 model.index(new_index, 5),
                 {
                     Qt.DisplayRole: curr.str_curr_to_locale((row.valor or 0).__str__()),
-                    Qt.EditRole: row.valor or 0,
+                    Qt.UserRole: row.valor or 0,
                 },
             )
 
