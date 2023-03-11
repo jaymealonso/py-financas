@@ -41,13 +41,14 @@ from util.custom_table_delegates import (
 
 class LancamentosView(QWidget):
     COLUMNS = {
-        0: {"title": "ID", "sql_colname": "_id"},
-        1: {"title": "Número Ref.", "sql_colname": "nr_referencia"},
-        2: {"title": "Descrição", "sql_colname": "descricao"},
-        3: {"title": "Data", "sql_colname": "data"},
-        4: {"title": "Categorias", "sql_colname": "categoria_id"},
-        5: {"title": "Valor", "sql_colname": "valor"},
-        6: {"title": "Remover"},
+        0: {"title": "ID", "sql_colname": "id"},
+        1: {"title": "Seq Linha", "sql_colname": "seq_ordem_linha"},
+        2: {"title": "Número Ref.", "sql_colname": "nr_referencia"},
+        3: {"title": "Descrição", "sql_colname": "descricao"},
+        4: {"title": "Data", "sql_colname": "data"},
+        5: {"title": "Categorias", "sql_colname": "categoria_id"},
+        6: {"title": "Valor", "sql_colname": "valor"},
+        7: {"title": "Remover"},
     }
 
     def __init__(self, parent: QWidget, conta_dc: Conta):
@@ -136,7 +137,7 @@ class LancamentosView(QWidget):
         row = item.row()
         col = item.column()
 
-        lancamento_dc = self.model_lancamentos.items()[row]
+        lancamento_dc = self.model_lancamentos.items[row]
         print(f"Cell changed row/col: {row}/{col}")
         value = item.data(Qt.UserRole)
 
@@ -145,10 +146,13 @@ class LancamentosView(QWidget):
         print(
             f"Modificando lancamento numero:{lancamento_dc.id} campo \"{column_data['sql_colname']}\" para valor \"{value}\""
         )
-        lancamento_dc.__setattr__(column_data["sql_colname"], value)
-        self.model_lancamentos.update(lancamento_dc)
+
+        self.model_lancamentos.update(
+            lancamento_dc.id, column_data["sql_colname"], value
+        )
 
         self.model_lancamentos.load()
+        # recalcula total
         self.total_label.set_int_value(self.model_lancamentos.total)
         self.parent.load_table_data()
         self.table.setFocus()
@@ -212,44 +216,50 @@ class LancamentosView(QWidget):
         # clear table
         model.setRowCount(0)
 
-        for row in self.model_lancamentos.items():
-            new_index = model.rowCount()
+        for row in self.model_lancamentos.items:
+            new_index: int = model.rowCount()
             model.insertRow(new_index)
 
             self.table.setIndexWidget(
                 model.index(new_index, 0), self.tableline.get_label_for_id(str(row.id))
             )
-            model.setItemData(
+            self.table.setIndexWidget(
                 model.index(new_index, 1),
-                {Qt.DisplayRole: row.nr_referencia, Qt.UserRole: row.nr_referencia},
+                self.tableline.get_label_for_id(str(row.seq_ordem_linha)),
             )
             model.setItemData(
                 model.index(new_index, 2),
-                {Qt.DisplayRole: row.descricao, Qt.UserRole: row.descricao},
+                {Qt.DisplayRole: row.nr_referencia, Qt.UserRole: row.nr_referencia},
             )
             model.setItemData(
                 model.index(new_index, 3),
-                {Qt.DisplayRole: row.data.strftime("%x"), Qt.UserRole: row.data},
+                {Qt.DisplayRole: row.descricao, Qt.UserRole: row.descricao},
             )
             model.setItemData(
                 model.index(new_index, 4),
-                {
-                    Qt.DisplayRole: self.model_categorias.items()[
-                        row.categoria_id or 0
-                    ].nm_categoria,
-                    Qt.UserRole: row.categoria_id or 0,
-                },
+                {Qt.DisplayRole: row.data.strftime("%x"), Qt.UserRole: row.data},
             )
+            if len(row.Categorias) > 0:
+                categoria = row.Categorias[0]
+            else:
+                categoria = self.model_categorias.items[0]
             model.setItemData(
                 model.index(new_index, 5),
                 {
-                    Qt.DisplayRole: curr.str_curr_to_locale((row.valor or 0).__str__()),
+                    Qt.DisplayRole: categoria.nm_categoria,
+                    Qt.UserRole: categoria.id or 0,
+                },
+            )
+            model.setItemData(
+                model.index(new_index, 6),
+                {
+                    Qt.DisplayRole: curr.str_curr_to_locale(str(row.valor or 0)),
                     Qt.UserRole: row.valor or 0,
                 },
             )
 
             self.table.setIndexWidget(
-                model.index(new_index, 6),
+                model.index(new_index, 7),
                 self.tableline.get_del_button(self, str(row.id)),
             )
 
@@ -264,22 +274,23 @@ class LancamentosView(QWidget):
         col5_del = self.tableline.get_currency_value_delegate()
         col5_del.changed.connect(self.on_model_item_changed)
 
-        self.table.setItemDelegateForColumn(1, col1_del)
-        self.table.setItemDelegateForColumn(2, col2_del)
-        self.table.setItemDelegateForColumn(3, col3_del)
-        self.table.setItemDelegateForColumn(4, col4_del)
-        self.table.setItemDelegateForColumn(5, col5_del)
-
-        # Adiciona linha de TOTAL no final
-        self.total_label.set_int_value(self.model_lancamentos.total)
+        self.table.setItemDelegateForColumn(2, col1_del)
+        self.table.setItemDelegateForColumn(3, col2_del)
+        self.table.setItemDelegateForColumn(4, col3_del)
+        self.table.setItemDelegateForColumn(5, col4_del)
+        self.table.setItemDelegateForColumn(6, col5_del)
 
         self.table.resizeColumnToContents(0)
         self.table.resizeColumnToContents(1)
         self.table.resizeColumnToContents(2)
-        self.table.setColumnWidth(3, 160)
-        self.table.setColumnWidth(4, 260)
-        self.table.setColumnWidth(5, 160)
-        self.table.setColumnWidth(6, 100)
+        self.table.resizeColumnToContents(3)
+        self.table.setColumnWidth(4, 160)
+        self.table.setColumnWidth(5, 260)
+        self.table.setColumnWidth(6, 160)
+        self.table.setColumnWidth(7, 100)
+
+        # Adiciona linha de TOTAL no final
+        self.total_label.set_int_value(self.model_lancamentos.total)
 
         # model.itemChanged.connect(self.on_model_item_changed)
         print("> itemChanged connected again!")
@@ -291,7 +302,7 @@ class LancamentosView(QWidget):
 
     def on_table_cell_doubleclick(self, row: int, col: int):
         if col == 4:
-            item = self.model_lancamentos.items()[row]
+            item = self.model_lancamentos.items[row]
             combobox = self.tableline.get_categorias_lanc_dropdown(
                 item.categoria_id, row, col
             )
@@ -320,7 +331,7 @@ class LancamentoTableLine(TableLine):
 
     def get_tipo_conta_dropdown_delegate(self):
         categorias = {}
-        for item in self.parentOne.model_categorias.items():
+        for item in self.parentOne.model_categorias.items:
             categorias[item.id] = item.nm_categoria
 
         cmb_delegate = ComboBoxDelegate(categorias, self.parentOne.table)
@@ -356,7 +367,7 @@ class LancamentoTableLine(TableLine):
 
     def get_categorias_lanc_dropdown(self, categoria_id: str, row: int, col: int):
         combobox = ComboBoxDelegate()
-        for key, item in enumerate(self.parentOne.model_categorias.items()):
+        for key, item in enumerate(self.parentOne.model_categorias.items):
             combobox.addItem(item.nm_categoria, item.id)
 
         index = int(combobox.findData(categoria_id))

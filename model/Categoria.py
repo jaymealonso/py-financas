@@ -16,6 +16,10 @@ class Categorias:
         self.__categorias: List[Categoria] = []
         self.__db = Database().engine
 
+    @property
+    def items(self):
+        return self.__categorias
+
     def load(self):
         self.__categorias.clear()
         stmt = select(ORMCategorias).order_by(ORMCategorias.nm_categoria)
@@ -44,6 +48,3 @@ class Categorias:
             trans = conn.begin()
             conn.execute(stmt)
             trans.commit()
-
-    def items(self):
-        return self.__categorias

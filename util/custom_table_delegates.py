@@ -109,13 +109,29 @@ class ComboBoxDelegate(EmitterItemDelegade):
         self.key_values = values
 
     def createEditor(self, widget, option, index):
+        """
+        Cria editor widget e retorna ele
+        """
         logging.debug(f"Create editor, row: {index.row()}, col: {index.column()}")
         editor = QComboBox(widget)
+
+        def fn_close(combo_index: int):
+            logging.debug(f"Close Editor, combo index: {combo_index}")
+            # grava o valor no modelo (chama setModelData)
+            self.commitData.emit(editor)
+            # fecha o controle
+            self.closeEditor.emit(editor)
+
+        editor.activated.connect(fn_close)
+
         for key in self.key_values:
             editor.addItem(self.key_values[key], key)
         return editor
 
     def setEditorData(self, editor: QComboBox, index):
+        """
+        Envia dados para o widget quando aberto
+        """
         model = self.parent_table.model()
         tipo_id = model.itemData(index)[0]
         value = editor.findData(tipo_id)
@@ -125,9 +141,15 @@ class ComboBoxDelegate(EmitterItemDelegade):
         logging.debug("setEditorData")
 
     def setModelData(self, editor, model, index):
+        """
+        Na finalização envia os dados de volta para o modelo
+        """
         tipo_id = editor.currentData()
-        model.setData(index, self.key_values[tipo_id], Qt.DisplayRole)
+        if tipo_id == None:
+            logging.debug("tipo_id vazio!")
+            return
         model.setData(index, tipo_id, Qt.UserRole)
+        model.setData(index, self.key_values[tipo_id], Qt.DisplayRole)
         logging.debug("setModelData")
         self.changed.emit(index, editor)
 
@@ -140,9 +162,10 @@ class ComboBoxDelegate(EmitterItemDelegade):
             model = self.parent_table.model()
             tipo_id = model.itemData(index)[Qt.UserRole]
             text = self.key_values[tipo_id]
-            # text = model.itemData(index)[Qt.DisplayRole]
         except Exception as e:
-            logging.error(f"Exception {e}")
+            logging.error(
+                f"Exception paint combobox {e} row {index.row()}, col {index.column()}"
+            )
         option.text = text
         QApplication.style().drawControl(QStyle.CE_ItemViewItem, option, painter)
 

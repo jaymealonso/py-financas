@@ -41,6 +41,8 @@ class Lancamentos(Base):
     __tablename__ = "lancamentos"
 
     id = Column(Integer, primary_key=True, autoincrement="auto")
+    # Para lançamentos na mesma data é possivel ordenar a posição deles baseado neste numero deve ser (1,2,3,4...)
+    seq_ordem_linha = Column(Integer)
     nr_referencia = Column(String)
     descricao = Column(String)
     data = Column(DateTime)
@@ -48,7 +50,6 @@ class Lancamentos(Base):
 
     conta_id = Column(Integer, ForeignKey("contas.id"), nullable=False)
     Conta = relationship("Contas")
-    # categoria_id = Column(Integer, ForeignKey("categorias.id"), nullable=False)
     Categorias = relationship("Categorias", secondary=association_lanc_categ)
 
 
