@@ -23,13 +23,27 @@ class Lancamento:
 
 
 class Lancamentos:
+    """
+    Todos os lancamentos de uma conta
+    """
+
     def __init__(self, conta_dc: Conta):
         self.id = None
         self.__items: List[Lancamento] = []
         self.__db = Database().engine
         self.conta: Conta = conta_dc
 
+    @property
+    def total(self) -> int:
+        """
+        Valor total dos lancamentos
+        """
+        return sum([x.valor for x in self.__items])
+
     def load(self):
+        """
+        Carrega dados dos lancamentos do DB
+        """
         self.__items.clear()
 
         with Session(self.__db) as session:
@@ -55,6 +69,9 @@ class Lancamentos:
                 )
 
     def add_new(self, lancam: Lancamento):
+        """
+        Adiciona novo lancamento ao DB com os dados de entrada enviados
+        """
         stmt = insert(ORMLancamentos).values(
             {
                 "conta_id": lancam.conta_id,
@@ -71,6 +88,9 @@ class Lancamentos:
             trans.commit()
 
     def delete(self, lancamento_id: str):
+        """
+        Elimina lancamento com o ID enviado
+        """
         stmt = delete(ORMLancamentos).where(ORMLancamentos.id == lancamento_id)
 
         with self.__db.connect() as conn:

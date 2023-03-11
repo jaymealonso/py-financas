@@ -8,25 +8,21 @@ from model.Categoria import Categorias
 from model.Lancamento import Lancamentos, Lancamento
 from PyQt5.QtGui import (
     QCloseEvent,
-    QValidator,
     QStandardItemModel,
     QCursor,
     QStandardItem,
 )
-from PyQt5.QtCore import Qt, QObject, QRegExp, QDate, QLocale, QModelIndex
+from PyQt5.QtCore import Qt, QObject, QModelIndex
 from PyQt5.QtWidgets import (
     QWidget,
     QHBoxLayout,
     QVBoxLayout,
     QTableView,
-    QLineEdit,
     QPushButton,
     QToolBar,
     QSizePolicy,
     QMessageBox,
     QLabel,
-    QComboBox,
-    QDateEdit,
     QCheckBox,
     QApplication,
 )
@@ -153,8 +149,7 @@ class LancamentosView(QWidget):
         self.model_lancamentos.update(lancamento_dc)
 
         self.model_lancamentos.load()
-        total_value = sum([x.valor for x in self.model_lancamentos.items()])
-        self.total_label.set_int_value(total_value)
+        self.total_label.set_int_value(self.model_lancamentos.total)
         self.parent.load_table_data()
         self.table.setFocus()
 
@@ -217,8 +212,6 @@ class LancamentosView(QWidget):
         # clear table
         model.setRowCount(0)
 
-        total_value: int = 0
-
         for row in self.model_lancamentos.items():
             new_index = model.rowCount()
             model.insertRow(new_index)
@@ -260,8 +253,6 @@ class LancamentosView(QWidget):
                 self.tableline.get_del_button(self, str(row.id)),
             )
 
-            total_value = total_value + row.valor
-
         col1_del = GenericInputDelegate(self.table)
         col1_del.changed.connect(self.on_model_item_changed)
         col2_del = GenericInputDelegate(self.table)
@@ -280,7 +271,7 @@ class LancamentosView(QWidget):
         self.table.setItemDelegateForColumn(5, col5_del)
 
         # Adiciona linha de TOTAL no final
-        self.total_label.set_int_value(total_value)
+        self.total_label.set_int_value(self.model_lancamentos.total)
 
         self.table.resizeColumnToContents(0)
         self.table.resizeColumnToContents(1)
