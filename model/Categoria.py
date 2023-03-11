@@ -21,6 +21,7 @@ class Categorias:
         stmt = select(ORMCategorias).order_by(ORMCategorias.nm_categoria)
         result = self.__db.connect().execute(stmt).fetchall()
         print(f">>> Carregadas {len(result)} categorias.")
+        self.__categorias.append(Categoria(id=0, nm_categoria="(vazio)"))
         for i in result:
             self.__categorias.append(Categoria(*i))
 

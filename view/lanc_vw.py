@@ -241,7 +241,9 @@ class LancamentosView(QWidget):
             model.setItemData(
                 model.index(new_index, 4),
                 {
-                    Qt.DisplayRole: self.model_categorias[row.categoria_id or 0],
+                    Qt.DisplayRole: self.model_categorias.items()[
+                        row.categoria_id or 0
+                    ].nm_categoria,
                     Qt.UserRole: row.categoria_id or 0,
                 },
             )
@@ -326,7 +328,7 @@ class LancamentoTableLine(TableLine):
         return CurrencyEditDelegate(self.parentOne.table)
 
     def get_tipo_conta_dropdown_delegate(self):
-        categorias = {0: "(vazio)"}
+        categorias = {}
         for item in self.parentOne.model_categorias.items():
             categorias[item.id] = item.nm_categoria
 
@@ -363,7 +365,6 @@ class LancamentoTableLine(TableLine):
 
     def get_categorias_lanc_dropdown(self, categoria_id: str, row: int, col: int):
         combobox = ComboBoxDelegate()
-        combobox.addItem("(vazio)", 0)
         for key, item in enumerate(self.parentOne.model_categorias.items()):
             combobox.addItem(item.nm_categoria, item.id)
 

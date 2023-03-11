@@ -37,6 +37,8 @@ class QCurrencyLineEdit(QLineEdit):
             # Modifica valor para negativo / positivo
             if key_event.key() == Qt.Key_Minus:
                 pos = qlineedit.cursorPosition()
+                if len(qlineedit.text()) == 0:
+                    return True
                 if qlineedit.text()[0] == "-":
                     new_text = qlineedit.text()[1:]
                     logging.debug(f"KeyPress MINUS > Remove (-) new -> {new_text}")
@@ -117,7 +119,10 @@ class QCurrencyLineEdit(QLineEdit):
         self.setText(form_txt)
 
     def valueAsInt(self) -> int:
-        return curr.str_curr_to_int(self.text())
+        try:
+            return curr.str_curr_to_int(self.text())
+        except:
+            return 0
 
     def setTextFormat(self):
         value_int = curr.str_curr_to_int(self.text())
