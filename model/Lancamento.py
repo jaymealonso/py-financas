@@ -50,6 +50,7 @@ class Lancamentos:
             lancamentos = (
                 session.query(ORMLancamentos)
                 .filter(ORMLancamentos.conta_id == self.conta.id)
+                .order_by(ORMLancamentos.data)
                 .all()
             )
             for lancamento in lancamentos:
@@ -89,12 +90,16 @@ class Lancamentos:
 
     def delete(self, lancamento_id: str):
         """
-        Elimina lancamento com o ID enviado
+        Elimina lancamento com o ID enviado e relação com categorias 
         """
+        stmt_delete = delete(ORMLancCateg).where(
+            ORMLancCateg.c.lancamento_id == lancamento_id
+        )
         stmt = delete(ORMLancamentos).where(ORMLancamentos.id == lancamento_id)
 
         with self.__db.connect() as conn:
             trans = conn.begin()
+            conn.execute(stmt_delete)
             conn.execute(stmt)
             trans.commit()
 

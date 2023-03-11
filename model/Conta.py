@@ -58,7 +58,7 @@ class Contas:
         self.__items.clear()
         sql = """ 
             select c.id, c.descricao, c.numero, c.moeda, c.tipo_id,
-				( select ifnull(sum(l.valor),0) 
+				( select ifnull(sum(l.valor),0)
 					from lancamentos as l 
 				where l.conta_id = c.id ) as total,
 				( select count(*) 
