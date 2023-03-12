@@ -16,6 +16,7 @@ from PyQt5.QtWidgets import (
 )
 from util.currency_editor import QCurrencyLineEdit
 
+locale.setlocale(locale.LC_ALL, "pt_BR")
 
 logging.basicConfig(
     level=logging.DEBUG,

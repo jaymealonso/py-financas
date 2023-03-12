@@ -1,7 +1,11 @@
 import locale
 
+<<<<<<< HEAD
 # use user's default settings
 locale.setlocale(locale.LC_ALL, "")
+=======
+locale.setlocale(locale.LC_ALL, "pt_BR")
+>>>>>>> 70c2b1dc33bf535d4a9fc0799c4f8c07f95a3fab
 
 
 def str_curr_to_locale(value: str) -> str:
