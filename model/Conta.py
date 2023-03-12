@@ -18,6 +18,10 @@ class ContasTipo:
         self.__db = Database().engine
         self.__load()
 
+    @property
+    def items(self):
+        return self.__items
+
     def __load(self):
         self.__items.clear()
 
@@ -27,9 +31,6 @@ class ContasTipo:
                 self.__items.append(
                     ContaTipo(id=conta_tipo.id, descricao=conta_tipo.descricao)
                 )
-
-    def items(self):
-        return self.__items
 
 
 @dataclass
@@ -53,6 +54,10 @@ class Contas:
     def __init__(self):
         self.__items: List[Conta] = []
         self.__db = Database().engine
+
+    @property
+    def items(self):
+        return self.__items
 
     def load(self):
         self.__items.clear()
@@ -82,7 +87,6 @@ class Contas:
                 self.__items.append(conta)
 
     def add_new(self, conta: Conta):
-
         stmt = insert(ORMContas).values(
             {
                 "descricao": conta.descricao,
@@ -98,21 +102,21 @@ class Contas:
             trans.commit()
 
     def delete(self, conta_id: str):
-
         with Session(self.__db) as session:
             session.query(ORMContas).filter_by(id=conta_id).delete()
             session.commit()
 
-    def update(self, conta: Conta):
+    def update(self, conta_id: str, fieldname: str, value):
         stmt = (
             update(ORMContas)
-            .where(ORMContas.id == conta.id)
+            .where(ORMContas.id == conta_id)
             .values(
                 {
-                    "descricao": conta.descricao,
-                    "numero": conta.numero,
-                    "moeda": conta.moeda,
-                    "tipo_id": conta.tipo_id,
+                    fieldname: value
+                    # "descricao": conta.descricao,
+                    # "numero": conta.numero,
+                    # "moeda": conta.moeda,
+                    # "tipo_id": conta.tipo_id,
                 }
             )
         )
@@ -121,9 +125,6 @@ class Contas:
             trans = conn.begin()
             conn.execute(stmt)
             trans.commit()
-
-    def items(self):
-        return self.__items
 
     def find_by_id(self, id: str):
         enc_conta = None

@@ -5,16 +5,28 @@ import view.icons.icons as icons
 from model.Conta import Conta
 from PyQt5.QtGui import QCursor
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, QLineEdit, QPushButton, QFileDialog, \
-    QTableWidgetItem, QToolBar, QApplication, QLabel, QComboBox, QMessageBox
-from model.Lancamento import Lancamentos, Lancamento
+from PyQt5.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QTableWidget,
+    QLineEdit,
+    QPushButton,
+    QFileDialog,
+    QTableWidgetItem,
+    QToolBar,
+    QApplication,
+    QLabel,
+    QComboBox,
+    QMessageBox,
+)
+from model.Lancamento import Lancamentos
 from view.TableLine import TableLine
 from util.toaster import QToaster
 
 
 class ImportarLancamentosView(QWidget):
     def __init__(self, parent: QWidget, conta_dc: Conta):
-
         self.btn_procurar = QPushButton("Procurar...")
         self.table = QTableWidget()
         self.toolbar = QToolBar()
@@ -29,7 +41,9 @@ class ImportarLancamentosView(QWidget):
         super(ImportarLancamentosView, self).__init__()
 
         self.setWindowModality(Qt.ApplicationModal)
-        self.setWindowTitle(f"Importar Lançamentos - (Conta {conta_dc.id} | {conta_dc.descricao})")
+        self.setWindowTitle(
+            f"Importar Lançamentos - (Conta {conta_dc.id} | {conta_dc.descricao})"
+        )
         self.setMinimumSize(800, 600)
         self.resize(1600, 900)
 
@@ -73,8 +87,10 @@ class ImportarLancamentosView(QWidget):
         return self.toolbar
 
     def on_remove_lines(self):
-        unique_rows = list(dict.fromkeys(
-            [x.row() for x in self.table.selectedIndexes() if x.row() > 0])
+        unique_rows = list(
+            dict.fromkeys(
+                [x.row() for x in self.table.selectedIndexes() if x.row() > 0]
+            )
         )
         unique_rows.sort(reverse=True)
         for sel in unique_rows:
@@ -88,8 +104,11 @@ class ImportarLancamentosView(QWidget):
             if column_combo.currentData() != "":
                 mapping_cols[column_combo.currentData()] = col_index
 
-        unique_rows = list(dict.fromkeys(
-            [x.row() for x in self.table.selectedIndexes() if x.row() > 0]))
+        unique_rows = list(
+            dict.fromkeys(
+                [x.row() for x in self.table.selectedIndexes() if x.row() > 0]
+            )
+        )
 
         line = ImportarLancamentosTableLine(self)
         for row_index in unique_rows:
@@ -100,7 +119,7 @@ class ImportarLancamentosView(QWidget):
                 descricao="Descrição lançamento",
                 data=datetime.now(),
                 valor=0,
-                categoria_id=None
+                categoria_id=None,
             )
             for col in mapping_cols:
                 cell = self.table.item(row_index, mapping_cols[col])
@@ -117,8 +136,13 @@ class ImportarLancamentosView(QWidget):
                     new_lancamento.__setattr__(col, cell_value)
 
             self.model_lancamentos.add_new(new_lancamento)
-        QToaster.showMessage(self, f"Foram criados {len(unique_rows)} novos lançamentos.",
-            closable=False, timeout=2000, corner=Qt.BottomRightCorner)
+        QToaster.showMessage(
+            self,
+            f"Foram criados {len(unique_rows)} novos lançamentos.",
+            closable=False,
+            timeout=2000,
+            corner=Qt.BottomRightCorner,
+        )
 
     def on_procurar_clicked(self):
         dialog = QFileDialog()
@@ -137,9 +161,12 @@ class ImportarLancamentosView(QWidget):
         try:
             wb = openpyxl.load_workbook(path)
         except:
-            QMessageBox(QMessageBox.Warning, "Erro no formato",
-                        f"Arquivo \"{self.file_path.text()}\" não parece estar no formato excel.",
-                        QMessageBox.Ok).exec_()
+            QMessageBox(
+                QMessageBox.Warning,
+                "Erro no formato",
+                f'Arquivo "{self.file_path.text()}" não parece estar no formato excel.',
+                QMessageBox.Ok,
+            ).exec_()
             self.file_path.setText("")
             return
         ws = wb.active
@@ -200,7 +227,7 @@ class ImportarLancamentosTableLine(TableLine):
         1: {"name": "Descrição", "sql_colname": "descricao"},
         2: {"name": "Data", "sql_colname": "data"},
         3: {"name": "Categorias", "sql_colname": "categoria_id"},
-        4: {"name": "Valor", "sql_colname": "valor"}
+        4: {"name": "Valor", "sql_colname": "valor"},
     }
 
     def __init__(self, parent_view: ImportarLancamentosView):
@@ -218,7 +245,9 @@ class ImportarLancamentosTableLine(TableLine):
         decimal_separator = self.parentView.decimal_separator.text()
         mil_separator = self.parentView.mil_separator.text()
         try:
-            curr_str = curr_str.replace(mil_separator, "").replace(decimal_separator, ".")
+            curr_str = curr_str.replace(mil_separator, "").replace(
+                decimal_separator, "."
+            )
             curr_int = int(curr_str)
         except:
             print("Erro importando valor em currency!")
@@ -235,11 +264,3 @@ class ImportarLancamentosTableLine(TableLine):
             date = None
 
         return date
-
-
-
-
-
-
-
-

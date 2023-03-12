@@ -38,8 +38,8 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(self.container)
 
-        # @todo: abre automaticamente a conta 2, remover antes de lançar
-        self.tabbar.widget(0).on_open_lancamentos("1")
+        # @todo: abre automaticamente a conta 1, remover antes de lançar
+        # self.tabbar.widget(0).on_open_lancamentos("1")
 
     def closeEvent(self, event) -> None:
         print("Entrou evento close")

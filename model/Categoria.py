@@ -1,19 +1,14 @@
 from typing import List
 from dataclasses import dataclass
 from sqlalchemy import select, insert, update
+from sqlalchemy.orm import Session
 from model.db.db import Database
 from model.db.db_orm import Categorias as ORMCategorias
 
 
-@dataclass(order=True)
-class Categoria:
-    id: int
-    nm_categoria: str
-
-
 class Categorias:
     def __init__(self):
-        self.__categorias: List[Categoria] = []
+        self.__categorias: List[ORMCategorias] = []
         self.__db = Database().engine
 
     @property
@@ -22,26 +17,37 @@ class Categorias:
 
     def load(self):
         self.__categorias.clear()
-        stmt = select(ORMCategorias).order_by(ORMCategorias.nm_categoria)
-        result = self.__db.connect().execute(stmt).fetchall()
-        print(f">>> Carregadas {len(result)} categorias.")
-        self.__categorias.append(Categoria(id=0, nm_categoria="(vazio)"))
-        for i in result:
-            self.__categorias.append(Categoria(*i))
 
-    def add_new(self, categoria: Categoria):
+        self.__categorias.append(ORMCategorias(id=0, nm_categoria="(vazio)"))
+        with Session(self.__db) as session:
+            query_result = (
+                session.query(ORMCategorias).order_by(ORMCategorias.nm_categoria).all()
+            )
+            for categoria in query_result:
+                self.__categorias.append(categoria)
+        print(f">>> Carregadas {len(self.__categorias)} categorias.")
+
+    def add_new_empty(self) -> int:
+        return self.add_new(ORMCategorias(id=None, nm_categoria="Nova Categoria"))
+
+    def add_new(self, categoria: ORMCategorias) -> int:
+        """
+        Insere nova categoria com nome padrão e retorna o ID do novo registro criado
+        """
         stmt = insert(ORMCategorias).values({"nm_categoria": categoria.nm_categoria})
 
         with self.__db.connect() as conn:
             trans = conn.begin()
-            conn.execute(stmt)
+            result = conn.execute(stmt)
             trans.commit()
 
-    def update(self, categoria: Categoria):
+        return result.inserted_primary_key.id
+
+    def update(self, categoria_id: int, fieldname: str, value):
         stmt = (
             update(ORMCategorias)
-            .where(ORMCategorias.id == categoria.id)
-            .values({"nm_categoria": categoria.nm_categoria})
+            .where(ORMCategorias.id == categoria_id)
+            .values({fieldname: value})
         )
 
         with self.__db.connect() as conn:

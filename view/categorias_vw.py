@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
     QTableWidgetItem,
     QApplication,
 )
-from model.Categoria import Categoria, Categorias
+from model.Categoria import Categorias
 import operator
 
 
@@ -92,7 +92,7 @@ class CategoriasView(QWidget):
         QApplication.restoreOverrideCursor()
 
     def on_add_categoria(self):
-        self.model_categ.add_new(Categoria(id=None, nm_categoria="Nova Categoria"))
+        categoria_id = self.model_categ.add_new_empty()
         self.load_table_data()
 
     def table_cell_changed(self, row: int, col: int):
@@ -104,8 +104,8 @@ class CategoriasView(QWidget):
             f"Modificando categoria numero:{categ_dc.id} campo \"{column_data['sql_colname']}\" para valor \"{item.text()}\""
         )
 
-        categ_dc.__setattr__(column_data["sql_colname"], item.text())
-        self.model_categ.update(categ_dc)
+        # categ_dc.__setattr__(column_data["sql_colname"], item.text())
+        self.model_categ.update(categ_dc.id, column_data["sql_colname"], item.text())
         self.load_table_data()
 
 

@@ -7,13 +7,11 @@ class Settings:
     def __init__(self):
         super(Settings, self).__init__()
         self.settings = QSettings(
-            QSettings.IniFormat, QSettings.UserScope,
-            "JALL Soft", "Finanças Py")
+            QSettings.IniFormat, QSettings.UserScope, "JALL Soft", "Finanças Py"
+        )
 
     def save_main_w_settings(self, window: QWidget):
-        self.settings.setValue(
-            f"mainWindow/geometry",
-            window.saveGeometry())
+        self.settings.setValue(f"mainWindow/geometry", window.saveGeometry())
 
     def load_main_w_settings(self, window: QWidget):
         try:
@@ -25,17 +23,11 @@ class Settings:
             return False
 
     def save_lanc_settings(self, window: QWidget, conta_dc: Conta):
-        """ Salvar configuracoes de posicao nas janelas de lançamento """
-        self.settings.setValue(
-            f"lanc-{conta_dc.id}/geometry",
-            window.saveGeometry())
-        # self.settings.setValue(
-        #     f"lanc-{conta_dc.id}-windowState",
-        #     window.saveState()
-        # )
+        """Salvar configuracoes de posicao nas janelas de lançamento"""
+        self.settings.setValue(f"lanc-{conta_dc.id}/geometry", window.saveGeometry())
 
-    def load_lanc_settings(self, window: QWidget, conta_dc:Conta):
-        """ Carregar configuracoes de posicao nas janelas de lançamento """
+    def load_lanc_settings(self, window: QWidget, conta_dc: Conta):
+        """Carregar configuracoes de posicao nas janelas de lançamento"""
         try:
             geometry = self.settings.value(f"lanc-{conta_dc.id}/geometry")
             # wState = self.settings.value(f"lanc-{conta_dc.id}-windowState")
@@ -46,5 +38,3 @@ class Settings:
         except Exception as e:
             print(f"Error loading window settings {e}.")
             return False
-
-

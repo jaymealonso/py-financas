@@ -1,9 +1,10 @@
 import view.icons.icons as icons
 import view.lanc_vw
+import logging
 from view.TableLine import TableLine
 from view.visao_mensal_vw import VisaoGeralView
 from typing import Tuple
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QModelIndex
 from PyQt5.QtGui import (
     QIntValidator,
     QValidator,
@@ -25,7 +26,13 @@ from PyQt5.QtWidgets import (
 )
 from model.Conta import ContasTipo, Contas, Conta
 from util.events import subscribe, unsubscribe_refs, Eventos
-from util.custom_table_delegates import ComboBoxDelegate
+from util.custom_table_delegates import GenericInputDelegate, ComboBoxDelegate
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[logging.StreamHandler()],
+)
 
 
 class ContasView(QWidget):
@@ -71,10 +78,10 @@ class ContasView(QWidget):
         return self.toolbar
 
     def on_add_conta(self, show_message=True):
-        print("Adding new conta in the database...")
+        logging.debug("Adding new conta in the database...")
         self.model_contas.add_new(Conta(None, "nova conta", "", "BRL", "1"))
-        print("Done !!!")
-        print("Reloading data...")
+        logging.debug("Done !!!")
+        logging.debug("Reloading data...")
         self.load_table_data()
 
     def on_del_conta(self, conta_id: str):
@@ -88,10 +95,10 @@ class ContasView(QWidget):
         if button == QMessageBox.No:
             return
 
-        print(f"Eliminando conta {conta_id} do banco de dados ...")
+        logging.debug(f"Eliminando conta {conta_id} do banco de dados ...")
         self.model_contas.delete(conta_id)
-        print("Done !!!")
-        print("Reloading data...")
+        logging.debug("Done !!!")
+        logging.debug("Reloading data...")
         self.load_table_data()
 
     def on_open_lancamentos(self, conta_id: str):
@@ -114,7 +121,7 @@ class ContasView(QWidget):
 
         if lancamentos_window.isHidden():
             position = self.main_window.pos()
-            print(
+            logging.debug(
                 f"> Abrir janela Lanç. (conta id:{conta_id}) posição (X: {position.x()}, Y: {position.y()})."
             )
 
@@ -123,18 +130,20 @@ class ContasView(QWidget):
         lancamentos_window.activateWindow()
 
     def on_open_visao_mensal(self, conta_id: str):
-        conta_items = self.model_contas.items()
+        conta_items = self.model_contas.items
         conta = [x for x in conta_items if x.id == int(conta_id)]
         self.visao_geral_window = VisaoGeralView(self, conta[0])
         self.visao_geral_window.show()
 
     def handle_close_lancamento(self, conta_id: str):
-        print(f"Lancamento close event UNSUBSCRIBE conta: {conta_id}")
+        logging.debug(f"Lancamento close event UNSUBSCRIBE conta: {conta_id}")
         unsubscribe_refs(self.lanc_windows_open[conta_id])
         del self.lanc_windows_open[conta_id]
 
-    def handle_lancamento_created(self, lancamento):
-        print(f"Lancamento criado {lancamento.id}, recarregando dados na contas view.")
+    def handle_lancamento_created(self, lancamento_id: int):
+        logging.debug(
+            f"Lancamento criado {lancamento_id}, recarregando dados na contas view."
+        )
         self.load_table_data()
 
     def get_table(self):
@@ -146,28 +155,31 @@ class ContasView(QWidget):
 
         return self.table
 
-    # def table_cell_changed(self, row: int, col: int):
-    def model_item_changed(self, item):
-        conta_dc = self.model_contas.items()[item.row()]
-        column_data = self.COLUMNS.get(item.column())
+    def model_item_changed(self, item: QModelIndex):
+        row = item.row()
+        col = item.column()
 
-        print(
-            f"Modificando conta numero:{conta_dc.id} campo \"{column_data['sql_colname']}\" para valor \"{item.text()}\""
+        conta_dc = self.model_contas.items[row]
+        value = item.data(Qt.UserRole)
+
+        column_data = self.COLUMNS.get(col)
+
+        logging.debug(
+            f"Modificando conta numero:{conta_dc.id} campo \"{column_data['sql_colname']}\" para valor \"{value}\""
         )
-        conta_dc.__setattr__(column_data["sql_colname"], item.text())
-        self.model_contas.update(conta_dc)
+        self.model_contas.update(conta_dc.id, column_data["sql_colname"], value)
 
     def load_table_data(self):
         QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
         model = self.table.model()
         try:
-            print("> Disconnecting model.itemChanged ... ", end=" ")
+            logging.debug("> Disconnecting model.itemChanged ... ", end=" ")
             model.itemChanged.disconnect()
-            print("Disconnected!")
+            logging.debug("Disconnected!")
         except:
-            print("was not connected!")
+            logging.error("was not connected!")
 
-        print("Loading contas data...")
+        logging.debug("Loading contas data...")
         self.model_contas.load()
 
         # Limpa a tabela
@@ -177,9 +189,9 @@ class ContasView(QWidget):
 
         self.table.setItemDelegateForColumn(4, line.get_tipo_conta_dropdown_delegate())
 
-        rows = self.model_contas.items()
+        rows = self.model_contas.items
 
-        print("Preenchendo dados na tabela.")
+        logging.debug("Preenchendo dados na tabela.")
         for row in rows:
             new_index = model.rowCount()
             model.insertRow(new_index)
@@ -188,12 +200,24 @@ class ContasView(QWidget):
                 model.index(new_index, 0), line.get_label_for_id(str(row.id))
             )
 
-            model.setItem(new_index, 1, QStandardItem(row.descricao))
-            model.setItem(new_index, 2, QStandardItem(row.numero))
-            model.setItem(new_index, 3, QStandardItem(row.moeda))
+            model.setItemData(
+                model.index(new_index, 1),
+                {Qt.DisplayRole: row.descricao, Qt.UserRole: row.descricao},
+            )
+            model.setItemData(
+                model.index(new_index, 2),
+                {Qt.DisplayRole: row.numero, Qt.UserRole: row.numero},
+            )
+            model.setItemData(
+                model.index(new_index, 3),
+                {Qt.DisplayRole: row.moeda, Qt.UserRole: row.moeda},
+            )
+            model.setItemData(
+                model.index(new_index, 4),
+                {Qt.DisplayRole: row.tipo_id, Qt.UserRole: row.tipo_id},
+            )
 
-            model.setItemData(model.index(new_index, 4), {0: row.tipo_id})
-
+            # Fixed Values
             self.table.setIndexWidget(
                 model.index(new_index, 5), line.get_label_for_total_curr(row.total)
             )
@@ -203,6 +227,8 @@ class ContasView(QWidget):
             self.table.setIndexWidget(
                 model.index(new_index, 7), line.get_label_for_classif(row.lanc_classif)
             )
+
+            # Buttons
             self.table.setIndexWidget(
                 model.index(new_index, 8), line.get_del_button(str(row.id))
             )
@@ -212,6 +238,10 @@ class ContasView(QWidget):
             self.table.setIndexWidget(
                 model.index(new_index, 10), line.get_visao_mensal(str(row.id))
             )
+
+        self.table.setItemDelegateForColumn(1, GenericInputDelegate(self.table))
+        self.table.setItemDelegateForColumn(2, GenericInputDelegate(self.table))
+        self.table.setItemDelegateForColumn(3, GenericInputDelegate(self.table))
 
         self.table.resizeColumnToContents(0)
         self.table.resizeColumnToContents(1)
@@ -225,7 +255,7 @@ class ContasView(QWidget):
         self.table.setColumnWidth(10, 130)
 
         model.itemChanged.connect(self.model_item_changed)
-        print("> itemChanged connected again!")
+        logging.debug("> itemChanged connected again!")
         QApplication.restoreOverrideCursor()
 
 
@@ -263,7 +293,7 @@ class ContaTableLine(TableLine):
         return line_edit
 
     def check_state(self, *args, **kwargs):
-        print("entered validator", args[0])
+        logging.debug("entered validator", args[0])
         sender = self.sender()
         validator = sender.validator()
         state = validator.validate(sender.text(), 0)[0]
@@ -277,7 +307,7 @@ class ContaTableLine(TableLine):
 
     def get_tipo_conta_dropdown_delegate(self):
         tipos_conta = {}
-        for item in self.parentOne.model_tps_conta.items():
+        for item in self.parentOne.model_tps_conta.items:
             tipos_conta[item.id] = item.descricao
 
         cmb_delegate = ComboBoxDelegate(tipos_conta, self.parentOne.table)
@@ -287,8 +317,7 @@ class ContaTableLine(TableLine):
     def get_tipo_conta_dropdown(self, conta: Conta):
         combobox = QComboBox()
         index: int = 0
-        # for tipo_conta in self.parentOne.tipos_conta.items():
-        items = self.parentOne.model_tps_conta.items()
+        items = self.parentOne.model_tps_conta.items
         for key, item_index in enumerate(items):
             item = items.get(item_index)
             if item.id == conta.tipo_id:

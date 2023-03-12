@@ -133,12 +133,12 @@ class ComboBoxDelegate(EmitterItemDelegade):
         Envia dados para o widget quando aberto
         """
         model = self.parent_table.model()
-        tipo_id = model.itemData(index)[0]
+        tipo_id = model.itemData(index)[Qt.UserRole]
         value = editor.findData(tipo_id)
+        logging.debug(f"Definindo dados do Editor tipo_id: {tipo_id}, value: {value}")
         if value:
             editor.setCurrentIndex(int(value))
         editor.showPopup()
-        logging.debug("setEditorData")
 
     def setModelData(self, editor, model, index):
         """

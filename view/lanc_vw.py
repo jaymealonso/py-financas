@@ -1,11 +1,12 @@
 import datetime
 import view.icons.icons as icons
 import view.contas_vw as cv
+import logging
 from view.imp_lanc_vw import ImportarLancamentosView
 from view.TableLine import TableLine
 from model.Conta import Conta
 from model.Categoria import Categorias
-from model.Lancamento import Lancamentos, Lancamento
+from model.Lancamento import Lancamentos
 from PyQt5.QtGui import (
     QCloseEvent,
     QStandardItemModel,
@@ -36,6 +37,12 @@ from util.custom_table_delegates import (
     ComboBoxDelegate,
     DateEditDelegate,
     CurrencyEditDelegate,
+)
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[logging.StreamHandler()],
 )
 
 
@@ -81,26 +88,10 @@ class LancamentosView(QWidget):
 
         self.setLayout(layout)
 
-    def get_footer(self):
-        layout = QHBoxLayout()
-
-        spacer = QWidget()
-        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-
-        layout.insertStretch(0)
-        layout.addWidget(QLabel("TOTAL"))
-        layout.addWidget(self.total_label)
-
-        footer = QWidget(self)
-        footer.setLayout(layout)
-        return footer
-
-    def closeEvent(self, event: QCloseEvent) -> None:
-        print(f"Lancamento close event INSIDE LANCAMENTOS conta: {self.conta_dc.id}")
-        post_event(Eventos.LANCAMENTO_WINDOW_CLOSED, str(self.conta_dc.id))
-        self.settings.save_lanc_settings(self, self.conta_dc)
-
     def get_toolbar(self):
+        """
+        Retorna toolbar
+        """
         self.toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
 
         import_act = self.toolbar.addAction(icons.import_file(), "Importar Lançamentos")
@@ -120,11 +111,10 @@ class LancamentosView(QWidget):
 
         return self.toolbar
 
-    def on_import_lancam(self):
-        self.import_lanc_view = ImportarLancamentosView(self, self.conta_dc)
-        self.import_lanc_view.show()
-
     def get_table(self):
+        """
+        Retorna tabela com o seu layout
+        """
         model = QStandardItemModel(0, len(self.COLUMNS))
         model.setHorizontalHeaderLabels([col["title"] for col in self.COLUMNS.values()])
         self.table.setModel(model)
@@ -133,17 +123,48 @@ class LancamentosView(QWidget):
 
         return self.table
 
+    def get_footer(self):
+        """
+        Retorna rodapé com total dos lancamentos
+        """
+        layout = QHBoxLayout()
+
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+        layout.insertStretch(0)
+        layout.addWidget(QLabel("TOTAL"))
+        layout.addWidget(self.total_label)
+
+        footer = QWidget(self)
+        footer.setLayout(layout)
+        return footer
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        logging.debug(
+            f"Lancamento close event INSIDE LANCAMENTOS conta: {self.conta_dc.id}"
+        )
+        post_event(Eventos.LANCAMENTO_WINDOW_CLOSED, str(self.conta_dc.id))
+        self.settings.save_lanc_settings(self, self.conta_dc)
+
+    def on_import_lancam(self):
+        """
+        Exibe a janela de importação de lançamentos
+        """
+        self.import_lanc_view = ImportarLancamentosView(self, self.conta_dc)
+        self.import_lanc_view.show()
+
     def table_cell_changed(self, item: QModelIndex):
         row = item.row()
         col = item.column()
 
+        logging.debug(f"Cell changed row/col: {row}/{col}")
         lancamento_dc = self.model_lancamentos.items[row]
-        print(f"Cell changed row/col: {row}/{col}")
         value = item.data(Qt.UserRole)
 
         column_data = self.COLUMNS.get(col)
 
-        print(
+        logging.debug(
             f"Modificando lancamento numero:{lancamento_dc.id} campo \"{column_data['sql_colname']}\" para valor \"{value}\""
         )
 
@@ -169,26 +190,18 @@ class LancamentosView(QWidget):
             if button == QMessageBox.No:
                 return
 
-        print(f"Eliminando lancamento {lancamento_id} do banco de dados ...")
+        logging.debug(f"Eliminando lancamento {lancamento_id} do banco de dados ...")
         self.model_lancamentos.delete(str(lancamento_id))
-        print("Done !!!")
+        logging.debug("Done !!!")
         self.load_table_data()
         self.parent.load_table_data()
 
     def on_add_lancamento(self, show_message=True):
-        print("Adding new lancamento in the database...")
-        new_lancamento = Lancamento(
-            id=None,
-            conta_id=int(self.conta_dc.id),
-            nr_referencia="ref",
-            descricao="descr",
-            data=datetime.date.today(),
-            valor=0,
-            categoria_id=0,
-        )
-        self.model_lancamentos.add_new(new_lancamento)
-        print(f"Done !!! Lancamento criado com id: {new_lancamento.id}")
-        post_event(Eventos.LANCAMENTO_CREATED, new_lancamento)
+        logging.debug("Adding new lancamento in the database...")
+        new_lancamento_id = self.model_lancamentos.add_new_empty(self.conta_dc.id)
+
+        logging.debug(f"Done !!! Lancamento criado com id: {new_lancamento_id}")
+        post_event(Eventos.LANCAMENTO_CREATED, new_lancamento_id)
         self.load_table_data()
         if show_message:
             QToaster.showMessage(
@@ -204,13 +217,13 @@ class LancamentosView(QWidget):
         vert_scr_position = self.table.verticalScrollBar().value()
         model = self.table.model()
         try:
-            print("> Disconnecting table itemChanged... ", end=" ")
+            logging.debug("> Disconnecting table itemChanged... ")
             model.itemChanged.disconnect()
-            print("Disconnected!")
-        except:
-            print("itemChanged not connected!")
+            logging.debug("Disconnected!")
+        except Exception as e:
+            logging.error(f"itemChanged not connected! Error: {str(e)}")
 
-        print(f"Loading lancamentos (conta id: {self.conta_dc.id}) data...")
+        logging.debug(f"Loading lancamentos (conta id: {self.conta_dc.id}) data...")
         self.model_lancamentos.load()
 
         # clear table
@@ -289,25 +302,27 @@ class LancamentosView(QWidget):
         self.table.setColumnWidth(6, 160)
         self.table.setColumnWidth(7, 100)
 
-        # Adiciona linha de TOTAL no final
+        # Define valor do TOTAL que aparece no rodapé da janela
         self.total_label.set_int_value(self.model_lancamentos.total)
 
-        # model.itemChanged.connect(self.on_model_item_changed)
-        print("> itemChanged connected again!")
+        logging.debug("> itemChanged connected again!")
         self.table.verticalScrollBar().setValue(vert_scr_position)
         QApplication.restoreOverrideCursor()
 
     def on_model_item_changed(self, item: QStandardItem):
+        """
+        Disparado pela modificação de um WIDGET na linha da tabela
+        """
         self.table_cell_changed(item)
 
-    def on_table_cell_doubleclick(self, row: int, col: int):
-        if col == 4:
-            item = self.model_lancamentos.items[row]
-            combobox = self.tableline.get_categorias_lanc_dropdown(
-                item.categoria_id, row, col
-            )
-            self.table.setCellWidget(row, col, combobox)
-            combobox.setEditable(True)
+    # def on_table_cell_doubleclick(self, row: int, col: int):
+    #     if col == 4:
+    #         item = self.model_lancamentos.items[row]
+    #         combobox = self.tableline.get_categorias_lanc_dropdown(
+    #             item.categoria_id, row, col
+    #         )
+    #         self.table.setCellWidget(row, col, combobox)
+    #         combobox.setEditable(True)
 
 
 class TotalCurrLabel(QLabel):
@@ -365,16 +380,16 @@ class LancamentoTableLine(TableLine):
         del_pbutt.clicked.connect(lambda: parent.on_del_lancamento(index))
         return del_pbutt
 
-    def get_categorias_lanc_dropdown(self, categoria_id: str, row: int, col: int):
-        combobox = ComboBoxDelegate()
-        for key, item in enumerate(self.parentOne.model_categorias.items):
-            combobox.addItem(item.nm_categoria, item.id)
+    # def get_categorias_lanc_dropdown(self, categoria_id: str, row: int, col: int):
+    #     combobox = ComboBoxDelegate()
+    #     for key, item in enumerate(self.parentOne.model_categorias.items):
+    #         combobox.addItem(item.nm_categoria, item.id)
 
-        index = int(combobox.findData(categoria_id))
-        if index == -1:
-            index = 0
-        combobox.setCurrentIndex(index)
+    #     index = int(combobox.findData(categoria_id))
+    #     if index == -1:
+    #         index = 0
+    #     combobox.setCurrentIndex(index)
 
-        model = self.parentOne.table.model()
-        combobox.currentIndexChanged.connect(lambda: model.itemChanged(row, col))
-        return combobox
+    #     model = self.parentOne.table.model()
+    #     combobox.currentIndexChanged.connect(lambda: model.itemChanged(row, col))
+    #     return combobox

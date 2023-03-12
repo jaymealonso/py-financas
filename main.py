@@ -9,7 +9,6 @@ class MainApp:
     def __init__(self, drop_tables: bool, populate_sample: bool):
         self.app = QApplication([])
         self.app.setStyle("Fusion")
-        # self.app.setStyleSheet('QWidget {font-size: 24px}')
 
         self.app.setWindowIcon(icons.app_icon())
 

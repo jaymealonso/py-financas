@@ -11,18 +11,6 @@ from model.db.db_orm import (
 from model.Conta import Conta
 
 
-@dataclass
-class Lancamento:
-    id: Optional[str]
-    seq_ordem_linha: int
-    conta_id: int
-    nr_referencia: str
-    descricao: str
-    data: moment.now().date
-    valor: int
-    categoria_id: Optional[int]
-
-
 class Lancamentos:
     """
     Todos os lancamentos de uma conta
@@ -60,57 +48,54 @@ class Lancamentos:
                 .options(joinedload(ORMLancamentos.Categorias))
                 .all()
             )
-            # lancamentos = (
-            #     session.query(ORMLancamentos)
-            #     .filter(ORMLancamentos.conta_id == self.conta.id)
-            #     .order_by(ORMLancamentos.data)
-            #     # se não forçar o carregamento aqui carrega quando referencia o "Categorias"
-            #     .options(joinedload(ORMLancamentos.Categorias))
-            #     .all()
-            # )
-            # for lancamento in lancamentos:
-            #     categ_id: str = ""
-            #     if len(lancamento.Categorias) > 0:
-            #         categ_id = lancamento.Categorias[0].id
-            #     self.__items.append(
-            #         Lancamento(
-            #             id=lancamento.id,
-            #             seq_ordem_linha=lancamento.seq_ordem_linha,
-            #             conta_id=lancamento.conta_id,
-            #             nr_referencia=lancamento.nr_referencia,
-            #             descricao=lancamento.descricao,
-            #             data=moment.date(lancamento.data).date,
-            #             valor=lancamento.valor,
-            #             categoria_id=categ_id,
-            #         )
-            #     )
 
-    def add_new(self, lancam: Lancamento):
+    def add_new_empty(self, conta_id: int) -> int:
+        new_lancamento = ORMLancamentos(
+            id=None,
+            conta_id=conta_id,
+            nr_referencia="",
+            descricao="",
+            data=moment.now(),
+            valor=0,
+        )
+        return self.add_new(new_lancamento)
+
+    def add_new(self, lancam: ORMLancamentos) -> int:
         """
         Adiciona novo lancamento ao DB com os dados de entrada enviados
+        e retorna o ID do novo lancamento
         """
 
-        with Session(self.__db) as session:
-            stmt_max_row_order = session.query(
-                func.max(ORMLancamentos.row_order)
-            ).filter(ORMLancamentos.data == lancam.data)
-            if not stmt_max_row_order:
-                stmt_max_row_order = 1
+        session = Session(self.__db)
+        stmt_max_seq_ordem_linha = (
+            session.query(func.max(ORMLancamentos.seq_ordem_linha))
+            .filter(
+                ORMLancamentos.conta_id == lancam.conta_id,
+                ORMLancamentos.data == lancam.data.date.date(),
+            )
+            .first()
+        )
+        seq_ordem_linha: int = 1
+        if stmt_max_seq_ordem_linha[0]:
+            seq_ordem_linha = int(stmt_max_seq_ordem_linha[0])
 
         stmt = insert(ORMLancamentos).values(
             {
                 "conta_id": lancam.conta_id,
+                "seq_ordem_linha": seq_ordem_linha,
                 "nr_referencia": lancam.nr_referencia,
                 "descricao": lancam.descricao,
-                "data": lancam.data,
+                "data": lancam.data.date.date(),
                 "valor": lancam.valor,
             }
         )
 
         with self.__db.connect() as conn:
             trans = conn.begin()
-            conn.execute(stmt)
+            result = conn.execute(stmt)
             trans.commit()
+
+        return result.inserted_primary_key.id
 
     def delete(self, lancamento_id: str):
         """
