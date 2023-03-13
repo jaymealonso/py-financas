@@ -1,100 +1,142 @@
-import datetime
-import dataclasses
+import moment
 from typing import List, Optional
+from sqlalchemy import insert, update, delete, func
+from sqlalchemy.orm import Session, joinedload
 from dataclasses import dataclass
-from model.db import Database
+from model.db.db import Database
+from model.db.db_orm import (
+    Lancamentos as ORMLancamentos,
+    association_lanc_categ as ORMLancCateg,
+)
 from model.Conta import Conta
 
 
-@dataclass
-class Lancamento:
-    id: Optional[str]
-    conta_id: int
-    nr_referencia: str
-    descricao: str
-    data: datetime.date
-    valor: int
-    categoria_id: Optional[int]
-
-
 class Lancamentos:
+    """
+    Todos os lancamentos de uma conta
+    """
+
     def __init__(self, conta_dc: Conta):
         self.id = None
-        self.__items: List[Lancamento] = []
-        self.__db = Database().db
+        self.__items: List[ORMLancamentos] = []
+        self.__db = Database().engine
         self.conta: Conta = conta_dc
 
-    def load(self):
-        self.__items.clear()
-        sql = '''
-            select l.*, c._id as categoria_id from lancamentos as l
-                   left join lancamento_categoria as lc on lc.lancamento_id = l._id
-                   left join categorias as c on c._id = lc.categoria_id
-             where l.conta_id = ?
-             order by l.data
-        '''
-        result = self.__db.execute(sql, (self.conta.id,)).fetchall()
-        for i in result:
-            self.__items.append(Lancamento(*i))
-
-    def add_new(self, lancam: Lancamento):
-        sql = 'insert into lancamentos (_id, cont_id, nr_referencia, descricao, data, valor) values(?,?,?,?,?,?)'
-        data = dataclasses.astuple(lancam)
-
-        self.__db.execute(sql, data[:6])
-        self.__db.commit()
-
-        lancamento_id = self.__db.execute("select last_insert_rowid()").fetchone()
-        lancam.id = lancamento_id[0]
-
-    def delete(self, lancamento_id: str):
-        sql = 'delete from lancamentos where _id = ?'
-
-        self.__db.execute(sql, (lancamento_id,))
-        self.__db.commit()
-
-    def update(self, lancamento: Lancamento):
-        sql = '''
-            update lancamentos 
-               set conta_id = ?,
-                   nr_referencia = ?,
-                   descricao = ?,
-                   data = ?,
-                   valor = ?
-             where _id = ?
-        '''
-        self.__db.execute(sql, (
-            lancamento.conta_id,
-            lancamento.nr_referencia,
-            lancamento.descricao,
-            lancamento.data,
-            lancamento.valor,
-            lancamento.id)
-        )
-        sql2 = '''
-            delete from lancamento_categoria  
-             where lancamento_id = ?
-        '''
-        self.__db.execute(sql2, (lancamento.id,))
-
-        if lancamento.categoria_id and lancamento.categoria_id != "0":
-            sql3 = '''
-                INSERT INTO lancamento_categoria (lancamento_id, categoria_id) values (?, ?)
-            '''
-            self.__db.execute(sql3, (lancamento.id, lancamento.categoria_id))
-
-        self.__db.commit()
-
-    def items(self):
+    @property
+    def items(self) -> list[ORMLancamentos]:
         return self.__items
 
+    @property
+    def total(self) -> int:
+        """
+        Valor total dos lancamentos
+        """
+        return sum([x.valor for x in self.__items])
 
+    def load(self) -> None:
+        """
+        Carrega dados dos lancamentos do DB
+        """
+        self.__items.clear()
 
+        with Session(self.__db) as session:
+            self.__items = (
+                session.query(ORMLancamentos)
+                .filter(ORMLancamentos.conta_id == self.conta.id)
+                .order_by(ORMLancamentos.data)
+                # se não forçar o carregamento aqui carrega quando referencia o "Categorias"
+                .options(joinedload(ORMLancamentos.Categorias))
+                .all()
+            )
 
+    def add_new_empty(self, conta_id: int) -> int:
+        new_lancamento = ORMLancamentos(
+            id=None,
+            conta_id=conta_id,
+            nr_referencia="",
+            descricao="",
+            data=moment.now(),
+            valor=0,
+        )
+        return self.add_new(new_lancamento)
 
+    def add_new(self, lancam: ORMLancamentos) -> int:
+        """
+        Adiciona novo lancamento ao DB com os dados de entrada enviados
+        e retorna o ID do novo lancamento
+        """
 
+        session = Session(self.__db)
+        stmt_max_seq_ordem_linha = (
+            session.query(func.max(ORMLancamentos.seq_ordem_linha))
+            .filter(
+                ORMLancamentos.conta_id == lancam.conta_id,
+                ORMLancamentos.data
+                == lancam.data.date.date().isoformat() + " 00:00:00.000000",
+            )
+            .first()
+        )
+        seq_ordem_linha: int = 1
+        if stmt_max_seq_ordem_linha[0]:
+            seq_ordem_linha = int(stmt_max_seq_ordem_linha[0]) + 1
 
+        stmt = insert(ORMLancamentos).values(
+            {
+                "conta_id": lancam.conta_id,
+                "seq_ordem_linha": seq_ordem_linha,
+                "nr_referencia": lancam.nr_referencia,
+                "descricao": lancam.descricao,
+                "data": lancam.data.date.date(),
+                "valor": lancam.valor,
+            }
+        )
 
+        with self.__db.connect() as conn:
+            trans = conn.begin()
+            result = conn.execute(stmt)
+            trans.commit()
 
+        return result.inserted_primary_key.id
 
+    def delete(self, lancamento_id: str):
+        """
+        Elimina lancamento com o ID enviado e relação com categorias
+        """
+        stmt_delete = delete(ORMLancCateg).where(
+            ORMLancCateg.c.lancamento_id == lancamento_id
+        )
+        stmt = delete(ORMLancamentos).where(ORMLancamentos.id == lancamento_id)
 
+        with self.__db.connect() as conn:
+            trans = conn.begin()
+            conn.execute(stmt_delete)
+            conn.execute(stmt)
+            trans.commit()
+
+    def update(self, id: int, column_name: str, value):
+        """
+        Atualiza somente o que foi modificado, possui um tratamento
+        especial para Categoria por que é uma relação n:n
+        """
+        conn = self.__db.connect()
+        session = Session(self.__db)
+        trans = conn.begin()
+        if column_name == "categoria_id":
+            stmt_delete = delete(ORMLancCateg).where(ORMLancCateg.c.lancamento_id == id)
+            stmt_insert = insert(ORMLancCateg).values(
+                {
+                    "lancamento_id": id,
+                    "categoria_id": value,
+                }
+            )
+            conn.execute(stmt_delete)
+            conn.execute(stmt_insert)
+        else:
+            stmt_update = (
+                update(ORMLancamentos)
+                .where(ORMLancamentos.id == id)
+                .values({column_name: value})
+            )
+            conn.execute(stmt_update)
+
+        trans.commit()

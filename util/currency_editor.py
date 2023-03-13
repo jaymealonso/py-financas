@@ -9,7 +9,8 @@ from PyQt5.QtWidgets import QLineEdit, QTableView
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s [%(levelname)s] >>> %(message)s",
-    handlers=[logging.StreamHandler()])
+    handlers=[logging.StreamHandler()],
+)
 
 
 class QCurrencyLineEdit(QLineEdit):
@@ -36,6 +37,8 @@ class QCurrencyLineEdit(QLineEdit):
             # Modifica valor para negativo / positivo
             if key_event.key() == Qt.Key_Minus:
                 pos = qlineedit.cursorPosition()
+                if len(qlineedit.text()) == 0:
+                    return True
                 if qlineedit.text()[0] == "-":
                     new_text = qlineedit.text()[1:]
                     logging.debug(f"KeyPress MINUS > Remove (-) new -> {new_text}")
@@ -81,7 +84,7 @@ class QCurrencyLineEdit(QLineEdit):
             if Qt.Key_0 <= key_event.key() <= Qt.Key_9:
                 pos = qlineedit.cursorPosition()
                 if pos == 0:
-                    if qlineedit.text()[pos] == "-":
+                    if len(qlineedit.text()) > 0 and qlineedit.text()[pos] == "-":
                         return True
 
             #     try:
@@ -112,11 +115,14 @@ class QCurrencyLineEdit(QLineEdit):
             value_float: float = value_int / 100
             form_txt = locale.currency(val=value_float, symbol=False, grouping=True)
         except:
-            form_txt = ''
+            form_txt = ""
         self.setText(form_txt)
 
     def valueAsInt(self) -> int:
-        return curr.str_curr_to_int(self.text())
+        try:
+            return curr.str_curr_to_int(self.text())
+        except:
+            return 0
 
     def setTextFormat(self):
         value_int = curr.str_curr_to_int(self.text())
@@ -127,8 +133,12 @@ class QCurrencyLineEdit(QLineEdit):
 
 
 class QCurrencyValidator(QValidator):
-    def validate(self, text_to_validate: str, new_char_index: int) -> typing.Tuple['QValidator.State', str, int]:
-        logging.debug(f"Enter check validation a0: '{text_to_validate}', a1: '{new_char_index}'.")
+    def validate(
+        self, text_to_validate: str, new_char_index: int
+    ) -> typing.Tuple["QValidator.State", str, int]:
+        logging.debug(
+            f"Enter check validation a0: '{text_to_validate}', a1: '{new_char_index}'."
+        )
 
         if text_to_validate == "":
             return QValidator.Acceptable, text_to_validate, new_char_index
@@ -136,7 +146,9 @@ class QCurrencyValidator(QValidator):
         # Check if there is a char that do not belong here
         regexp = QRegExp("[\\-0-9,]*")
         if not regexp.exactMatch(text_to_validate):
-            logging.debug(f"VALIDATED text: '{text_to_validate}', new char index: '{new_char_index}'. Invalid")
+            logging.debug(
+                f"VALIDATED text: '{text_to_validate}', new char index: '{new_char_index}'. Invalid"
+            )
             return QValidator.Invalid, text_to_validate, new_char_index
 
         return QValidator.Acceptable, text_to_validate, new_char_index

@@ -1,7 +1,10 @@
+.coverage
 .idea/*
 *__pycache__*
+model/db/database*
 model/database*
 dist
 output
 build
-.vscode
+.vscode*
+htmlcov

@@ -1,6 +1,9 @@
 from typing import List
-from dataclasses import dataclass, field, astuple
-from model.db import Database
+from dataclasses import dataclass, field
+from sqlalchemy import insert, update
+from sqlalchemy.orm import Session
+from model.db.db import Database
+from model.db.db_orm import ContasTipo as ORMContasTipo, Contas as ORMContas
 
 
 @dataclass
@@ -12,18 +15,22 @@ class ContaTipo:
 class ContasTipo:
     def __init__(self):
         self.__items: List[ContaTipo] = []
-        self.db = Database().db
-        self.load()
+        self.__db = Database().engine
+        self.__load()
 
-    def load(self):
-        cursor = self.db.execute('select * from contas_tipo')
-        result = cursor.fetchall()
-        for i in result:
-            row = ContaTipo(*i)
-            self.__items.append(row)
-
+    @property
     def items(self):
         return self.__items
+
+    def __load(self):
+        self.__items.clear()
+
+        with Session(self.__db) as session:
+            contas_tipo = session.query(ORMContasTipo)
+            for conta_tipo in contas_tipo:
+                self.__items.append(
+                    ContaTipo(id=conta_tipo.id, descricao=conta_tipo.descricao)
+                )
 
 
 @dataclass
@@ -42,65 +49,82 @@ class Conta:
         self.lanc_n_class = 0
         self.lanc_classif = 0
 
+
 class Contas:
     def __init__(self):
         self.__items: List[Conta] = []
-        self.__db = Database().db
+        self.__db = Database().engine
+
+    @property
+    def items(self):
+        return self.__items
 
     def load(self):
         self.__items.clear()
-        sql = ''' 
-            select c._id, c.descricao, c.numero, c.moeda, c.tipo,
-				( select ifnull(sum(l.valor),0) 
+        sql = """ 
+            select c.id, c.descricao, c.numero, c.moeda, c.tipo_id,
+				( select ifnull(sum(l.valor),0)
 					from lancamentos as l 
-				where l.conta_id = c._id ) as total,
+				where l.conta_id = c.id ) as total,
 				( select count(*) 
 					from lancamentos as l 
-						left outer join lancamento_categoria as lc on lc.lancamento_id = l._id
-				where l.conta_id = c._id 
+						left outer join lancamentos_categorias as lc on lc.lancamento_id = l.id
+				where l.conta_id = c.id 
 					and lc.lancamento_id is null ) as count_n_categ,
 				( select count(*) 
 					from lancamentos as l1 
-						inner join lancamento_categoria as lc1 on lc1.lancamento_id = l1._id
-            where l1.conta_id = c._id ) as count_categ		
+						inner join lancamentos_categorias as lc1 on lc1.lancamento_id = l1.id
+            where l1.conta_id = c.id ) as count_categ		
               from contas as c
-        '''
-        result = self.__db.execute(sql).fetchall()
-        for i in result:
-            conta = Conta(*i[:5])
-            conta.total = i[5]
-            conta.lanc_n_class = i[6]
-            conta.lanc_classif = i[7]
-            self.__items.append(conta)
+        """
+        with self.__db.connect() as conn:
+            result = conn.execute(sql)
+            for i in result:
+                conta = Conta(*i[:5])
+                conta.total = i[5]
+                conta.lanc_n_class = i[6]
+                conta.lanc_classif = i[7]
+                self.__items.append(conta)
 
     def add_new(self, conta: Conta):
-        sql = 'insert into contas (_id, descricao, numero, moeda, tipo) values(?,?,?,?,?)'
-        data = astuple(conta)
+        stmt = insert(ORMContas).values(
+            {
+                "descricao": conta.descricao,
+                "numero": conta.numero,
+                "moeda": conta.moeda,
+                "tipo_id": conta.tipo_id,
+            }
+        )
 
-        self.__db.execute(sql, data[:5])
-        self.__db.commit()
+        with self.__db.connect() as conn:
+            trans = conn.begin()
+            conn.execute(stmt)
+            trans.commit()
 
     def delete(self, conta_id: str):
-        sql = 'delete from contas where _id = ?'
+        with Session(self.__db) as session:
+            session.query(ORMContas).filter_by(id=conta_id).delete()
+            session.commit()
 
-        self.__db.execute(sql, (conta_id,))
-        self.__db.commit()
+    def update(self, conta_id: str, fieldname: str, value):
+        stmt = (
+            update(ORMContas)
+            .where(ORMContas.id == conta_id)
+            .values(
+                {
+                    fieldname: value
+                    # "descricao": conta.descricao,
+                    # "numero": conta.numero,
+                    # "moeda": conta.moeda,
+                    # "tipo_id": conta.tipo_id,
+                }
+            )
+        )
 
-    def update(self, conta: Conta):
-        sql = '''
-            update contas  
-               set descricao = ?,
-                   numero = ?,
-                   moeda = ?,
-                   tipo = ?
-             where _id = ?
-        '''
-
-        self.__db.execute(sql, (conta.descricao, conta.numero, conta.moeda, conta.tipo_id, conta.id))
-        self.__db.commit()
-
-    def items(self):
-        return self.__items
+        with self.__db.connect() as conn:
+            trans = conn.begin()
+            conn.execute(stmt)
+            trans.commit()
 
     def find_by_id(self, id: str):
         enc_conta = None

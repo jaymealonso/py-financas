@@ -4,14 +4,22 @@ import view.icons.icons as icons
 from view.TableLine import TableLine
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QToolBar, QTableWidget, QTableWidgetItem, QApplication
-from model.Categoria import Categoria, Categorias
+from PyQt5.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QToolBar,
+    QTableWidget,
+    QTableWidgetItem,
+    QApplication,
+)
+from model.Categoria import Categorias
 import operator
+
 
 class CategoriasView(QWidget):
     COLUMNS = {
         0: {"title": "ID", "sql_colname": "_id"},
-        1: {"title": "Categoria", "sql_colname": "nm_categoria"}
+        1: {"title": "Categoria", "sql_colname": "nm_categoria"},
     }
 
     def __init__(self):
@@ -42,7 +50,9 @@ class CategoriasView(QWidget):
         self.table = QTableWidget()
         self.table.setColumnCount(len(self.COLUMNS))
         self.table.verticalHeader().setVisible(False)
-        self.table.setHorizontalHeaderLabels([col["title"] for col in self.COLUMNS.values()])
+        self.table.setHorizontalHeaderLabels(
+            [col["title"] for col in self.COLUMNS.values()]
+        )
         self.load_table_data()
 
         return self.table
@@ -64,7 +74,9 @@ class CategoriasView(QWidget):
 
         line = CategoriasLine()
 
-        for row in sorted(self.model_categ.items(), key=operator.attrgetter("nm_categoria")):
+        for row in sorted(
+            self.model_categ.items, key=operator.attrgetter("nm_categoria")
+        ):
             new_index = self.table.rowCount()
             self.table.insertRow(new_index)
 
@@ -80,23 +92,23 @@ class CategoriasView(QWidget):
         QApplication.restoreOverrideCursor()
 
     def on_add_categoria(self):
-        self.model_categ.add_new(Categoria(id=None, nm_categoria="Nova Categoria"))
+        categoria_id = self.model_categ.add_new_empty()
         self.load_table_data()
 
     def table_cell_changed(self, row: int, col: int):
-        categ_dc = self.model_categ.items()[row]
+        categ_dc = self.model_categ.items[row]
         item = self.table.item(row, col)
         column_data = self.COLUMNS.get(col)
 
-        print(f"Modificando categoria numero:{categ_dc.id} campo \"{column_data['sql_colname']}\" para valor \"{item.text()}\"")
+        print(
+            f"Modificando categoria numero:{categ_dc.id} campo \"{column_data['sql_colname']}\" para valor \"{item.text()}\""
+        )
 
-        categ_dc.__setattr__(column_data["sql_colname"], item.text())
-        self.model_categ.update(categ_dc)
+        # categ_dc.__setattr__(column_data["sql_colname"], item.text())
+        self.model_categ.update(categ_dc.id, column_data["sql_colname"], item.text())
         self.load_table_data()
 
 
 class CategoriasLine(TableLine):
     def nada(self):
         pass
-
-

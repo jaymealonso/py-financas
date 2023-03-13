@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS contas (
     _id INTEGER PRIMARY KEY AUTOINCREMENT,
     descricao TEXT NOT NULL,
     numero TEXT NOT NULL,
-	moeda type TEXT NOT NULL,
+    moeda type TEXT NOT NULL,
     tipo TYPE INTEGER NOT NULL
 );
 

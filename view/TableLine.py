@@ -7,7 +7,7 @@ class TableLine(QObject):
     @staticmethod
     def get_label_for_id(value: str):
         label = QLabel(value)
-        label.setStyleSheet("color:red")
+        label.setStyleSheet("color:#3f88c0")
         label.setAlignment(Qt.AlignCenter)
         return label
 
@@ -31,6 +31,3 @@ class TableLine(QObject):
             source.setStyleSheet(f"{default_stylesheet}; color: red")
         else:
             source.setStyleSheet(f"{default_stylesheet}; color: darkgreen")
-
-
-

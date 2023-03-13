@@ -2,57 +2,91 @@ import datetime
 import locale
 import logging
 import util.curr_formatter as curr
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QModelIndex, pyqtSignal
 from PyQt5.QtGui import QColor
-from PyQt5.QtWidgets import QComboBox, QApplication, QStyle, QTableView, QDateEdit, QStyledItemDelegate, \
-    QStyleOptionViewItem
+from PyQt5.QtWidgets import (
+    QWidget,
+    QComboBox,
+    QApplication,
+    QStyle,
+    QTableView,
+    QDateEdit,
+    QStyledItemDelegate,
+    QStyleOptionViewItem,
+)
 from util.currency_editor import QCurrencyLineEdit
 
-locale.setlocale(locale.LC_ALL, "pt_BR")
+locale.setlocale(locale.LC_ALL, "pt_BR.utf8")
 
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.StreamHandler()])
+    handlers=[logging.StreamHandler()],
+)
 
 
-class CurrencyEditDelegate(QStyledItemDelegate):
+class EmitterItemDelegade(QStyledItemDelegate):
+    changed = pyqtSignal(QModelIndex, QWidget)
+
+
+class GenericInputDelegate(EmitterItemDelegade):
+    def setModelData(self, editor: QWidget, model, index: QModelIndex):
+        text = editor.text()
+        model.setData(index, text, Qt.DisplayRole)
+        model.setData(index, text, Qt.UserRole)
+        logging.debug(f"setModelData {index.row()}/{index.column()}")
+        self.changed.emit(index, editor)
+
+
+class CurrencyEditDelegate(EmitterItemDelegade):
     def __init__(self, parent_table: QTableView):
         super(CurrencyEditDelegate, self).__init__(parent_table)
-        # self.date = ""
         self.parent_table = parent_table
         logging.debug("Initialize Currency Edit")
 
     def createEditor(self, widget, option, index):
-        logging.debug(f"Create Currency Editor, row: {index.row()}, col: {index.column()}")
+        logging.debug(
+            f"Create Currency Editor, row: {index.row()}, col: {index.column()}"
+        )
         model = self.parent_table.model()
         value = model.itemData(index)[0]
         curr_edit = QCurrencyLineEdit(self.parent_table, value)
-        # curr_edit.setTextInt(value)
         return curr_edit
 
     # def setEditorData(self, editor: QCurrencyLineEdit, index):
     #     model = self.parent_table.model()
-    #
+
     #     # value_str = model.itemData(index)[0]
     #     # editor.setText(value_str)
     #     logging.debug(f"setEditorData {index.row()}/{index.column()} = ???")
 
     def setModelData(self, editor: QCurrencyLineEdit, model, index):
-        logging.debug(f"Before setModelData {index.row()}/{index.column()} = int {editor.text()}")
-        model.setData(index, editor.valueAsInt(), Qt.EditRole)
-        logging.debug(f"After setModelData {index.row()}/{index.column()} = int {editor.text()}")
+        logging.debug(
+            f"Before setModelData {index.row()}/{index.column()} = int {editor.text()}"
+        )
+        value_int: int = editor.valueAsInt()
+        value_str: str = curr.str_curr_to_locale(value_int.__str__())
+
+        model.setData(index, value_str, Qt.DisplayRole)
+        model.setData(index, value_int, Qt.UserRole)
+
+        logging.debug(
+            f"After setModelData {index.row()}/{index.column()} = int {editor.text()}"
+        )
+        self.changed.emit(index, editor)
 
     def updateEditorGeometry(self, editor, option, index):
         editor.setGeometry(option.rect)
 
-    def paint(self, painter, option: QStyleOptionViewItem, index):
+    def paint(self, painter, option: QStyleOptionViewItem, index: QModelIndex):
         text = ""
         value = 0
         try:
-            text_str = self.parent_table.model().item(index.row(), index.column()).text()
-            value = curr.str_curr_to_int(text_str)
-            text = curr.str_curr_to_locale(text_str)
+            item_data = self.parent_table.model().itemData(index)
+            value = item_data[Qt.UserRole]
+            text = item_data[Qt.DisplayRole]
+            if isinstance(text, int):
+                text = curr.str_curr_to_locale(str(text))
         except Exception as e:
             logging.error(f"Exception {e}")
 
@@ -64,16 +98,11 @@ class CurrencyEditDelegate(QStyledItemDelegate):
         option.rect.setWidth(option.rect.width() - 3)
         option.rect.center()
 
-        painter.drawText(option.rect, Qt.AlignRight, text)
+        painter.drawText(option.rect, Qt.AlignRight, str(text))
         painter.restore()
 
-        # QApplication.style().drawItemText(
-        #     painter, option.rect, option.displayAlignment,
-        #     option.palette, True, option.text, QPalette.NoRole)
-#        QApplication.style().drawControl(QStyle.CE_ItemViewItem, option, painter)
 
-
-class ComboBoxDelegate(QStyledItemDelegate):
+class ComboBoxDelegate(EmitterItemDelegade):
     def __init__(self, values: dict, parent_table: QTableView):
         super(ComboBoxDelegate, self).__init__(parent_table)
 
@@ -81,24 +110,49 @@ class ComboBoxDelegate(QStyledItemDelegate):
         self.key_values = values
 
     def createEditor(self, widget, option, index):
+        """
+        Cria editor widget e retorna ele
+        """
         logging.debug(f"Create editor, row: {index.row()}, col: {index.column()}")
         editor = QComboBox(widget)
+
+        def fn_close(combo_index: int):
+            logging.debug(f"Close Editor, combo index: {combo_index}")
+            # grava o valor no modelo (chama setModelData)
+            self.commitData.emit(editor)
+            # fecha o controle
+            self.closeEditor.emit(editor)
+
+        editor.activated.connect(fn_close)
+
         for key in self.key_values:
             editor.addItem(self.key_values[key], key)
         return editor
 
     def setEditorData(self, editor: QComboBox, index):
+        """
+        Envia dados para o widget quando aberto
+        """
         model = self.parent_table.model()
-        tipo_id = model.itemData(index)[0]
+        tipo_id = model.itemData(index)[Qt.UserRole]
         value = editor.findData(tipo_id)
+        logging.debug(f"Definindo dados do Editor tipo_id: {tipo_id}, value: {value}")
         if value:
             editor.setCurrentIndex(int(value))
         editor.showPopup()
-        logging.debug("setEditorData")
 
     def setModelData(self, editor, model, index):
-        model.setData(index, editor.currentData(), Qt.EditRole)
+        """
+        Na finalização envia os dados de volta para o modelo
+        """
+        tipo_id = editor.currentData()
+        if tipo_id == None:
+            logging.debug("tipo_id vazio!")
+            return
+        model.setData(index, tipo_id, Qt.UserRole)
+        model.setData(index, self.key_values[tipo_id], Qt.DisplayRole)
         logging.debug("setModelData")
+        self.changed.emit(index, editor)
 
     def updateEditorGeometry(self, editor, option, index):
         editor.setGeometry(option.rect)
@@ -107,45 +161,47 @@ class ComboBoxDelegate(QStyledItemDelegate):
         text = ""
         try:
             model = self.parent_table.model()
-            tipo_id = model.itemData(index)[0]
+            tipo_id = model.itemData(index)[Qt.UserRole]
             text = self.key_values[tipo_id]
         except Exception as e:
-            logging.error(f"Exception {e}")
+            logging.error(
+                f"Exception paint combobox {e} row {index.row()}, col {index.column()}"
+            )
         option.text = text
         QApplication.style().drawControl(QStyle.CE_ItemViewItem, option, painter)
 
 
-class DateEditDelegate(QStyledItemDelegate):
+class DateEditDelegate(EmitterItemDelegade):
     def __init__(self, parent_table: QTableView):
         super(DateEditDelegate, self).__init__(parent_table)
-        # self.date = ""
         self.parent_table = parent_table
+        self.model = parent_table.model()
         logging.debug("Initialize Date Edit")
 
-    def createEditor(self, widget, option, index):
-        logging.debug(f"Create editor, row: {index.row()}, col: {index.column()}")
-        model = self.parent_table.model()
-        date = model.itemData(index)[0]
+    def createEditor(self, widget, option, index: QModelIndex):
         try:
-            value = datetime.datetime.fromisoformat(date)
-        except:
+            value = self.model.itemData(index)[Qt.UserRole]
+        except Exception as e:
+            logging.debug(f"sem data, erro: {e}")
             value = datetime.date.today()
         date_edit = QDateEdit(self.parent_table)
         date_edit.setCalendarPopup(True)
         date_edit.setDate(value)
         return date_edit
 
-    def setEditorData(self, editor: QDateEdit, index):
-        model = self.parent_table.model()
-        date_str = model.itemData(index)[0]
-        date_value = datetime.datetime.fromisoformat(date_str)
-        editor.setDate(date_value)
+    def setEditorData(self, editor: QDateEdit, index: QModelIndex):
+        date = self.model.itemData(index)[Qt.UserRole]
+
+        editor.setDate(date)
         editor.setCalendarPopup(True)
         logging.debug(f"setEditorData {index.row()}/{index.column()}")
 
-    def setModelData(self, editor: QDateEdit, model, index):
-        model.setData(index, editor.date().toString("yyyy-MM-dd"), Qt.EditRole)
+    def setModelData(self, editor: QDateEdit, model, index: QModelIndex):
+        date = editor.date().toPyDate()
+        model.setData(index, date.strftime("%x"), Qt.DisplayRole)
+        model.setData(index, date, Qt.UserRole)
         logging.debug(f"setModelData {index.row()}/{index.column()}")
+        self.changed.emit(index, editor)
 
     def updateEditorGeometry(self, editor, option, index):
         editor.setGeometry(option.rect)
@@ -153,10 +209,11 @@ class DateEditDelegate(QStyledItemDelegate):
     def paint(self, painter, option, index):
         text = ""
         try:
-            date_striso = self.parent_table.model().item(index.row(), index.column()).text()
-            date = datetime.datetime.fromisoformat(date_striso)
-            text = date.strftime('%x')
+            text = self.model.itemData(index)[Qt.DisplayRole]
         except Exception as e:
             logging.error(f"Exception {e}")
+
+        if isinstance(text, datetime.date):
+            text = text.strftime("%x")
         option.text = text
         QApplication.style().drawControl(QStyle.CE_ItemViewItem, option, painter)
