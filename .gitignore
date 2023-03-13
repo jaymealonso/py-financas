@@ -4,3 +4,4 @@ model/database*
 dist
 output
 build
+.vscode
