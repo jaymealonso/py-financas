@@ -1,7 +1,8 @@
+from typing import List
 from dataclasses import dataclass
 from model.db.db import Database
 from model.Conta import Conta
-from typing import List
+from sqlalchemy.sql import text
 
 
 @dataclass
@@ -23,7 +24,7 @@ class VisaoGeralColumn:
 class VisaoMensal:
     def __init__(self, conta_dc: Conta):
         self.__conta_dc = conta_dc
-        self.__db = Database().engine
+        self.__db = Database()
         self.values: List[VisaoGeralRow] = []
         self.columns: List[VisaoGeralColumn] = []
 
@@ -45,7 +46,7 @@ class VisaoMensal:
         Carrega dados que irão preencher a tabela, conteúdo.
         """
         self.values.clear()
-        sql = '''
+        sql = text('''
         select l.conta_id,
                substr( l.data, 0, 8) as ano_mes,
                c.nm_categoria,
@@ -61,9 +62,9 @@ class VisaoMensal:
              where l.conta_id = :conta_id
              group by conta_id, nm_categoria, categoria_id, ano_mes
              order by conta_id, nm_categoria, categoria_id, ano_mes
-        '''
-        with self.__db.connect() as conn:
-            values = conn.execute(sql, {"conta_id": self.__conta_dc.id})
+        ''')
+        with self.__db.engine.connect() as conn:
+            values = conn.execute(sql, {"conta_id": self.__conta_dc.id}).all()
             self.values = [VisaoGeralRow(*value) for value in values]
 
     def __load_columns(self) -> None:
@@ -71,7 +72,7 @@ class VisaoMensal:
         Carrega numero de colunas que irão aparecer, baseado nos meses com  movimento
         """
         self.columns.clear()
-        sql = '''
+        sql = text('''
              select l.conta_id,
                     substr( l.data, 0, 8) as ano_mes
                from lancamentos as l
@@ -80,8 +81,7 @@ class VisaoMensal:
               where l.conta_id = :conta_id
               group by conta_id, ano_mes
               order by conta_id, ano_mes
-
-         '''
-        with self.__db.connect() as conn:
-            values = conn.execute(sql, {"conta_id": self.__conta_dc.id})
+         ''')
+        with self.__db.engine.connect() as conn:
+            values = conn.execute(sql, {"conta_id": self.__conta_dc.id}).all()
             self.columns = [VisaoGeralColumn(*value) for value in values]

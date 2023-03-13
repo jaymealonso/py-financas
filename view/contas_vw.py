@@ -79,7 +79,7 @@ class ContasView(QWidget):
 
     def on_add_conta(self, show_message=True):
         logging.debug("Adding new conta in the database...")
-        self.model_contas.add_new(Conta(None, "nova conta", "", "BRL", "1"))
+        self.model_contas.add_new(Conta(None, "nova conta", "", "BRL", "1", 0, 0, 0))
         logging.debug("Done !!!")
         logging.debug("Reloading data...")
         self.load_table_data()
@@ -122,7 +122,7 @@ class ContasView(QWidget):
         if lancamentos_window.isHidden():
             position = self.main_window.pos()
             logging.debug(
-                f"> Abrir janela Lanç. (conta id:{conta_id}) posição (X: {position.x()}, Y: {position.y()})."
+                f"Abrir janela Lanç. (conta id:{conta_id}) posição (X: {position.x()}, Y: {position.y()})."
             )
 
             lancamentos_window.show()

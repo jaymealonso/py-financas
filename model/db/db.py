@@ -19,12 +19,8 @@ class SingletonMeta(type):
 
 class Database(metaclass=SingletonMeta):
     def __init__(self):
-        self.engine: Engine = self.connect()
-
-    def connect(self) -> Engine:
         print(f"Conectando a base de dados: {DATABASE_FILE}")
-        engine = create_engine(f"sqlite:///{DATABASE_FILE}", echo=True)
-        return engine
+        self.engine:Engine = create_engine(f"sqlite:///{DATABASE_FILE}", echo=True)
 
     @event.listens_for(Engine, "connect")
     def set_sqlite_pragma(dbapi_connection, connection_record):
@@ -40,20 +36,23 @@ class Database(metaclass=SingletonMeta):
         print("=====================================")
         print("Eliminando todas as tabelas")
         print("=====================================")
-        Base.metadata.drop_all(self.engine)
+        with self.engine.connect() as conn:                
+            Base.metadata.drop_all(conn)
 
     def create_structure(self) -> None:
         print("=====================================")
         print("Criando banco de dados...(create_all)")
         print("=====================================")
-        Base.metadata.create_all(self.engine)
+        with self.engine.connect() as conn:        
+            Base.metadata.create_all(conn)
 
     def is_initial_load(self) -> bool:
         """
         Verifica se a tabela "contas_tipo" já foi criada, se sim o banco já
         tem os metadados preenchidos
         """
-        return "contas_tipo" in self.engine.table_names()
+        with self.engine.connect() as conn:
+            return self.engine.dialect.has_table(conn, 'contas_tipo')
 
     def run_initial_load(self, populate_sample: bool):
         startup = DataLoader(self.engine)

@@ -9,7 +9,7 @@ from model.db.db_orm import Categorias as ORMCategorias
 class Categorias:
     def __init__(self):
         self.__categorias: List[ORMCategorias] = []
-        self.__db = Database().engine
+        self.__db = Database()
 
     @property
     def items(self):
@@ -19,7 +19,7 @@ class Categorias:
         self.__categorias.clear()
 
         self.__categorias.append(ORMCategorias(id=0, nm_categoria="(vazio)"))
-        with Session(self.__db) as session:
+        with Session(self.__db.engine) as session:
             query_result = (
                 session.query(ORMCategorias).order_by(ORMCategorias.nm_categoria).all()
             )
@@ -36,7 +36,7 @@ class Categorias:
         """
         stmt = insert(ORMCategorias).values({"nm_categoria": categoria.nm_categoria})
 
-        with self.__db.connect() as conn:
+        with self.__db.engine.connect() as conn:
             trans = conn.begin()
             result = conn.execute(stmt)
             trans.commit()
@@ -50,7 +50,7 @@ class Categorias:
             .values({fieldname: value})
         )
 
-        with self.__db.connect() as conn:
+        with self.__db.engine.connect() as conn:
             trans = conn.begin()
             conn.execute(stmt)
             trans.commit()

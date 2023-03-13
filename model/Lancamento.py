@@ -1,3 +1,4 @@
+from datetime import date
 import moment
 from typing import List, Optional
 from sqlalchemy import insert, update, delete, func
@@ -19,7 +20,7 @@ class Lancamentos:
     def __init__(self, conta_dc: Conta):
         self.id = None
         self.__items: List[ORMLancamentos] = []
-        self.__db = Database().engine
+        self.__db = Database()
         self.conta: Conta = conta_dc
 
     @property
@@ -39,7 +40,7 @@ class Lancamentos:
         """
         self.__items.clear()
 
-        with Session(self.__db) as session:
+        with Session(self.__db.engine) as session:
             self.__items = (
                 session.query(ORMLancamentos)
                 .filter(ORMLancamentos.conta_id == self.conta.id)
@@ -65,61 +66,64 @@ class Lancamentos:
         Adiciona novo lancamento ao DB com os dados de entrada enviados
         e retorna o ID do novo lancamento
         """
+        seq_ordem_linha = self._get_next_seq(lancam.data.date.date(), lancam.conta_id)
 
-        session = Session(self.__db)
+        with Session(self.__db.engine) as session:
+            new_lancamento = session.scalar(
+                insert(ORMLancamentos).returning(ORMLancamentos), [
+                {
+                    "conta_id": lancam.conta_id,
+                    "seq_ordem_linha": seq_ordem_linha,
+                    "nr_referencia": lancam.nr_referencia,
+                    "descricao": lancam.descricao,
+                    "data": lancam.data.date.date(),
+                    "valor": lancam.valor,
+                }],
+            )
+            session.commit()
+
+            return new_lancamento.id
+
+    def _get_next_seq(self, data: date, conta_id: int) -> int: 
+        """ Busca o próximo numero de sequencial para o mesma data + conta_id  """
+        session = Session(self.__db.engine)
+
+        # remove o time do date pra fazer a comparação
+        data:str = f"{data.isoformat()} 00:00:00.000000"
         stmt_max_seq_ordem_linha = (
             session.query(func.max(ORMLancamentos.seq_ordem_linha))
             .filter(
-                ORMLancamentos.conta_id == lancam.conta_id,
-                ORMLancamentos.data
-                == lancam.data.date.date().isoformat() + " 00:00:00.000000",
+                ORMLancamentos.conta_id == conta_id,
+                ORMLancamentos.data == data,
             )
             .first()
         )
         seq_ordem_linha: int = 1
         if stmt_max_seq_ordem_linha[0]:
             seq_ordem_linha = int(stmt_max_seq_ordem_linha[0]) + 1
-
-        stmt = insert(ORMLancamentos).values(
-            {
-                "conta_id": lancam.conta_id,
-                "seq_ordem_linha": seq_ordem_linha,
-                "nr_referencia": lancam.nr_referencia,
-                "descricao": lancam.descricao,
-                "data": lancam.data.date.date(),
-                "valor": lancam.valor,
-            }
-        )
-
-        with self.__db.connect() as conn:
-            trans = conn.begin()
-            result = conn.execute(stmt)
-            trans.commit()
-
-        return result.inserted_primary_key.id
+        return seq_ordem_linha
 
     def delete(self, lancamento_id: str):
         """
         Elimina lancamento com o ID enviado e relação com categorias
         """
-        stmt_delete = delete(ORMLancCateg).where(
-            ORMLancCateg.c.lancamento_id == lancamento_id
-        )
-        stmt = delete(ORMLancamentos).where(ORMLancamentos.id == lancamento_id)
+        with Session(self.__db.engine) as session:
+            session.query(ORMLancCateg) \
+                .filter(ORMLancCateg.c.lancamento_id == lancamento_id) \
+                .delete()
+            session.query(ORMLancamentos) \
+                .filter(ORMLancamentos.id == lancamento_id) \
+                .delete()
 
-        with self.__db.connect() as conn:
-            trans = conn.begin()
-            conn.execute(stmt_delete)
-            conn.execute(stmt)
-            trans.commit()
+            session.commit()
 
     def update(self, id: int, column_name: str, value):
         """
         Atualiza somente o que foi modificado, possui um tratamento
         especial para Categoria por que é uma relação n:n
         """
-        conn = self.__db.connect()
-        session = Session(self.__db)
+        conn = self.__db.engine.connect()
+        session = Session(self.__db.engine)
         trans = conn.begin()
         if column_name == "categoria_id":
             stmt_delete = delete(ORMLancCateg).where(ORMLancCateg.c.lancamento_id == id)

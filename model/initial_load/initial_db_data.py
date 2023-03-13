@@ -1,5 +1,6 @@
 import moment
 from sqlalchemy.engine import Engine
+from sqlalchemy.orm import Session
 from sqlalchemy import insert
 from model.db.db_orm import (
     ContasTipo,
@@ -9,33 +10,31 @@ from model.db.db_orm import (
     association_lanc_categ,
 )
 
-
 class DataLoader:
-    def __init__(self, db: Engine) -> None:
-        self.db = db
+    def __init__(self, engine: Engine) -> None:
+        self.engine = engine
 
     def insert_all(self):
         self.__insert_contas_tipo()
         self.__insert_categorias()
 
     def __insert_contas_tipo(self):
-
-        stmt = insert(ContasTipo).values(
+        session = Session(self.engine)
+        session.execute(
+            insert(ContasTipo),
             [
                 {"descricao": "Conta Corrente"},
                 {"descricao": "Poupança"},
                 {"descricao": "Cartão Crédito"},
             ]
         )
-
-        with self.db.connect() as conn:
-            trans = conn.begin()
-            conn.execute(stmt)
-            trans.commit()
+        session.commit()
 
     def __insert_categorias(self):
 
-        stmt = insert(Categorias).values(
+        session = Session(self.engine)
+        session.execute(
+            insert(Categorias),
             [
                 {"nm_categoria": "Almoço"},
                 {"nm_categoria": "Aluguel"},
@@ -61,21 +60,18 @@ class DataLoader:
                 {"nm_categoria": "Transporte"},
             ]
         )
-
-        with self.db.connect() as conn:
-            trans = conn.begin()
-            conn.execute(stmt)
-            trans.commit()
+        session.commit()
 
     def insert_sample_db(self):
         self.__insert_contas()
         self.__insert_lancamentos()
         self.__insert_lanc_categoria()
-        pass
 
     def __insert_contas(self):
 
-        stmt = insert(Contas).values(
+        session = Session(self.engine)
+        session.execute(
+            insert(Contas), 
             [
                 {
                     "descricao": "Itaú-CC",
@@ -101,18 +97,15 @@ class DataLoader:
                     "moeda": "BRL",
                     "tipo_id": 1,
                 },
-            ]
+            ],
         )
-
-        with self.db.connect() as conn:
-            trans = conn.begin()
-            conn.execute(stmt)
-            trans.commit()
-
-        pass
+        session.commit()
 
     def __insert_lancamentos(self):
-        stmt = insert(Lancamentos).values(
+
+        session = Session(self.engine)
+        session.execute(
+            insert(Lancamentos),
             [
                 {
                     "conta_id": 1,
@@ -165,21 +158,15 @@ class DataLoader:
                 },
             ]
         )
-
-        with self.db.connect() as conn:
-            trans = conn.begin()
-            conn.execute(stmt)
-            trans.commit()
+        session.commit()
 
     def __insert_lanc_categoria(self):
-        stmt = insert(association_lanc_categ).values(
+        session = Session(self.engine)
+        session.execute(
+            insert(association_lanc_categ),
             [
                 {"lancamento_id": 1, "categoria_id": 1},
                 {"lancamento_id": 2, "categoria_id": 1},
             ]
         )
-
-        with self.db.connect() as conn:
-            trans = conn.begin()
-            conn.execute(stmt)
-            trans.commit()
+        session.commit()
