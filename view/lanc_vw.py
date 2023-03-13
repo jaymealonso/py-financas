@@ -56,6 +56,7 @@ class LancamentosView(QWidget):
         5: {"title": "Categorias", "sql_colname": "categoria_id"},
         6: {"title": "Valor", "sql_colname": "valor"},
         7: {"title": "Remover"},
+        8: {"title": "Anexos"},
     }
 
     def __init__(self, parent: QWidget, conta_dc: Conta):
@@ -196,6 +197,9 @@ class LancamentosView(QWidget):
         self.load_table_data()
         self.parent.load_table_data()
 
+    def on_attach(self, lancamento_id: int):
+        pass
+
     def on_add_lancamento(self, show_message=True):
         logging.debug("Adding new lancamento in the database...")
         new_lancamento_id = self.model_lancamentos.add_new_empty(self.conta_dc.id)
@@ -274,6 +278,11 @@ class LancamentosView(QWidget):
             self.table.setIndexWidget(
                 model.index(new_index, 7),
                 self.tableline.get_del_button(self, str(row.id)),
+            )
+
+            self.table.setIndexWidget(
+                model.index(new_index, 8),
+                self.tableline.get_attach_button(self, str(row.id)),
             )
 
         col1_del = GenericInputDelegate(self.table)
@@ -378,6 +387,15 @@ class LancamentoTableLine(TableLine):
         del_pbutt.setToolTip("Eliminar Lançamento")
         del_pbutt.setIcon(icons.delete())
         del_pbutt.clicked.connect(lambda: parent.on_del_lancamento(index))
+        return del_pbutt
+
+    @staticmethod
+    def get_attach_button(parent: LancamentosView, index):
+        del_pbutt = QPushButton()
+        del_pbutt.setToolTip("Anexos")
+        del_pbutt.setIcon(icons.attach())
+        del_pbutt.setText("0")
+        del_pbutt.clicked.connect(lambda: parent.on_attach(index))
         return del_pbutt
 
     # def get_categorias_lanc_dropdown(self, categoria_id: str, row: int, col: int):

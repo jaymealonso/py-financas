@@ -7,8 +7,8 @@ path = os.path.dirname(os.path.abspath(__file__))
 
 def app_icon():
     _app_icon = QIcon()
-    _app_icon.addFile('view/icons/app-icon-16.png', QSize(8, 8))
-    _app_icon.addFile('view/icons/app-icon-32.png', QSize(16, 16))
+    _app_icon.addFile("view/icons/app-icon-16.png", QSize(8, 8))
+    _app_icon.addFile("view/icons/app-icon-32.png", QSize(16, 16))
     return _app_icon
 
 
@@ -55,3 +55,7 @@ def undo():
 
 def redo():
     return QIcon(QPixmap(path + r"/arrow_redo.png"))
+
+
+def attach():
+    return QIcon(QPixmap(path + r"/attach.png"))

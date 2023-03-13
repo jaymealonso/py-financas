@@ -71,13 +71,14 @@ class Lancamentos:
             session.query(func.max(ORMLancamentos.seq_ordem_linha))
             .filter(
                 ORMLancamentos.conta_id == lancam.conta_id,
-                ORMLancamentos.data == lancam.data.date.date(),
+                ORMLancamentos.data
+                == lancam.data.date.date().isoformat() + " 00:00:00.000000",
             )
             .first()
         )
         seq_ordem_linha: int = 1
         if stmt_max_seq_ordem_linha[0]:
-            seq_ordem_linha = int(stmt_max_seq_ordem_linha[0])
+            seq_ordem_linha = int(stmt_max_seq_ordem_linha[0]) + 1
 
         stmt = insert(ORMLancamentos).values(
             {

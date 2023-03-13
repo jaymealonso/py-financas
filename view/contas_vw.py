@@ -173,11 +173,10 @@ class ContasView(QWidget):
         QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
         model = self.table.model()
         try:
-            logging.debug("> Disconnecting model.itemChanged ... ", end=" ")
+            logging.debug("Disconnecting model.itemChanged...")
             model.itemChanged.disconnect()
-            logging.debug("Disconnected!")
-        except:
-            logging.error("was not connected!")
+        except Exception as e:
+            logging.error("model.itemChanged was not connected! Error: {e}")
 
         logging.debug("Loading contas data...")
         self.model_contas.load()
@@ -255,7 +254,7 @@ class ContasView(QWidget):
         self.table.setColumnWidth(10, 130)
 
         model.itemChanged.connect(self.model_item_changed)
-        logging.debug("> itemChanged connected again!")
+        logging.debug("Method itemChanged connected again!")
         QApplication.restoreOverrideCursor()
 
 
