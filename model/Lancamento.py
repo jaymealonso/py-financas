@@ -1,13 +1,13 @@
 from datetime import date
 import moment
-from typing import List, Optional
-from sqlalchemy import insert, update, delete, func
+from typing import List
+from sqlalchemy import insert, update, delete, func, select
 from sqlalchemy.orm import Session, joinedload
-from dataclasses import dataclass
 from model.db.db import Database
 from model.db.db_orm import (
     Lancamentos as ORMLancamentos,
     association_lanc_categ as ORMLancCateg,
+    Anexos as ORMAnexos,
 )
 from model.Conta import Conta
 
@@ -49,6 +49,18 @@ class Lancamentos:
                 .options(joinedload(ORMLancamentos.Categorias))
                 .all()
             )
+
+            result = session.execute(
+                select(ORMLancamentos.id, func.count(ORMAnexos.id).label("nr_anexos")) 
+                .join(ORMLancamentos.Anexos, isouter=True) 
+                .filter(ORMLancamentos.conta_id == self.conta.id) 
+                .group_by(ORMLancamentos) 
+            ).all()
+
+            for item in self.items:
+                found = next((i for i in result if i.id == item.id), (0, 0))
+                item.nr_anexos = found[1]
+
 
     def add_new_empty(self, conta_id: int) -> int:
         new_lancamento = ORMLancamentos(

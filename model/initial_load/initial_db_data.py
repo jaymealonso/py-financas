@@ -109,6 +109,7 @@ class DataLoader:
             [
                 {
                     "conta_id": 1,
+                    "seq_ordem_linha": 1,
                     "nr_referencia": "334562",
                     "descricao": "Transf China",
                     "data": moment.date("2019-11-30").date,
@@ -116,6 +117,7 @@ class DataLoader:
                 },
                 {
                     "conta_id": 1,
+                    "seq_ordem_linha": 2,                    
                     "nr_referencia": "334563",
                     "descricao": "Transf Port.",
                     "data": moment.date("2019-11-30").date,
@@ -123,6 +125,7 @@ class DataLoader:
                 },
                 {
                     "conta_id": 2,
+                    "seq_ordem_linha": 1,                    
                     "nr_referencia": "334562",
                     "descricao": "Salário",
                     "data": moment.date("2019-11-30").date,
@@ -130,6 +133,7 @@ class DataLoader:
                 },
                 {
                     "conta_id": 2,
+                    "seq_ordem_linha": 2,
                     "nr_referencia": "334563",
                     "descricao": "Compra bala",
                     "data": moment.date("2019-11-30").date,
@@ -137,6 +141,7 @@ class DataLoader:
                 },
                 {
                     "conta_id": 2,
+                    "seq_ordem_linha": 3,                    
                     "nr_referencia": "334564",
                     "descricao": "Comprar chiclete",
                     "data": moment.date("2019-11-30").date,
@@ -144,6 +149,7 @@ class DataLoader:
                 },
                 {
                     "conta_id": 2,
+                    "seq_ordem_linha": 1,
                     "nr_referencia": "334565",
                     "descricao": "Aluguel",
                     "data": moment.date("2019-12-01").date,
@@ -151,6 +157,7 @@ class DataLoader:
                 },
                 {
                     "conta_id": 2,
+                    "seq_ordem_linha": 1,
                     "nr_referencia": "334566",
                     "descricao": "Carro",
                     "data": moment.date("2019-12-02").date,

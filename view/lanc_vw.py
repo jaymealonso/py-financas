@@ -282,7 +282,7 @@ class LancamentosView(QWidget):
 
             self.table.setIndexWidget(
                 model.index(new_index, 8),
-                self.tableline.get_attach_button(self, str(row.id)),
+                self.tableline.get_attach_button(self, row.nr_anexos, str(row.id)),
             )
 
         col1_del = GenericInputDelegate(self.table)
@@ -390,12 +390,15 @@ class LancamentoTableLine(TableLine):
         return del_pbutt
 
     @staticmethod
-    def get_attach_button(parent: LancamentosView, index):
+    def get_attach_button(parent: LancamentosView, count: int, row_id:int):
         del_pbutt = QPushButton()
         del_pbutt.setToolTip("Anexos")
         del_pbutt.setIcon(icons.attach())
-        del_pbutt.setText("0")
-        del_pbutt.clicked.connect(lambda: parent.on_attach(index))
+        text = ""
+        if count > 0:
+            text = str(count)
+        del_pbutt.setText(text)
+        del_pbutt.clicked.connect(lambda: parent.on_attach(row_id))
         return del_pbutt
 
     # def get_categorias_lanc_dropdown(self, categoria_id: str, row: int, col: int):

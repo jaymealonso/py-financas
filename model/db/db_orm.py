@@ -51,6 +51,7 @@ class Lancamentos(Base):
     conta_id = Column(Integer, ForeignKey("contas.id"), nullable=False)
     Conta = relationship("Contas")
     Categorias = relationship("Categorias", secondary=association_lanc_categ)
+    Anexos = relationship("Anexos")
 
 
 class Categorias(Base):
