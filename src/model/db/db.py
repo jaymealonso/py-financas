@@ -1,12 +1,15 @@
+import logging
 from sqlalchemy import create_engine, event
 from sqlalchemy.engine import Engine
-from pathlib import Path
 from model.db.db_orm import Base
 from model.initial_load.initial_db_data import DataLoader
+from util.settings import Settings
 
-# DATABASE_FILE = Path.cwd() / "src" / "model" / "db" / "database.db"
-DATABASE_FILE = Path.cwd() / "database.db"
-
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[logging.StreamHandler()],
+)
 
 class SingletonMeta(type):
     _instances = {}
@@ -20,8 +23,11 @@ class SingletonMeta(type):
 
 class Database(metaclass=SingletonMeta):
     def __init__(self):
-        print(f"Conectando a base de dados: {DATABASE_FILE}")
-        self.engine:Engine = create_engine(f"sqlite:///{DATABASE_FILE}", echo=True)
+        self.settings = Settings()
+
+        database_path:str = self.settings.db_location
+        logging.debug(f"Conectando a base de dados: {database_path}")
+        self.engine:Engine = create_engine(f"sqlite:///{database_path}", echo=True)
 
     @event.listens_for(Engine, "connect")
     def set_sqlite_pragma(dbapi_connection, connection_record):
@@ -34,16 +40,16 @@ class Database(metaclass=SingletonMeta):
         cursor.close()
 
     def drop_all(self) -> None:
-        print("=====================================")
-        print("Eliminando todas as tabelas")
-        print("=====================================")
+        logging.debug("=====================================")
+        logging.debug("Eliminando todas as tabelas")
+        logging.debug("=====================================")
         with self.engine.connect() as conn:                
             Base.metadata.drop_all(conn)
 
     def create_structure(self) -> None:
-        print("=====================================")
-        print("Criando banco de dados...(create_all)")
-        print("=====================================")
+        logging.debug("=====================================")
+        logging.debug("Criando banco de dados...(create_all)")
+        logging.debug("=====================================")
         with self.engine.connect() as conn:        
             Base.metadata.create_all(conn)
 
@@ -61,10 +67,10 @@ class Database(metaclass=SingletonMeta):
             self.create_structure()
             startup.insert_all()
         else:
-            print("Dados já carregados, pulando Initial load")
-            print("------------------------")
+            logging.debug("Dados já carregados, pulando Initial load")
+            logging.debug("-----------------------------------------")
 
         if populate_sample:
-            print("Populando dados de exemplo")
-            print("------------------------")
+            logging.debug("Populando dados de exemplo")
+            logging.debug("--------------------------")
             startup.insert_sample_db()

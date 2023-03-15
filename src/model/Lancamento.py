@@ -51,16 +51,15 @@ class Lancamentos:
             )
 
             result = session.execute(
-                select(ORMLancamentos.id, func.count(ORMAnexos.id).label("nr_anexos")) 
-                .join(ORMLancamentos.Anexos, isouter=True) 
-                .filter(ORMLancamentos.conta_id == self.conta.id) 
-                .group_by(ORMLancamentos) 
+                select(ORMLancamentos.id, func.count(ORMAnexos.id).label("nr_anexos"))
+                .join(ORMLancamentos.Anexos, isouter=True)
+                .filter(ORMLancamentos.conta_id == self.conta.id)
+                .group_by(ORMLancamentos)
             ).all()
 
             for item in self.items:
                 found = next((i for i in result if i.id == item.id), (0, 0))
                 item.nr_anexos = found[1]
-
 
     def add_new_empty(self, conta_id: int) -> int:
         new_lancamento = ORMLancamentos(
@@ -82,26 +81,28 @@ class Lancamentos:
 
         with Session(self.__db.engine) as session:
             new_lancamento = session.scalar(
-                insert(ORMLancamentos).returning(ORMLancamentos), [
-                {
-                    "conta_id": lancam.conta_id,
-                    "seq_ordem_linha": seq_ordem_linha,
-                    "nr_referencia": lancam.nr_referencia,
-                    "descricao": lancam.descricao,
-                    "data": lancam.data.date.date(),
-                    "valor": lancam.valor,
-                }],
+                insert(ORMLancamentos).returning(ORMLancamentos),
+                [
+                    {
+                        "conta_id": lancam.conta_id,
+                        "seq_ordem_linha": seq_ordem_linha,
+                        "nr_referencia": lancam.nr_referencia,
+                        "descricao": lancam.descricao,
+                        "data": lancam.data.date.date(),
+                        "valor": lancam.valor,
+                    }
+                ],
             )
             session.commit()
 
             return new_lancamento.id
 
-    def _get_next_seq(self, data: date, conta_id: int) -> int: 
-        """ Busca o próximo numero de sequencial para o mesma data + conta_id  """
+    def _get_next_seq(self, data: date, conta_id: int) -> int:
+        """Busca o próximo numero de sequencial para o mesma data + conta_id"""
         session = Session(self.__db.engine)
 
         # remove o time do date pra fazer a comparação
-        data:str = f"{data.isoformat()} 00:00:00.000000"
+        data: str = f"{data.isoformat()} 00:00:00.000000"
         stmt_max_seq_ordem_linha = (
             session.query(func.max(ORMLancamentos.seq_ordem_linha))
             .filter(
@@ -120,12 +121,12 @@ class Lancamentos:
         Elimina lancamento com o ID enviado e relação com categorias
         """
         with Session(self.__db.engine) as session:
-            session.query(ORMLancCateg) \
-                .filter(ORMLancCateg.c.lancamento_id == lancamento_id) \
-                .delete()
-            session.query(ORMLancamentos) \
-                .filter(ORMLancamentos.id == lancamento_id) \
-                .delete()
+            session.query(ORMLancCateg).filter(
+                ORMLancCateg.c.lancamento_id == lancamento_id
+            ).delete()
+            session.query(ORMLancamentos).filter(
+                ORMLancamentos.id == lancamento_id
+            ).delete()
 
             session.commit()
 

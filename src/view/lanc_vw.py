@@ -3,6 +3,7 @@ import view.icons.icons as icons
 import view.contas_vw as cv
 import logging
 from view.imp_lanc_vw import ImportarLancamentosView
+from view.anexos_vw import AnexosView
 from view.TableLine import TableLine
 from model.Conta import Conta
 from model.Categoria import Categorias
@@ -79,7 +80,7 @@ class LancamentosView(QWidget):
             f"Lançamentos - (Conta {self.conta_dc.id} | {self.conta_dc.descricao})"
         )
         self.setMinimumSize(800, 600)
-        if not self.settings.load_lanc_settings(self, self.conta_dc):
+        if not self.settings.load_lanc_settings(self, self.conta_dc.id):
             self.resize(1600, 900)
 
         layout = QVBoxLayout()
@@ -146,7 +147,23 @@ class LancamentosView(QWidget):
             f"Lancamento close event INSIDE LANCAMENTOS conta: {self.conta_dc.id}"
         )
         post_event(Eventos.LANCAMENTO_WINDOW_CLOSED, self.conta_dc.id)
-        self.settings.save_lanc_settings(self, self.conta_dc)
+        self.settings.save_lanc_settings(self, self.conta_dc.id)
+
+    def on_attach(self, lancamento_id: int):
+        """
+        Exibe a janela de anexos
+        """
+        result_buscas = [
+            lanc for lanc in self.model_lancamentos.items if lanc.id == lancamento_id
+        ]
+
+        if len(result_buscas) > 0:
+            lancamento = result_buscas[0]
+        else:
+            QMessageBox(text="Lanc não encontrado.").show()
+            result
+        self.anexos_vw = AnexosView(self, lancamento)
+        self.anexos_vw.show()
 
     def on_import_lancam(self):
         """
@@ -196,9 +213,6 @@ class LancamentosView(QWidget):
         logging.debug("Done !!!")
         self.load_table_data()
         self.parent.load_table_data()
-
-    def on_attach(self, lancamento_id: int):
-        pass
 
     def on_add_lancamento(self, show_message=True):
         logging.debug("Adding new lancamento in the database...")
@@ -282,7 +296,7 @@ class LancamentosView(QWidget):
 
             self.table.setIndexWidget(
                 model.index(new_index, 8),
-                self.tableline.get_attach_button(self, row.nr_anexos, str(row.id)),
+                self.tableline.get_attach_button(self, row.nr_anexos, row.id),
             )
 
         col1_del = GenericInputDelegate(self.table)
@@ -390,7 +404,7 @@ class LancamentoTableLine(TableLine):
         return del_pbutt
 
     @staticmethod
-    def get_attach_button(parent: LancamentosView, count: int, row_id:int):
+    def get_attach_button(parent: LancamentosView, count: int, row_id: int):
         del_pbutt = QPushButton()
         del_pbutt.setToolTip("Anexos")
         del_pbutt.setIcon(icons.attach())
