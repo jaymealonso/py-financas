@@ -16,7 +16,7 @@ futuramente:
 - Possibilita Armazenamento de documentos relacionados com as despesas(recibos).
 - Cria uma agenda de compromissos de pagamento no mes, dia ou periodo selecionado.
 
-### O Que este aplicatio ***não*** faz:
+### O Que este aplicativo ***não*** faz:
 
 - Não é uma aplicativo online ou com qualquer acesso via internet.
 - Armazena quaisquer dados online.

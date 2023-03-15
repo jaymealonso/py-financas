@@ -1,8 +1,8 @@
 .coverage
 .idea/*
 *__pycache__*
-model/db/database*
-model/database*
+src/model/db/database*
+src/model/database*
 dist
 output
 build
