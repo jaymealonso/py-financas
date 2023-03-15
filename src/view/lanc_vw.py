@@ -79,7 +79,7 @@ class LancamentosView(QWidget):
             f"Lançamentos - (Conta {self.conta_dc.id} | {self.conta_dc.descricao})"
         )
         self.setMinimumSize(800, 600)
-        if not self.settings.load_lanc_settings(self, self.conta_dc):
+        if not self.settings.load_lanc_settings(self, self.conta_dc.id):
             self.resize(1600, 900)
 
         layout = QVBoxLayout()
@@ -146,7 +146,7 @@ class LancamentosView(QWidget):
             f"Lancamento close event INSIDE LANCAMENTOS conta: {self.conta_dc.id}"
         )
         post_event(Eventos.LANCAMENTO_WINDOW_CLOSED, self.conta_dc.id)
-        self.settings.save_lanc_settings(self, self.conta_dc)
+        self.settings.save_lanc_settings(self, self.conta_dc.id)
 
     def on_import_lancam(self):
         """

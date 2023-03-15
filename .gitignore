@@ -5,5 +5,5 @@
 dist
 output
 build
-.vscode*
 htmlcov
+config.ini
