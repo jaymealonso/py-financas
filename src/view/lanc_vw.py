@@ -145,7 +145,7 @@ class LancamentosView(QWidget):
         logging.debug(
             f"Lancamento close event INSIDE LANCAMENTOS conta: {self.conta_dc.id}"
         )
-        post_event(Eventos.LANCAMENTO_WINDOW_CLOSED, str(self.conta_dc.id))
+        post_event(Eventos.LANCAMENTO_WINDOW_CLOSED, self.conta_dc.id)
         self.settings.save_lanc_settings(self, self.conta_dc)
 
     def on_import_lancam(self):

@@ -84,7 +84,7 @@ class ContasView(QWidget):
         logging.debug("Reloading data...")
         self.load_table_data()
 
-    def on_del_conta(self, conta_id: str):
+    def on_del_conta(self, conta_id: int):
         button = QMessageBox.question(
             self,
             "Remove conta?",
@@ -101,8 +101,14 @@ class ContasView(QWidget):
         logging.debug("Reloading data...")
         self.load_table_data()
 
-    def on_open_lancamentos(self, conta_id: str):
+    def on_open_lancamentos(self, conta_id: int):
         conta_dc = self.model_contas.find_by_id(conta_id)
+        if not conta_dc:
+            QMessageBox(
+                text=f"Abertura automática de janela de lançamentos da conta: {conta_id} não foi possível.\nConta não encontrada!"
+            ).exec()
+            return
+        
         if conta_id not in self.lanc_windows_open:
             lancamentos_window = view.lanc_vw.LancamentosView(self, conta_dc)
             subscribe(
@@ -129,13 +135,16 @@ class ContasView(QWidget):
 
         lancamentos_window.activateWindow()
 
-    def on_open_visao_mensal(self, conta_id: str):
-        conta_items = self.model_contas.items
-        conta = [x for x in conta_items if x.id == int(conta_id)]
-        self.visao_geral_window = VisaoGeralView(self, conta[0])
+    def on_open_visao_mensal(self, conta_id: int):
+        conta = self.model_contas.find_by_id(conta_id)
+        if not conta:
+            logging.error(f"Conta {conta_id} não encontrada!")
+            return
+        
+        self.visao_geral_window = VisaoGeralView(self, conta)
         self.visao_geral_window.show()
 
-    def handle_close_lancamento(self, conta_id: str):
+    def handle_close_lancamento(self, conta_id: int):
         logging.debug(f"Lancamento close event UNSUBSCRIBE conta: {conta_id}")
         unsubscribe_refs(self.lanc_windows_open[conta_id])
         del self.lanc_windows_open[conta_id]
@@ -229,13 +238,13 @@ class ContasView(QWidget):
 
             # Buttons
             self.table.setIndexWidget(
-                model.index(new_index, 8), line.get_del_button(str(row.id))
+                model.index(new_index, 8), line.get_del_button(row.id)
             )
             self.table.setIndexWidget(
-                model.index(new_index, 9), line.get_open_lanc_button(str(row.id))
+                model.index(new_index, 9), line.get_open_lanc_button(row.id)
             )
             self.table.setIndexWidget(
-                model.index(new_index, 10), line.get_visao_mensal(str(row.id))
+                model.index(new_index, 10), line.get_visao_mensal(row.id)
             )
 
         self.table.setItemDelegateForColumn(1, GenericInputDelegate(self.table))
@@ -334,14 +343,14 @@ class ContaTableLine(TableLine):
         conta.tipo_id = data
         self.parentOne.model_contas.update(conta)
 
-    def get_del_button(self, conta_id: str):
+    def get_del_button(self, conta_id: int):
         del_pbutt = QPushButton()
         del_pbutt.setToolTip("Eliminar Conta")
         del_pbutt.setIcon(icons.delete())
         del_pbutt.clicked.connect(lambda: self.parentOne.on_del_conta(conta_id))
         return del_pbutt
 
-    def get_open_lanc_button(self, conta_id: str):
+    def get_open_lanc_button(self, conta_id: int):
         op_lanc_pbutt = QPushButton()
         op_lanc_pbutt.setToolTip("Abrir Lançamentos")
         op_lanc_pbutt.setIcon(icons.open_lancamentos())
@@ -350,7 +359,7 @@ class ContaTableLine(TableLine):
         )
         return op_lanc_pbutt
 
-    def get_visao_mensal(self, conta_id: str):
+    def get_visao_mensal(self, conta_id: int):
         op_lanc_pbutt = QPushButton()
         op_lanc_pbutt.setToolTip("Abrir Visão Mensal")
         op_lanc_pbutt.setIcon(icons.visao_mensal())

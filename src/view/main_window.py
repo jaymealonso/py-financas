@@ -17,7 +17,7 @@ from util.settings import Settings
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, app: QApplication):
+    def __init__(self, app: QApplication, open_conta_id: int=None):
         super(MainWindow, self).__init__()
 
         self.app = app
@@ -39,7 +39,8 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.container)
 
         # @todo: abre automaticamente a conta 1, remover antes de lançar
-        self.tabbar.widget(0).on_open_lancamentos("1")
+        if open_conta_id:
+            self.tabbar.widget(0).on_open_lancamentos(open_conta_id)
 
     def closeEvent(self, event) -> None:
         print("Entrou evento close")

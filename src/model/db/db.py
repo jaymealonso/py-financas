@@ -4,7 +4,8 @@ from pathlib import Path
 from model.db.db_orm import Base
 from model.initial_load.initial_db_data import DataLoader
 
-DATABASE_FILE = Path.cwd() / "model" / "db" / "database.db"
+# DATABASE_FILE = Path.cwd() / "src" / "model" / "db" / "database.db"
+DATABASE_FILE = Path.cwd() / "database.db"
 
 
 class SingletonMeta(type):

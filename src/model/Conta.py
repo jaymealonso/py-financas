@@ -36,7 +36,7 @@ class ContasTipo:
 
 @dataclass
 class Conta:
-    id: str
+    id: int
     descricao: str
     numero: str
     moeda: str
@@ -117,9 +117,12 @@ class Contas:
         )
         session.commit()
 
-    def find_by_id(self, id: str):
-        enc_conta = None
-        for item in self.__items:
-            if str(item.id) == id:
-                enc_conta = item
-        return enc_conta
+    def find_by_id(self, id: int) -> Conta: 
+        # enc_conta = None
+        # for item in self.__items:
+        #     if item.id == id:
+        #         enc_conta = item
+        # return enc_conta
+        contas_found = [item for item in self.__items if item.id == id]
+        return contas_found[0] if len(contas_found) > 0 else None
+
