@@ -7,32 +7,46 @@ from model.db.db import Database
 
 
 class MainApp:
-    def __init__(self, drop_tables: bool, populate_sample: bool, open_conta_id: int=None):
-        self.app = QApplication([])
-        self.app.setStyle("Fusion")
+    def __init__(self):
+        self.arg_parser:ArgumentParser = self.configure_arguments_parser()
+        self.args = self.arg_parser.parse_args()
 
-        self.app.setWindowIcon(icons.app_icon())
+        self.db = self.prepare_database(drop=self.args.drop, populate_sample=self.args.sample)
+        self.app = self.create_app()
 
-        self.db = Database()
-        if drop_tables:
-            self.db.drop_all()
-        self.db.run_initial_load(populate_sample)
-        self.window = MainWindow(self.app, open_conta_id)
+    def prepare_database(self, drop: bool=False, populate_sample:bool=False) -> Database:
+        db = Database()
+        if drop:
+            db.drop_all()
+        db.run_initial_load(populate_sample)
+        return db
+
+    def configure_arguments_parser(self) -> ArgumentParser:
+        """
+        Configura argumentos de linha de comando
+        """
+        parser = ArgumentParser(description="Programa de finanças")
+        parser.add_argument("-D", "--drop", help="Elimina dados da base de dados.", action='store_true')
+        parser.add_argument("-s", "--sample", help="Adiciona dados de exemplo na base de dados.", action='store_true')
+        parser.add_argument("-o", "--conta", dest="conta_id", type=int, \
+            help="Ao iniciar abre a conta com o ID indicado, se ela existir.")
+        return parser
+        
+    def create_app(self) -> QApplication:
+        app = QApplication([])
+        app.setStyle("Fusion")
+        app.setWindowIcon(icons.app_icon())
+        return app
+
+    def show(self):
+        self.window = MainWindow(self.app)
         self.window.show()
+        if self.args.conta_id:
+            self.window.tabbar.widget(0).on_open_lancamentos(self.args.conta_id)
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser(description="Programa de finanças")
-    parser.add_argument("-D", "--drop", help="Elimina dados da base de dados.", action='store_true')
-    parser.add_argument("-s", "--sample", help="Adiciona dados de exemplo na base de dados.", action='store_true')
-    parser.add_argument("-o", "--conta", dest="conta_id", type=int, \
-        help="Ao iniciar abre a conta com o ID indicado, se ela existir.")
+    app = MainApp()
+    app.show()
 
-    args = parser.parse_args()
-
-    app = MainApp(
-        drop_tables=args.drop,
-        populate_sample=args.sample,
-        open_conta_id=args.conta_id
-    )
     sys.exit(app.app.exec_())
