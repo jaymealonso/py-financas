@@ -180,17 +180,18 @@ class LancamentosView(QDialog):
 
         logging.debug(f"Cell changed row/col: {row}/{col}")
         
-        lancamento_dc = self.model_lancamentos.items[row]
-        value = item.data(Qt.UserRole)
+        model = self.table.model()
+        lancamento_id = model.data(model.index(row,0), Qt.UserRole)
+        value = model.data(item, Qt.UserRole)
 
         column_data = self.COLUMNS.get(col)
 
         logging.debug(
-            f"Modificando lancamento numero:{lancamento_dc.id} campo \"{column_data['sql_colname']}\" para valor \"{value}\""
+            f"Modificando lancamento numero:{lancamento_id} campo \"{column_data['sql_colname']}\" para valor \"{value}\""
         )
 
         self.model_lancamentos.update(
-            lancamento_dc.id, column_data["sql_colname"], value
+            lancamento_id, column_data["sql_colname"], value
         )
 
         self.model_lancamentos.load()
@@ -260,6 +261,15 @@ class LancamentosView(QDialog):
             self.table.setIndexWidget(
                 model.index(new_index, 1),
                 self.tableline.get_label_for_id(str(row.seq_ordem_linha)),
+            )
+
+            model.setItemData(
+                model.index(new_index, 0),
+                {Qt.UserRole: row.id},
+            )
+            model.setItemData(
+                model.index(new_index, 1),
+                {Qt.UserRole: row.seq_ordem_linha},
             )
             model.setItemData(
                 model.index(new_index, 2),
@@ -340,16 +350,6 @@ class LancamentosView(QDialog):
         Disparado pela modificação de um WIDGET na linha da tabela
         """
         self.table_cell_changed(item)
-
-    # def on_table_cell_doubleclick(self, row: int, col: int):
-    #     if col == 4:
-    #         item = self.model_lancamentos.items[row]
-    #         combobox = self.tableline.get_categorias_lanc_dropdown(
-    #             item.categoria_id, row, col
-    #         )
-    #         self.table.setCellWidget(row, col, combobox)
-    #         combobox.setEditable(True)
-
 
 class TotalCurrLabel(QLabel):
     def set_int_value(self, value_int: int):

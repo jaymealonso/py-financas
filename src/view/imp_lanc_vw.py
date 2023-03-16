@@ -82,8 +82,8 @@ class ImportarLancamentosView(QDialog):
         btn_remove_line = self.toolbar.addAction(icons.delete(), "Remover linha(s)")
         btn_remove_line.triggered.connect(self.on_remove_lines)
 
-        btn_remove_line = self.toolbar.addAction(icons.add(), "Importar linha(s)")
-        btn_remove_line.triggered.connect(self.on_import_linhas)
+        btn_import_lanc = self.toolbar.addAction(icons.add(), "Importar linha(s)")
+        btn_import_lanc.triggered.connect(self.on_import_linhas)
 
         return self.toolbar
 
@@ -99,7 +99,6 @@ class ImportarLancamentosView(QDialog):
 
     def on_import_linhas(self):
         mapping_cols = {}
-        mapping_list = []
         for col_index in range(self.table.columnCount()):
             column_combo: QComboBox = self.table.cellWidget(0, col_index)
             if column_combo.currentData() != "":
