@@ -19,13 +19,14 @@ from PyQt5.QtWidgets import (
     QLabel,
     QComboBox,
     QMessageBox,
+    QDialog
 )
 from model.Lancamento import Lancamentos
 from view.TableLine import TableLine
 from util.toaster import QToaster
 
 
-class ImportarLancamentosView(QWidget):
+class ImportarLancamentosView(QDialog):
     def __init__(self, parent: QWidget, conta_dc: Conta):
         self.btn_procurar = QPushButton("Procurar...")
         self.table = QTableWidget()
@@ -38,7 +39,7 @@ class ImportarLancamentosView(QWidget):
 
         self.model_lancamentos = Lancamentos(conta_dc)
 
-        super(ImportarLancamentosView, self).__init__()
+        super(ImportarLancamentosView, self).__init__(parent)
 
         self.setWindowModality(Qt.ApplicationModal)
         self.setWindowTitle(

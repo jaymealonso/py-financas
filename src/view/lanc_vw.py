@@ -27,6 +27,7 @@ from PyQt5.QtWidgets import (
     QLabel,
     QCheckBox,
     QApplication,
+    QDialog
 )
 from util.toaster import QToaster
 from util.events import post_event, Eventos
@@ -47,7 +48,7 @@ logging.basicConfig(
 )
 
 
-class LancamentosView(QWidget):
+class LancamentosView(QDialog):
     COLUMNS = {
         0: {"title": "ID", "sql_colname": "id"},
         1: {"title": "Seq Linha", "sql_colname": "seq_ordem_linha"},
@@ -74,7 +75,7 @@ class LancamentosView(QWidget):
         self.model_categorias.load()
         self.settings = Settings()
 
-        super(LancamentosView, self).__init__()
+        super(LancamentosView, self).__init__(parent)
 
         self.setWindowTitle(
             f"Lançamentos - (Conta {self.conta_dc.id} | {self.conta_dc.descricao})"
@@ -149,7 +150,7 @@ class LancamentosView(QWidget):
         post_event(Eventos.LANCAMENTO_WINDOW_CLOSED, self.conta_dc.id)
         self.settings.save_lanc_settings(self, self.conta_dc.id)
 
-    def on_attach(self, lancamento_id: int):
+    def on_open_attachments(self, lancamento_id: int):
         """
         Exibe a janela de anexos
         """
@@ -161,8 +162,9 @@ class LancamentosView(QWidget):
             lancamento = result_buscas[0]
         else:
             QMessageBox(text="Lanc não encontrado.").show()
-            result
+            return
         self.anexos_vw = AnexosView(self, lancamento)
+
         self.anexos_vw.show()
 
     def on_import_lancam(self):
@@ -177,6 +179,7 @@ class LancamentosView(QWidget):
         col = item.column()
 
         logging.debug(f"Cell changed row/col: {row}/{col}")
+        
         lancamento_dc = self.model_lancamentos.items[row]
         value = item.data(Qt.UserRole)
 
@@ -412,7 +415,7 @@ class LancamentoTableLine(TableLine):
         if count > 0:
             text = str(count)
         del_pbutt.setText(text)
-        del_pbutt.clicked.connect(lambda: parent.on_attach(row_id))
+        del_pbutt.clicked.connect(lambda: parent.on_open_attachments(row_id))
         return del_pbutt
 
     # def get_categorias_lanc_dropdown(self, categoria_id: str, row: int, col: int):

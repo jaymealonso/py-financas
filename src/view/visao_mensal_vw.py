@@ -1,5 +1,5 @@
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QToolBar, QTableWidgetItem, QLabel
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QToolBar, QTableWidgetItem, QLabel, QDialog
 from util.settings import Settings
 
 import view.contas_vw as cv
@@ -9,7 +9,7 @@ from model.Conta import Conta
 from model.VisaoMensal import VisaoMensal
 
 
-class VisaoGeralView(QWidget):
+class VisaoGeralView(QDialog):
     def __init__(self, parent: QWidget, conta_dc: Conta):
         self.toolbar = QToolBar()
         self.table = QTableWidget()
@@ -19,7 +19,7 @@ class VisaoGeralView(QWidget):
         self.parent: cv.ContasView = parent
         self.settings = Settings()
 
-        super(VisaoGeralView, self).__init__()
+        super(VisaoGeralView, self).__init__(parent)
 
         self.setWindowModality(Qt.ApplicationModal)
         self.setWindowTitle(f"Visão Mensal - (Conta {conta_dc.id})")

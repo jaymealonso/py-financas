@@ -1,17 +1,18 @@
 from view.TableLine import TableLine
 from PyQt5.QtGui import QStandardItemModel
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QTableView, QVBoxLayout
+from PyQt5.QtWidgets import QWidget, QTableView, QVBoxLayout, QDialog
 from model.db.db_orm import Lancamentos as ORMLancamentos
 from model.Anexos import Anexos
 
 
-class AnexosView(QWidget):
+class AnexosView(QDialog):
     COLUMNS = {
         0: {"title": "id", "sql_colname": "id"},
         1: {"title": "descricao", "sql_colname": "descricao"},
         2: {"title": "caminho", "sql_colname": "caminho"},
-        3: {"title": "Visualizar"},
+        3: {"title": "Abrir Arquivo"},
+        4: {"title": "Abrir Diretório"},
     }
 
     def __init__(self, parent: QWidget, lancamento: ORMLancamentos):
@@ -20,10 +21,12 @@ class AnexosView(QWidget):
         self.tableline = AnexoTableLine(self)
         self.model_anexos = Anexos(lancamento.id)
 
-        super(AnexosView, self).__init__()
+        super(AnexosView, self).__init__(parent)
 
-        self.setWindowModality(Qt.ApplicationModal)
+        # self.setWindowModality(Qt.ApplicationModal)
         self.setWindowTitle("Anexos")
+
+        self.setMinimumSize(800, 600)
 
         layout = QVBoxLayout()
         layout.addWidget(self.table)
@@ -64,7 +67,7 @@ class AnexosView(QWidget):
             )
 
             model.setItemData(
-                model.index(new_index, 1),
+                model.index(new_index, 2),
                 {Qt.DisplayRole: row.caminho, Qt.UserRole: row.caminho},
             )
 
