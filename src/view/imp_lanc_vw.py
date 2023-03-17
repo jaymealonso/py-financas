@@ -76,7 +76,7 @@ class ImportarLancamentosView(QDialog):
 
         return layout
 
-    def get_toolbar(self):
+    def get_toolbar(self) -> QToolBar:
         self.toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
 
         btn_remove_line = self.toolbar.addAction(icons.delete(), "Remover linha(s)")
@@ -150,9 +150,9 @@ class ImportarLancamentosView(QDialog):
         (fileName, selectedFilter) = dialog.getOpenFileName()
         if os.path.isfile(fileName):
             self.file_path.setText(fileName)
-            self.on_importar_clicked()
+            self._on_importar_clicked()
 
-    def on_importar_clicked(self):
+    def _on_importar_clicked(self):
         path = self.file_path.text()
         if not path:
             return

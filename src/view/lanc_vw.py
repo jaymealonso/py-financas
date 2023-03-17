@@ -62,8 +62,7 @@ class LancamentosView(QDialog):
     }
 
     def __init__(self, parent: QWidget, conta_dc: Conta):
-        self.toolbar = QToolBar()
-        self.check_del_not_ask = QCheckBox("Eliminar sem perguntar")
+        self.toolbar = self.get_toolbar()
         table:QTableView = self.get_table()
         self.tableline = LancamentoTableLine(self)
         self.conta_dc = conta_dc
@@ -85,7 +84,7 @@ class LancamentosView(QDialog):
             self.resize(1600, 900)
 
         layout = QVBoxLayout()
-        layout.addWidget(self.get_toolbar())
+        layout.addWidget(self.toolbar)
         layout.addWidget(table)
         layout.addWidget(self.get_footer())
 
@@ -93,28 +92,30 @@ class LancamentosView(QDialog):
 
         self.load_table_data()
 
-    def get_toolbar(self):
+    def get_toolbar(self) -> QToolBar:
         """
         Retorna toolbar
         """
-        self.toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        toolbar:QToolBar = QToolBar()
+        toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
 
-        import_act = self.toolbar.addAction(icons.import_file(), "Importar Lançamentos")
+        import_act = toolbar.addAction(icons.import_file(), "Importar Lançamentos")
         import_act.triggered.connect(self.on_import_lancam)
 
-        refresh_act = self.toolbar.addAction(icons.atualizar(), "Atualizar")
+        refresh_act = toolbar.addAction(icons.atualizar(), "Atualizar")
         refresh_act.triggered.connect(lambda: self.load_table_data())
 
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.toolbar.addWidget(spacer)
+        toolbar.addWidget(spacer)
+        
+        self.check_del_not_ask = QCheckBox("Eliminar sem perguntar")
+        toolbar.addWidget(self.check_del_not_ask)
 
-        self.toolbar.addWidget(self.check_del_not_ask)
-
-        add_act = self.toolbar.addAction(icons.add(), "Novo Lançamento")
+        add_act = toolbar.addAction(icons.add(), "Novo Lançamento")
         add_act.triggered.connect(lambda: self.on_add_lancamento())
 
-        return self.toolbar
+        return toolbar
 
     def get_table(self) -> QTableView:
         """

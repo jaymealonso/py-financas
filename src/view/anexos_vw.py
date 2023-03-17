@@ -1,8 +1,12 @@
+import os.path
+import shutil
+from pathlib import Path
 import view.icons.icons as icons
 from view.TableLine import TableLine
 from PyQt5.QtGui import QStandardItemModel
 from PyQt5.QtCore import Qt, QModelIndex
-from PyQt5.QtWidgets import QWidget, QTableView, QVBoxLayout, QDialog, QPushButton, QMessageBox
+from PyQt5.QtWidgets import QWidget, QTableView, QVBoxLayout, QDialog, \
+    QPushButton, QMessageBox, QLineEdit, QHBoxLayout, QLabel, QFileDialog 
 from model.db.db_orm import Lancamentos as ORMLancamentos
 from model.Anexos import Anexos
 
@@ -18,24 +22,25 @@ class AnexosView(QDialog):
 
     def __init__(self, parent: QWidget, lancamento: ORMLancamentos):
         self.lancamento = lancamento
-        self.table = self.initialize_table()
+        self.table = self.get_table()
+        self.import_file_line = self.get_import_file_line()
         self.tableline = AnexoTableLine(self)
         self.model_anexos = Anexos(lancamento.id)
 
         super(AnexosView, self).__init__(parent)
 
         self.setWindowTitle("Anexos")
-
         self.setMinimumSize(800, 600)
 
         layout = QVBoxLayout()
+        layout.addLayout(self.import_file_line)
         layout.addWidget(self.table)
         self.setLayout(layout)
 
         self.model_anexos.load()
         self.load_table_data()
 
-    def initialize_table(self) -> QTableView:
+    def get_table(self) -> QTableView:
         """
         Retorna tabela com o seu layout
         """
@@ -45,6 +50,45 @@ class AnexosView(QDialog):
         table.setModel(model)
         table.verticalHeader().setVisible(False)
         return table
+
+    def get_import_file_line(self) -> QHBoxLayout:
+        """
+        Retorna toolbar
+        """
+        self.file_path = QLineEdit()
+        self.file_path.setEnabled(False)
+
+        layout = QHBoxLayout()
+        layout.addWidget(QLabel("Importar arquivo:"))
+        layout.addWidget(self.file_path)
+        
+        self.btn_procurar = QPushButton("Procurar...")
+        self.btn_procurar.clicked.connect(self.on_procurar_clicked)
+        layout.addWidget(self.btn_procurar)
+
+        return layout
+
+    def on_procurar_clicked(self):
+        dialog = QFileDialog()
+        dialog.setFileMode(QFileDialog.ExistingFile)
+        (file_name, selectedFilter) = dialog.getOpenFileName()
+        if os.path.isfile(file_name):
+            self.file_path.setText(file_name)
+            self._on_importar_clicked(file_name)
+
+    def _on_importar_clicked(self, file_name: str):
+        data = self.lancamento.data
+
+        dest_dir = Path.cwd() / "storage" / f"{data.year}" / f"{data.year}.{data.month:0>2}"
+        dest_dir.mkdir(parents=True, exist_ok=True)
+
+        shutil.copy(file_name, str(dest_dir))
+        
+        self.model_anexos.add_new(
+            caminho=file_name,
+            descricao=file_name,
+            lancamento_id=self.lancamento.id
+        )
 
     def load_table_data(self) -> None:
         """

@@ -6,17 +6,17 @@ from util.toaster import QToaster
 
 class AgendaView(QWidget):
     def __init__(self):
-        self.toolbar: QToolBar = None
-        self.table: QTableWidget = None
-
         super(AgendaView, self).__init__()
-        layout = QVBoxLayout()
-        layout.addWidget(self.get_toolbar())
-        layout.addWidget(self.get_table())
 
+        self.toolbar: QToolBar = self.get_toolbar()
+        self.table: QTableWidget = self.get_table()
+
+        layout = QVBoxLayout()
+        layout.addWidget(self.toolbar)
+        layout.addWidget(self.table)
         self.setLayout(layout)
 
-    def get_toolbar(self):
+    def get_toolbar(self) -> QToolBar:
         self.toolbar = QToolBar()
         add_act = self.toolbar.addAction(
             icons.add(),
@@ -47,12 +47,11 @@ class AgendaView(QWidget):
         self.table.removeRow(index)
         QToaster.showMessage(self, f"On DELETE CONTA index:{index} clicked", closable=False, timeout=2000, corner=Qt.BottomRightCorner)
 
-    def get_table(self):
+    def get_table(self) -> QTableWidget:
         self.table = QTableWidget()
         self.table.setColumnCount(5)
         self.on_add_compromisso(show_message=False)
         self.on_add_compromisso(show_message=False)
-        # self.table.setRowCount(4)
         return self.table
 
 
