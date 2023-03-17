@@ -83,8 +83,6 @@ class CurrencyEditDelegate(EmitterItemDelegade):
             item_data = self.parent_table.model().itemData(index)
             value = item_data[Qt.UserRole]
             text = item_data[Qt.DisplayRole]
-            # if isinstance(text, int):
-            #     text = curr.str_curr_to_locale(text)
         except Exception as e:
             logging.error(f"Exception {e}")
 
@@ -96,7 +94,7 @@ class CurrencyEditDelegate(EmitterItemDelegade):
         option.rect.setWidth(option.rect.width() - 3)
         option.rect.center()
 
-        painter.drawText(option.rect, Qt.AlignRight, str(text))
+        painter.drawText(option.rect, Qt.AlignRight + Qt.AlignVCenter, str(text))
         painter.restore()
 
 

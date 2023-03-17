@@ -64,7 +64,7 @@ class LancamentosView(QDialog):
     def __init__(self, parent: QWidget, conta_dc: Conta):
         self.toolbar = QToolBar()
         self.check_del_not_ask = QCheckBox("Eliminar sem perguntar")
-        self.table = QTableView()
+        table:QTableView = self.get_table()
         self.tableline = LancamentoTableLine(self)
         self.conta_dc = conta_dc
         self.parent: cv.ContasView = parent
@@ -86,10 +86,12 @@ class LancamentosView(QDialog):
 
         layout = QVBoxLayout()
         layout.addWidget(self.get_toolbar())
-        layout.addWidget(self.get_table())
+        layout.addWidget(table)
         layout.addWidget(self.get_footer())
 
         self.setLayout(layout)
+
+        self.load_table_data()
 
     def get_toolbar(self):
         """
@@ -114,15 +116,15 @@ class LancamentosView(QDialog):
 
         return self.toolbar
 
-    def get_table(self):
+    def get_table(self) -> QTableView:
         """
         Retorna tabela com o seu layout
         """
+        self.table = QTableView()
         model = QStandardItemModel(0, len(self.COLUMNS))
         model.setHorizontalHeaderLabels([col["title"] for col in self.COLUMNS.values()])
         self.table.setModel(model)
         self.table.verticalHeader().setVisible(False)
-        self.load_table_data()
 
         return self.table
 

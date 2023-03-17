@@ -10,19 +10,20 @@
 | Python        | 3.10   | https://www.python.org/downloads/
 
 
-| Lib                 | Versão       |
-|---------------------|--------------|
-| PyQt5               | 5.15.9       |
-| SQLAlchemy          | 2.0.5.post1  |
-| pyinstaller         | 5.8.0        |
-| moment              | 0.12.1       |
-| openpyxl            | 3.1.1        |
+| Lib                 | Versão       | Site                                 |
+|---------------------|--------------|--------------------------------------|
+| PyQt5               | 5.15.9       |                                      |
+| SQLAlchemy          | 2.0.5.post1  |                                      |
+| pyinstaller         | 5.8.0        |                                      |
+| moment              | 0.12.1       |                                      |
+| openpyxl            | 3.1.1        |                                      |
+| darkdetect          | 0.8.0        | https://pypi.org/project/darkdetect/ |
 
 
 Instalar as libs acima com o comando 
 
 ```
-pip install PyQt5 SQLALchemy pyinstaller moment openpyxl
+pip install PyQt5 SQLALchemy pyinstaller moment openpyxl darkdetect
 ```
 
 ## Localização dos icones:
