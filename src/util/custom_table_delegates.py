@@ -49,26 +49,24 @@ class CurrencyEditDelegate(EmitterItemDelegade):
             f"Create Currency Editor, row: {index.row()}, col: {index.column()}"
         )
         model = self.parent_table.model()
-        value = model.itemData(index)[0]
+        value = model.itemData(index)[Qt.UserRole]
         curr_edit = QCurrencyLineEdit(self.parent_table, value)
         return curr_edit
 
-    # def setEditorData(self, editor: QCurrencyLineEdit, index):
-    #     model = self.parent_table.model()
-
-    #     # value_str = model.itemData(index)[0]
-    #     # editor.setText(value_str)
-    #     logging.debug(f"setEditorData {index.row()}/{index.column()} = ???")
+    def setEditorData(self, editor: QCurrencyLineEdit, index):
+        model = self.parent_table.model()
+        value: float = model.itemData(index)[Qt.UserRole] / 100
+        editor.setText(locale.currency(val=value, symbol=False, grouping=False))
+        logging.debug(f"setEditorData {index.row()}/{index.column()} = ???")
 
     def setModelData(self, editor: QCurrencyLineEdit, model, index):
         logging.debug(
             f"Before setModelData {index.row()}/{index.column()} = int {editor.text()}"
         )
-        value_int: int = editor.valueAsInt()
-        value_str: str = curr.str_curr_to_locale(value_int.__str__())
-
-        model.setData(index, value_str, Qt.DisplayRole)
+        value_int: int = editor.valueAsInt()        
+        value_str: str = curr.str_curr_to_locale(value_int)
         model.setData(index, value_int, Qt.UserRole)
+        model.setData(index, value_str, Qt.DisplayRole)
 
         logging.debug(
             f"After setModelData {index.row()}/{index.column()} = int {editor.text()}"
@@ -85,8 +83,8 @@ class CurrencyEditDelegate(EmitterItemDelegade):
             item_data = self.parent_table.model().itemData(index)
             value = item_data[Qt.UserRole]
             text = item_data[Qt.DisplayRole]
-            if isinstance(text, int):
-                text = curr.str_curr_to_locale(str(text))
+            # if isinstance(text, int):
+            #     text = curr.str_curr_to_locale(text)
         except Exception as e:
             logging.error(f"Exception {e}")
 

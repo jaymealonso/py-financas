@@ -5,57 +5,70 @@ from PyQt5.QtCore import QSize
 path = os.path.dirname(os.path.abspath(__file__))
 
 
-def app_icon():
+def app_icon() -> QIcon:
     _app_icon = QIcon()
     _app_icon.addFile("view/icons/app-icon-16.png", QSize(8, 8))
     _app_icon.addFile("view/icons/app-icon-32.png", QSize(16, 16))
     return _app_icon
 
 
-def save():
+def save() -> QIcon:
     return QIcon(QPixmap(path + r"/save_as.png"))
 
 
-def add():
+def add() -> QIcon:
     pixmap_path = path + r"/add.png"
     return QIcon(QPixmap(pixmap_path))
 
 
-def delete():
+def delete() -> QIcon:
     return QIcon(QPixmap(path + r"/delete.png"))
 
 
-def load():
+def load() -> QIcon:
     return QIcon(QPixmap(path + r"/open_folder.png"))
 
 
-def import_file():
+def import_file() -> QIcon:
     return QIcon(QPixmap(path + r"/book_go.png"))
 
 
-def open_lancamentos():
+def open_lancamentos() -> QIcon:
     return QIcon(QPixmap(path + r"/table.png"))
 
 
-def configurar():
+def configurar() -> QIcon:
     return QIcon(QPixmap(path + r"/cog.png"))
 
 
-def atualizar():
+def atualizar() -> QIcon:
     return QIcon(QPixmap(path + r"/update.png"))
 
 
-def visao_mensal():
+def visao_mensal() -> QIcon:
     return QIcon(QPixmap(path + r"/visao_mensal.png"))
 
 
-def undo():
+def undo() -> QIcon:
     return QIcon(QPixmap(path + r"/arrow_undo.png"))
 
 
-def redo():
+def redo() -> QIcon:
     return QIcon(QPixmap(path + r"/arrow_redo.png"))
 
 
-def attach():
+def attach() -> QIcon:
     return QIcon(QPixmap(path + r"/attach.png"))
+
+
+def abrir_anexo_arquivo() -> QIcon:
+    return QIcon(QPixmap(path + r"/open_attachment.png"))
+
+
+def abrir_anexo_diretorio() -> QIcon:
+    return QIcon(QPixmap(path + r"/open_attach_dir.png"))
+
+
+
+
+

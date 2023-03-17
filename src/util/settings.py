@@ -13,24 +13,22 @@ logging.basicConfig(
 
 class ConfigGroups(Enum):
     PADROES = "Padroes"
-    MAIN = "MainWindow"
+    MAIN = "Janela-Contas"
     CONTA_LANC = "Conta-Lancamento"
+
 
 class Settings:
     def __init__(self):
         super(Settings, self).__init__()
         
         self.settings = QSettings("config.ini", QSettings.IniFormat)   
-        # self.settings = QSettings(
-        #     QSettings.IniFormat, QSettings.UserScope, "JALL Soft", "Finanças Py"
-        # )
 
     @property
     def db_location(self) -> str:
-        DATABASE_FILENAME = "database.db"
+        DATABASE_DEFAULT_FILENAME = "database.db"
         try:
-            default_path = Path.cwd() / DATABASE_FILENAME
-            path = self.settings.value(f"{ConfigGroups.PADROES.name}/db_path")
+            default_path = Path.cwd() / DATABASE_DEFAULT_FILENAME
+            path = self.settings.value(f"{ConfigGroups.PADROES.value}/db_path")
             if not path:
                 self.db_location = str(default_path)
                 path = default_path
@@ -41,18 +39,18 @@ class Settings:
 
     @db_location.setter
     def db_location(self, path: str):
-        self.settings.beginGroup(ConfigGroups.PADROES.name)
+        self.settings.beginGroup(ConfigGroups.PADROES.value)
         self.settings.setValue(f"db_path", path)
         self.settings.endGroup()
 
     def save_main_w_settings(self, window: QWidget):
-        self.settings.beginGroup(ConfigGroups.MAIN.name)
+        self.settings.beginGroup(ConfigGroups.MAIN.value)
         self.settings.setValue(f"geometry", window.saveGeometry())
         self.settings.endGroup()
 
     def load_main_w_settings(self, window: QWidget):
         try:
-            geometry = self.settings.value(f"{ConfigGroups.MAIN.name}/geometry")
+            geometry = self.settings.value(f"{ConfigGroups.MAIN.value}/geometry")
             window.restoreGeometry(geometry)
             return True
         except Exception as e:
@@ -61,14 +59,14 @@ class Settings:
 
     def save_lanc_settings(self, window: QWidget, conta_id: int):
         """Salvar configuracoes de posicao nas janelas de lançamento"""
-        self.settings.beginGroup(f"{ConfigGroups.CONTA_LANC.name}-{conta_id}")
+        self.settings.beginGroup(f"{ConfigGroups.CONTA_LANC.value}-{conta_id}")
         self.settings.setValue(f"geometry", window.saveGeometry())
         self.settings.endGroup()
 
     def load_lanc_settings(self, window: QWidget, conta_id: int):
         """Carregar configuracoes de posicao nas janelas de lançamento"""
         try:
-            geometry = self.settings.value(f"{ConfigGroups.CONTA_LANC.name}-{conta_id}/geometry")
+            geometry = self.settings.value(f"{ConfigGroups.CONTA_LANC.value}-{conta_id}/geometry")
             # wState = self.settings.value(f"lanc-{conta_dc.id}-windowState")
 
             window.restoreGeometry(geometry)

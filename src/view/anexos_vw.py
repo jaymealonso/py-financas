@@ -1,7 +1,8 @@
+import view.icons.icons as icons
 from view.TableLine import TableLine
 from PyQt5.QtGui import QStandardItemModel
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QTableView, QVBoxLayout, QDialog
+from PyQt5.QtCore import Qt, QModelIndex
+from PyQt5.QtWidgets import QWidget, QTableView, QVBoxLayout, QDialog, QPushButton, QMessageBox
 from model.db.db_orm import Lancamentos as ORMLancamentos
 from model.Anexos import Anexos
 
@@ -23,7 +24,6 @@ class AnexosView(QDialog):
 
         super(AnexosView, self).__init__(parent)
 
-        # self.setWindowModality(Qt.ApplicationModal)
         self.setWindowTitle("Anexos")
 
         self.setMinimumSize(800, 600)
@@ -71,12 +71,46 @@ class AnexosView(QDialog):
                 {Qt.DisplayRole: row.caminho, Qt.UserRole: row.caminho},
             )
 
+            self.table.setIndexWidget(
+                model.index(new_index, 3),
+                self.tableline.get_open_att_button(self, str(row.id)),
+            )
+
+            self.table.setIndexWidget(
+                model.index(new_index, 4),
+                self.tableline.get_open_att_dir_button(self, str(row.id)),
+            )
+
         self.table.resizeColumnToContents(0)
         self.table.resizeColumnToContents(1)
         self.table.resizeColumnToContents(2)
+
+
+    def on_open_att(self, index: QModelIndex):
+        QMessageBox(text="Abrindo anexo.").exec()
+
+    def on_open_att_dir(self, index: QModelIndex):
+        QMessageBox(text="Abrindo dir anexo.").exec()
 
 
 class AnexoTableLine(TableLine):
     def __init__(self, parent: AnexosView):
         super(AnexoTableLine, self).__init__()
         self.parent: AnexosView = parent
+
+    @staticmethod
+    def get_open_att_button(parent: AnexosView, index: QModelIndex):
+        open_att_pbutt = QPushButton()
+        open_att_pbutt.setToolTip("Abrir anexo")
+        open_att_pbutt.setIcon(icons.abrir_anexo_arquivo())
+        open_att_pbutt.clicked.connect(lambda: parent.on_open_att(index))
+        return open_att_pbutt
+    
+    @staticmethod
+    def get_open_att_dir_button(parent: AnexosView, index: QModelIndex):
+        open_att_dir_pbutt = QPushButton()
+        open_att_dir_pbutt.setToolTip("Abrir diretório do anexo")
+        open_att_dir_pbutt.setIcon(icons.abrir_anexo_diretorio())
+        open_att_dir_pbutt.clicked.connect(lambda: parent.on_open_att_dir(index))
+        return open_att_dir_pbutt
+

@@ -161,7 +161,7 @@ class LancamentosView(QDialog):
         if len(result_buscas) > 0:
             lancamento = result_buscas[0]
         else:
-            QMessageBox(text="Lanc não encontrado.").show()
+            QMessageBox(text="Lanc não encontrado.").exec()
             return
         self.anexos_vw = AnexosView(self, lancamento)
 
@@ -297,14 +297,14 @@ class LancamentosView(QDialog):
             model.setItemData(
                 model.index(new_index, 6),
                 {
-                    Qt.DisplayRole: curr.str_curr_to_locale(str(row.valor or 0)),
+                    Qt.DisplayRole: curr.str_curr_to_locale(row.valor or 0),
                     Qt.UserRole: row.valor or 0,
                 },
             )
 
             self.table.setIndexWidget(
                 model.index(new_index, 7),
-                self.tableline.get_del_button(self, str(row.id)),
+                self.tableline.get_del_button(self, row.id),
             )
 
             self.table.setIndexWidget(
@@ -386,20 +386,13 @@ class LancamentoTableLine(TableLine):
     def get_currency_input(self, valor: int, row: int, col: int):
         line_edit = QCurrencyLineEdit()
         line_edit.setTextInt(valor)
-
-        # # SIGNALS
-        # line_edit.textChanged.connect(self.on_curr_input_text_changed)
-        # line_edit.editingFinished.connect(
-        #     lambda: self.parentOne.table_cell_changed(row, col)
-        # )
-
         return line_edit
 
     def on_curr_input_text_changed(self, *args, **kwargs):
         self.sender().setTextFormat()
 
     @staticmethod
-    def get_del_button(parent: LancamentosView, index):
+    def get_del_button(parent: LancamentosView, index: int):
         del_pbutt = QPushButton()
         del_pbutt.setToolTip("Eliminar Lançamento")
         del_pbutt.setIcon(icons.delete())
@@ -417,17 +410,3 @@ class LancamentoTableLine(TableLine):
         del_pbutt.setText(text)
         del_pbutt.clicked.connect(lambda: parent.on_open_attachments(row_id))
         return del_pbutt
-
-    # def get_categorias_lanc_dropdown(self, categoria_id: str, row: int, col: int):
-    #     combobox = ComboBoxDelegate()
-    #     for key, item in enumerate(self.parentOne.model_categorias.items):
-    #         combobox.addItem(item.nm_categoria, item.id)
-
-    #     index = int(combobox.findData(categoria_id))
-    #     if index == -1:
-    #         index = 0
-    #     combobox.setCurrentIndex(index)
-
-    #     model = self.parentOne.table.model()
-    #     combobox.currentIndexChanged.connect(lambda: model.itemChanged(row, col))
-    #     return combobox

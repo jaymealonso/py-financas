@@ -52,68 +52,20 @@ class QCurrencyLineEdit(QLineEdit):
                 return True
 
             # Posiciona cursor depois do separdor de milhar
-            if key_event.key() == Qt.Key_Comma:
+            if key_event.key() == Qt.Key_Comma or key_event.key() == Qt.Key_Period:
                 pos = qlineedit.text().find(",")
                 if pos == -1:
                     return super(QCurrencyLineEdit, self).eventFilter(source, event)
                 qlineedit.setCursorPosition(pos + 1)
                 logging.debug(f"KeyPress COMMA")
                 return True
-            if key_event.key() == Qt.Key_Period:
-                pos = qlineedit.text().find(",")
-                if pos == -1:
-                    return super(QCurrencyLineEdit, self).eventFilter(source, event)
-                qlineedit.setCursorPosition(pos + 1)
-                logging.debug(f"KeyPress PERIOD")
-                return True
-
-            # if key_event.key() == Qt.Key_Delete:
-            #     if not qlineedit.selectedText():
-            #         pos = qlineedit.cursorPosition()
-            #         try:
-            #             if qlineedit.text()[pos] == "." or qlineedit.text()[pos] == ",":
-            #                 new_text = qlineedit.text()[:pos + 1] + qlineedit.text()[pos + 2:]
-            #                 qlineedit.setText(new_text)
-            #                 qlineedit.setCursorPosition(pos)
-            #                 logging.debug(f"KeyPress DELETE")
-            #                 return True
-            #         except Exception as e:
-            #             print(f"Exception: {e}")
-            #             pass
-
-            if Qt.Key_0 <= key_event.key() <= Qt.Key_9:
-                pos = qlineedit.cursorPosition()
-                if pos == 0:
-                    if len(qlineedit.text()) > 0 and qlineedit.text()[pos] == "-":
-                        return True
-
-            #     try:
-            #         if qlineedit.text()[pos] == "." or qlineedit.text()[pos] == ",":
-            #             pass
-            #         else:
-            #             new_text = qlineedit.text()[:pos] + QKeySequence(event.key()).toString() + qlineedit.text()[pos + 1:]
-            #             qlineedit.setText(new_text)
-            #             qlineedit.setCursorPosition(pos+1)
-            #             logging.debug(f"KeyPress NUMBER after dot or comma,")
-            #             return True
-            #     except Exception as e:
-            #         print(f"Exception: {e}")
-            #         return True
 
         return super(QCurrencyLineEdit, self).eventFilter(source, event)
-
-    # def setText(self, a0: str) -> None:
-    #     try:
-    #         form_txt = curr.str_curr_to_locale(a0)
-    #     except Exception as e:
-    #         form_txt = ''
-    #     super(QCurrencyLineEdit, self).setText(form_txt)
-    #     self.setTextFormat()
 
     def setTextInt(self, value_int: int) -> None:
         try:
             value_float: float = value_int / 100
-            form_txt = locale.currency(val=value_float, symbol=False, grouping=True)
+            form_txt = locale.currency(val=value_float, symbol=False, grouping=False)
         except:
             form_txt = ""
         self.setText(form_txt)
@@ -152,27 +104,3 @@ class QCurrencyValidator(QValidator):
             return QValidator.Invalid, text_to_validate, new_char_index
 
         return QValidator.Acceptable, text_to_validate, new_char_index
-
-        # # Check number format
-        # regexp = QRegExp("^-?(\\d{1,3}(\\.\\d{1,3})*|(\\d+))*(\\,)?(\\d*)?$")
-        # if not regexp.exactMatch(text_to_validate):
-        #     logging.debug(
-        #         f"VALIDATED NOT OK = text: '{text_to_validate}', new char index: '{new_char_index}'. Intermediateinv ")
-        #     # try:
-        #     #     text_to_validate = curr.str_curr_to_locale(text_to_validate)
-        #     #     return QValidator.Acceptable, text_to_validate, new_char_index
-        #     # except:
-        #     return QValidator.Invalid, text_to_validate, new_char_index
-        # else:
-        #     logging.debug(f"VALIDATED OK = text: '{text_to_validate}', new char index: '{new_char_index}'. Acceptable")
-        #     # try:
-        #     #     # if len(text_to_validate) == 1:
-        #     #     #     text_to_validate = f"{text_to_validate}00"
-        #     #     text_to_validate = curr.str_curr_to_locale(text_to_validate)
-        #     # except:
-        #     #     pass
-        #     return QValidator.Acceptable, text_to_validate, new_char_index
-
-    # def fixup(self, string_value: str) -> str:
-    #     logging.debug("Fixup Called!")
-    #     return curr.str_curr_to_locale(string_value)
