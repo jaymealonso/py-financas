@@ -1,6 +1,6 @@
 import sys
-import view.icons.icons as icons
 import darkdetect
+import view.icons.icons as icons
 from pathlib import Path
 from argparse import ArgumentParser
 from PyQt5.QtWidgets import QApplication

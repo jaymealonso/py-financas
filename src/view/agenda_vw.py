@@ -1,6 +1,13 @@
 import view.icons.icons as icons
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QToolBar, QTableWidget, QLineEdit, QPushButton
+from PyQt5.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QToolBar,
+    QTableWidget,
+    QLineEdit,
+    QPushButton,
+)
 from util.toaster import QToaster
 
 
@@ -18,10 +25,7 @@ class AgendaView(QWidget):
 
     def get_toolbar(self) -> QToolBar:
         self.toolbar = QToolBar()
-        add_act = self.toolbar.addAction(
-            icons.add(),
-            "Adicionar Compromisso"
-        )
+        add_act = self.toolbar.addAction(icons.add(), "Adicionar Compromisso")
         add_act.triggered.connect(lambda: self.on_add_compromisso())
         return self.toolbar
 
@@ -32,20 +36,40 @@ class AgendaView(QWidget):
         self.table.setCellWidget(new_index, 0, AgendaTabLine.get_number_input(self))
         self.table.setCellWidget(new_index, 4, AgendaTabLine.get_del_button(self))
         if show_message:
-            QToaster.showMessage(self, "On ADD CONTA clicked", closable=False, timeout=2000, corner=Qt.BottomRightCorner)
+            QToaster.showMessage(
+                self,
+                "On ADD CONTA clicked",
+                closable=False,
+                timeout=2000,
+                corner=Qt.BottomRightCorner,
+            )
 
     def on_add_compromisso(self, show_message=True):
         new_index = self.table.rowCount()
         self.table.insertRow(new_index)
 
         self.table.setCellWidget(new_index, 0, AgendaTabLine.get_number_input(self))
-        self.table.setCellWidget(new_index, 4, AgendaTabLine.get_del_button(self, new_index))
+        self.table.setCellWidget(
+            new_index, 4, AgendaTabLine.get_del_button(self, new_index)
+        )
         if show_message:
-            QToaster.showMessage(self, "On ADD CONTA clicked", closable=False, timeout=2000, corner=Qt.BottomRightCorner)
+            QToaster.showMessage(
+                self,
+                "On ADD CONTA clicked",
+                closable=False,
+                timeout=2000,
+                corner=Qt.BottomRightCorner,
+            )
 
     def on_del_compromisso(self, index):
         self.table.removeRow(index)
-        QToaster.showMessage(self, f"On DELETE CONTA index:{index} clicked", closable=False, timeout=2000, corner=Qt.BottomRightCorner)
+        QToaster.showMessage(
+            self,
+            f"On DELETE CONTA index:{index} clicked",
+            closable=False,
+            timeout=2000,
+            corner=Qt.BottomRightCorner,
+        )
 
     def get_table(self) -> QTableWidget:
         self.table = QTableWidget()
@@ -60,11 +84,11 @@ class AgendaTabLine:
         pass
 
     @staticmethod
-    def get_number_input(parent:AgendaView):
+    def get_number_input(parent: AgendaView):
         return QLineEdit("teste")
 
     @staticmethod
-    def get_del_button(parent:AgendaView, index):
+    def get_del_button(parent: AgendaView, index):
         del_pbutt = QPushButton()
         del_pbutt.setToolTip("Eliminar Conta")
         del_pbutt.setIcon(icons.delete())
