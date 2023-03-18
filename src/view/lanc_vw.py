@@ -1,4 +1,3 @@
-import datetime
 import view.icons.icons as icons
 import view.contas_vw as cv
 import logging
@@ -27,7 +26,7 @@ from PyQt5.QtWidgets import (
     QLabel,
     QCheckBox,
     QApplication,
-    QDialog
+    QDialog,
 )
 from util.toaster import QToaster
 from util.events import post_event, Eventos
@@ -63,7 +62,7 @@ class LancamentosView(QDialog):
 
     def __init__(self, parent: QWidget, conta_dc: Conta):
         self.toolbar = self.get_toolbar()
-        table:QTableView = self.get_table()
+        table: QTableView = self.get_table()
         self.tableline = LancamentoTableLine(self)
         self.conta_dc = conta_dc
         self.parent: cv.ContasView = parent
@@ -96,7 +95,7 @@ class LancamentosView(QDialog):
         """
         Retorna toolbar
         """
-        toolbar:QToolBar = QToolBar()
+        toolbar: QToolBar = QToolBar()
         toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
 
         import_act = toolbar.addAction(icons.import_file(), "Importar Lançamentos")
@@ -108,7 +107,7 @@ class LancamentosView(QDialog):
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         toolbar.addWidget(spacer)
-        
+
         self.check_del_not_ask = QCheckBox("Eliminar sem perguntar")
         toolbar.addWidget(self.check_del_not_ask)
 
@@ -182,20 +181,19 @@ class LancamentosView(QDialog):
         col = item.column()
 
         logging.debug(f"Cell changed row/col: {row}/{col}")
-        
+
         model = self.table.model()
-        lancamento_id = model.data(model.index(row,0), Qt.UserRole)
+        lancamento_id = model.data(model.index(row, 0), Qt.UserRole)
         value = model.data(item, Qt.UserRole)
 
         column_data = self.COLUMNS.get(col)
 
         logging.debug(
-            f"Modificando lancamento numero:{lancamento_id} campo \"{column_data['sql_colname']}\" para valor \"{value}\""
+            f"Modificando lancamento numero:{lancamento_id} campo \" \
+            {column_data['sql_colname']}\" para valor \"{value}\""
         )
 
-        self.model_lancamentos.update(
-            lancamento_id, column_data["sql_colname"], value
-        )
+        self.model_lancamentos.update(lancamento_id, column_data["sql_colname"], value)
 
         self.model_lancamentos.load()
         # recalcula total
@@ -238,6 +236,9 @@ class LancamentosView(QDialog):
             )
 
     def load_table_data(self):
+        """
+        Popula tabela com os dados do modelo, redimensiona colunas
+        """
         QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
         vert_scr_position = self.table.verticalScrollBar().value()
         model = self.table.model()
@@ -353,6 +354,7 @@ class LancamentosView(QDialog):
         Disparado pela modificação de um WIDGET na linha da tabela
         """
         self.table_cell_changed(item)
+
 
 class TotalCurrLabel(QLabel):
     def set_int_value(self, value_int: int):

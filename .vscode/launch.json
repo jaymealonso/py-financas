@@ -18,8 +18,14 @@
             "request": "launch",
             "program": "${workspaceFolder}/src/main.py",
             "console": "integratedTerminal",
-            "args": ["-o 2"],
+            "args": [
+                "-o",
+                "2",
+                "-T",
+                "dark",
+                // "light",
+            ],
             "justMyCode": true
-        }        
+        }
     ]
 }
