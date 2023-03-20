@@ -4,11 +4,12 @@ from PyQt5.QtCore import QSize
 
 path = os.path.dirname(os.path.abspath(__file__))
 
+print(f"Diretório de icones: {path}")
 
 def app_icon() -> QIcon:
     _app_icon = QIcon()
-    _app_icon.addFile("view/icons/app-icon-16.png", QSize(8, 8))
-    _app_icon.addFile("view/icons/app-icon-32.png", QSize(16, 16))
+    _app_icon.addFile(f"{path}/app-icon-16.png", QSize(8, 8))
+    _app_icon.addFile(f"{path}/app-icon-32.png", QSize(16, 16))
     return _app_icon
 
 
