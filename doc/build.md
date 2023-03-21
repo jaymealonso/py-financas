@@ -41,10 +41,17 @@ python src/main.py
 
 ## Como gerar o executavel
 
+### Windows
 ```
-@todo
+build.bat
 ```
 
+### Linux
+```
+build.sh
+```
+
+o executavel será gerado no diretório ```/dist```
 
 # Possíveis problemas
 
