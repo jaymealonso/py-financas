@@ -5,8 +5,8 @@ block_cipher = None
 
 
 a = Analysis(
-    ['src\\main.py'],
-    pathex=['src\\view\\icons'],
+    ['src/main.py'],
+    pathex=['src/view/icons'],
     binaries=[],
     datas=[('src/view/icons/*.png', 'view/icons/')],
     hiddenimports=[],
