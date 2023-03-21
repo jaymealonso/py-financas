@@ -1,3 +1,4 @@
+import sys
 import logging
 from pathlib import Path
 from enum import Enum
@@ -27,7 +28,7 @@ class Settings:
     def db_location(self) -> str:
         DATABASE_DEFAULT_FILENAME = "database.db"
         try:
-            default_path = Path.cwd() / DATABASE_DEFAULT_FILENAME
+            default_path = get_root_path(DATABASE_DEFAULT_FILENAME) # Path.cwd() / DATABASE_DEFAULT_FILENAME
             path = self.settings.value(f"{ConfigGroups.PADROES.value}/db_path")
             if not path:
                 self.db_location = str(default_path)
@@ -75,4 +76,18 @@ class Settings:
         except Exception as e:
             logging.error(f"Error loading window settings {e}.")
             return False
-    
+
+def get_root_path(filename: str = "") -> str:
+    """
+    Busca raiz onde o executavel se localiza no BUNDLED, ou caminho base na execução no não BUNDLE(main.py)
+    """
+    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
+        logging.info('running in a PyInstaller bundle')
+        return Path(__file__).resolve().with_name(filename)
+    else:
+        logging.info('running in a normal Python process') 
+        return Path.cwd() / filename
+
+
+
+
