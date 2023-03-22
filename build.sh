@@ -1,8 +1,9 @@
 #!/usr/bin/bash
 
-pyinstaller src/main.py \ 
+pyinstaller src/main.py \
 --name py-financas \
---onefile --noconfirm \
+--onefile \
+--noconfirm \
 --paths src/view/icons \
 --add-data "src/view/icons/*.png:view/icons/"
 
