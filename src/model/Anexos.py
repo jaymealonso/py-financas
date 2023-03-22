@@ -24,7 +24,8 @@ class Anexos:
                 .all()
             )
 
-    def add_new(self, caminho: str, descricao: str, lancamento_id: int) -> ORMAnexos:
+    def add_new(self, id: str, descricao: str, caminho: str, nome_arquivo: str, 
+            lancamento_id: int) -> ORMAnexos:
         """
         Adiciona novo anexo ao DB com os dados de entrada enviados
         e retorna o ID do novo anexo
@@ -34,8 +35,10 @@ class Anexos:
                 insert(ORMAnexos).returning(ORMAnexos),
                 [
                     {
+                        "id": id,
                         "descricao": descricao,
                         "caminho": caminho,
+                        "nome_arquivo": nome_arquivo,
                         "lancamento_id": lancamento_id,
                     }
                 ],

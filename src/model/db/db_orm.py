@@ -67,9 +67,10 @@ class Categorias(Base):
 class Anexos(Base):
     __tablename__ = "anexos"
 
-    id = Column(Integer, primary_key=True, autoincrement="auto")
+    id = Column(String, primary_key=True)
     descricao = Column(String)
     caminho = Column(String)
+    nome_arquivo = Column(String)
 
     lancamento_id = Column(Integer, ForeignKey("lancamentos.id"), nullable=False)
     Lancamento = relationship("Lancamentos")

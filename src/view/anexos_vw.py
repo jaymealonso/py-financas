@@ -2,6 +2,7 @@ import subprocess
 import platform
 import os.path
 import shutil
+from uuid import uuid4
 from pathlib import Path
 import view.icons.icons as icons
 from view.TableLine import TableLine
@@ -20,6 +21,7 @@ from PyQt5.QtWidgets import (
 )
 from model.db.db_orm import Lancamentos as ORMLancamentos
 from model.Anexos import Anexos
+from util.settings import get_root_path
 
 
 class AnexosView(QDialog):
@@ -27,9 +29,10 @@ class AnexosView(QDialog):
         0: {"title": "id", "sql_colname": "id"},
         1: {"title": "descricao", "sql_colname": "descricao"},
         2: {"title": "caminho", "sql_colname": "caminho"},
-        3: {"title": "Arquivo"},
-        4: {"title": "Diretório"},
-        5: {"title": "Remover"},
+        3: {"title": "Nome Arquivo", "sql_colname": "nome_arquivo"},
+        4: {"title": "Arquivo"},
+        5: {"title": "Diretório"},
+        6: {"title": "Remover"},
     }
 
     def __init__(self, parent: QWidget, lancamento: ORMLancamentos):
@@ -45,6 +48,7 @@ class AnexosView(QDialog):
             f"Anexos - (Lancamento {lancamento.id} | {lancamento.descricao})"
         )
         self.setMinimumSize(1200, 600)
+        self.resize(1600, 600)
 
         layout = QVBoxLayout()
         layout.addLayout(self.import_file_line)
@@ -90,22 +94,31 @@ class AnexosView(QDialog):
             self.file_path.setText(file_name)
             self._on_importar_clicked(file_name)
 
-    def _on_importar_clicked(self, file_name: str):
+    def _on_importar_clicked(self, file_fullpath: str):
         data = self.lancamento.data
 
-        origin_file = Path(file_name)
-        dest_dir = (
-            Path.cwd() / "storage" / f"{data.year}" / f"{data.year}.{data.month:0>2}"
+        origin_file = Path(file_fullpath)
+        dest_dir = Path(get_root_path(paths=[
+                "storage",
+                f"{data.year}",
+                f"{data.year}.{data.month:0>2}"
+            ])
         )
+        uuid = uuid4()
+        dest_file = dest_dir / f"{uuid}_{origin_file.name}"
+        
         dest_dir.mkdir(parents=True, exist_ok=True)
 
-        shutil.copy(file_name, str(dest_dir))
+        shutil.copy(file_fullpath, str(dest_file))
 
         self.model_anexos.add_new(
-            caminho=f"{str(dest_dir)}/{origin_file.name}",
+            id=str(uuid),
             descricao=origin_file.name,
+            caminho=str(dest_file),
+            nome_arquivo=origin_file.name,
             lancamento_id=self.lancamento.id,
         )
+        self.model_anexos.load()
         self.load_table_data()
 
     def load_table_data(self) -> None:
@@ -132,28 +145,43 @@ class AnexosView(QDialog):
             )
 
             model.setItemData(
-                model.index(new_index, 2),
-                {Qt.DisplayRole: row.caminho, Qt.UserRole: row.caminho},
+                model.index(new_index, 2), {
+                    # Remove o diretorio base mantendo somente a estrutura dentro do
+                    # diretorio em que o executavel (ou main.py) está contido
+                    # ex: storage/2023/2023.03/file.txt
+                    Qt.DisplayRole: str(Path(row.caminho)).replace(get_root_path(), ""),
+                    Qt.UserRole: row.caminho
+                },
             )
 
-            self.table.setIndexWidget(
+            model.setItemData(
                 model.index(new_index, 3),
-                self.tableline.get_open_att_button(self, row.id),
+                {Qt.DisplayRole: row.nome_arquivo, Qt.UserRole: row.nome_arquivo},
             )
 
             self.table.setIndexWidget(
                 model.index(new_index, 4),
-                self.tableline.get_open_att_dir_button(self, row.id),
+                self.tableline.get_open_att_button(self, row.id),
             )
 
             self.table.setIndexWidget(
                 model.index(new_index, 5),
+                self.tableline.get_open_att_dir_button(self, row.id),
+            )
+
+            self.table.setIndexWidget(
+                model.index(new_index, 6),
                 self.tableline.get_att_delete_button(self, row.id),
             )
 
-        self.table.resizeColumnToContents(0)
-        self.table.resizeColumnToContents(1)
-        self.table.resizeColumnToContents(2)
+        self.table.setColumnWidth(0, 100)        
+        self.table.setColumnWidth(1, 300)
+        self.table.setColumnWidth(2, 300)
+        self.table.setColumnWidth(3, 300)
+        self.table.setColumnWidth(4, 150)
+        self.table.setColumnWidth(5, 150)
+        self.table.setColumnWidth(6, 150)
+
 
     def on_open_att(self, index: int):
         attachments = [item for item in self.model_anexos.items if item.id == index]

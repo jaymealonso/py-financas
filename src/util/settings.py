@@ -22,7 +22,7 @@ class Settings:
     def __init__(self):
         super(Settings, self).__init__()
         
-        self.settings = QSettings("config.ini", QSettings.IniFormat)   
+        self.settings = QSettings(get_root_path("config.ini"), QSettings.IniFormat)   
 
     @property
     def db_location(self) -> str:
@@ -77,16 +77,35 @@ class Settings:
             logging.error(f"Error loading window settings {e}.")
             return False
 
-def get_root_path(filename: str = "") -> str:
+def get_root_path(filename: str = "", paths: list[str] = []) -> str:
     """
     Busca raiz onde o executavel se localiza no BUNDLED, ou caminho base na execução no não BUNDLE(main.py)
     """
     if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-        logging.info('running in a PyInstaller bundle')
-        return Path(__file__).resolve().with_name(filename)
+        logging.info('Executando em um Bundle PyInstaller.')
+        # return Path(__file__).resolve().with_name(filename)
+        # logging.info(f'sys._MEIPASS: "{sys._MEIPASS}".')
+        # logging.info(f'sys.executable: "{sys.executable}".')
+        path = Path(sys.executable).resolve()
+        if len(paths) > 0:
+            path = path.joinpath(paths)
+        path.with_name(filename)
+        logging.info(f'Retornando caminho: "{path}".')
+        return str(path)
+        # return sys._MEIPASS
     else:
-        logging.info('running in a normal Python process') 
-        return Path.cwd() / filename
+        logging.info('Executando em um processo Python normal. Não Bundled.') 
+        # vai dois niveis para baixo, assume-se que este arquivo(settings.py) está no diretório 
+        #   "./py-financas/src/util/settings.py"
+        # mas deve-se retornar
+        #   "./py-financas/{filename}"
+        path = Path(__file__).parents[2]
+        if len(paths) > 0:
+            path = path.joinpath(*paths)
+        path = path / filename
+        logging.info(f'Retornando caminho: "{path}".')
+        return str(path)
+        # return Path.cwd() / filename
 
 
 
