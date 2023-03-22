@@ -1,5 +1,6 @@
 import sys
 import logging
+import darkdetect
 from pathlib import Path
 from enum import Enum
 from PyQt5.QtCore import QSettings
@@ -28,9 +29,9 @@ class Settings:
     def db_location(self) -> str:
         DATABASE_DEFAULT_FILENAME = "database.db"
         try:
-            default_path = get_root_path(DATABASE_DEFAULT_FILENAME) # Path.cwd() / DATABASE_DEFAULT_FILENAME
             path = self.settings.value(f"{ConfigGroups.PADROES.value}/db_path")
             if not path:
+                default_path = get_root_path(DATABASE_DEFAULT_FILENAME)
                 self.db_location = str(default_path)
                 path = default_path
             return path
@@ -42,6 +43,20 @@ class Settings:
     def db_location(self, path: str):
         self.settings.beginGroup(ConfigGroups.PADROES.value)
         self.settings.setValue(f"db_path", path)
+        self.settings.endGroup()
+
+    @property
+    def theme(self) -> str:
+        theme_name = self.settings.value(f"{ConfigGroups.PADROES.value}/theme")
+        if theme_name == "" or theme_name is None:
+            theme_name = "light" if darkdetect.isLight() else "dark"
+            self.theme = theme_name
+        return theme_name
+
+    @theme.setter
+    def theme(self, theme_name: str):
+        self.settings.beginGroup(ConfigGroups.PADROES.value)
+        self.settings.setValue(f"theme", theme_name)
         self.settings.endGroup()
 
     def save_main_w_settings(self, window: QWidget):
@@ -83,16 +98,7 @@ def get_root_path(filename: str = "", paths: list[str] = []) -> str:
     """
     if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
         logging.info('Executando em um Bundle PyInstaller.')
-        # return Path(__file__).resolve().with_name(filename)
-        # logging.info(f'sys._MEIPASS: "{sys._MEIPASS}".')
-        # logging.info(f'sys.executable: "{sys.executable}".')
-        path = Path(sys.executable).resolve()
-        if len(paths) > 0:
-            path = path.joinpath(paths)
-        path.with_name(filename)
-        logging.info(f'Retornando caminho: "{path}".')
-        return str(path)
-        # return sys._MEIPASS
+        path = Path(sys.executable).parents[0]
     else:
         logging.info('Executando em um processo Python normal. Não Bundled.') 
         # vai dois niveis para baixo, assume-se que este arquivo(settings.py) está no diretório 
@@ -100,13 +106,12 @@ def get_root_path(filename: str = "", paths: list[str] = []) -> str:
         # mas deve-se retornar
         #   "./py-financas/{filename}"
         path = Path(__file__).parents[2]
-        if len(paths) > 0:
-            path = path.joinpath(*paths)
-        path = path / filename
-        logging.info(f'Retornando caminho: "{path}".')
-        return str(path)
-        # return Path.cwd() / filename
 
+    if len(paths) > 0:
+        path = path.joinpath(*paths)
+    path = path / filename
+    logging.info(f'Retornando caminho: "{path}".')
+    return str(path)
 
 
 

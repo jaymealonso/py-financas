@@ -21,8 +21,8 @@
             "args": [
                 "-o",
                 "2",
-                "-T",
-                "dark",
+                // "-T",
+                // "dark",
                 // "light",
             ],
             "justMyCode": true

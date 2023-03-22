@@ -1,6 +1,6 @@
 import sys
-import darkdetect
 import view.icons.icons as icons
+from util.settings import Settings
 from pathlib import Path
 from argparse import ArgumentParser
 from PyQt5.QtWidgets import QApplication
@@ -11,6 +11,7 @@ from model.db.db import Database
 
 class MainApp:
     def __init__(self):
+        self.settings = Settings()
         self.arg_parser: ArgumentParser = self.configure_arguments_parser()
         self.args = self.arg_parser.parse_args()
 
@@ -73,11 +74,8 @@ class MainApp:
             self.window.tabbar.widget(0).on_open_lancamentos(self.args.conta_id)
 
     def setup_theme(self, theme_name: str):
-        # set stylesheet
-
-        if theme_name == "" or theme_name is None:
-            theme_name = "light" if darkdetect.isLight() else "dark"
-
+        if theme_name is None:
+            theme_name = self.settings.theme
         path = Path.cwd() / "themes" / theme_name
         QDir.addSearchPath(theme_name, str(path))
 
