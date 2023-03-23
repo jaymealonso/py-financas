@@ -62,34 +62,46 @@ class Lancamentos:
                 item.nr_anexos = found[1]
 
     def add_new_empty(self, conta_id: int) -> int:
-        new_lancamento = ORMLancamentos(
-            id=None,
+        # new_lancamento = ORMLancamentos(
+        #     id=None,
+        #     conta_id=conta_id,
+        #     nr_referencia="",
+        #     descricao="",
+        #     data=moment.now().date.date(),
+        #     valor=0,
+        # )
+        return self.add_new(
             conta_id=conta_id,
             nr_referencia="",
             descricao="",
-            data=moment.now(),
-            valor=0,
+            data=moment.now().date.date(),
+            valor=0,            
         )
-        return self.add_new(new_lancamento)
 
-    def add_new(self, lancam: ORMLancamentos) -> int:
+    def add_new(self,
+            conta_id: int,
+            nr_referencia: str,
+            descricao: str,
+            data: date,
+            valor: int
+        ) -> int:
         """
         Adiciona novo lancamento ao DB com os dados de entrada enviados
         e retorna o ID do novo lancamento
         """
-        seq_ordem_linha = self._get_next_seq(lancam.data.date.date(), lancam.conta_id)
+        seq_ordem_linha = self._get_next_seq(data, conta_id)
 
         with Session(self.__db.engine) as session:
             new_lancamento = session.scalar(
                 insert(ORMLancamentos).returning(ORMLancamentos),
                 [
                     {
-                        "conta_id": lancam.conta_id,
+                        "conta_id": conta_id,
                         "seq_ordem_linha": seq_ordem_linha,
-                        "nr_referencia": lancam.nr_referencia,
-                        "descricao": lancam.descricao,
-                        "data": lancam.data.date.date(),
-                        "valor": lancam.valor,
+                        "nr_referencia": nr_referencia,
+                        "descricao": descricao,
+                        "data": data,
+                        "valor": valor,
                     }
                 ],
             )

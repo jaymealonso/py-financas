@@ -20,7 +20,7 @@
             "console": "integratedTerminal",
             "args": [
                 "-o",
-                "2",
+                "4",
                 // "-T",
                 // "dark",
                 // "light",

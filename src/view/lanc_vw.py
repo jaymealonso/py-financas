@@ -71,7 +71,8 @@ class LancamentosView(QDialog):
         self.model_lancamentos = Lancamentos(conta_dc)
         self.model_categorias = Categorias()
         self.model_categorias.load()
-        self.settings = Settings()
+        self.global_settings = Settings()
+        self.settings = self.global_settings.load_lanc_settings(self.conta_dc.id)
 
         super(LancamentosView, self).__init__(parent)
 
@@ -79,7 +80,9 @@ class LancamentosView(QDialog):
             f"Lançamentos - (Conta {self.conta_dc.id} | {self.conta_dc.descricao})"
         )
         self.setMinimumSize(800, 600)
-        if not self.settings.load_lanc_settings(self, self.conta_dc.id):
+        try:
+            self.restoreGeometry(self.settings.dimensoes)
+        except: 
             self.resize(1600, 900)
 
         layout = QVBoxLayout()
@@ -150,7 +153,7 @@ class LancamentosView(QDialog):
             f"Lancamento close event INSIDE LANCAMENTOS conta: {self.conta_dc.id}"
         )
         post_event(Eventos.LANCAMENTO_WINDOW_CLOSED, self.conta_dc.id)
-        self.settings.save_lanc_settings(self, self.conta_dc.id)
+        self.settings.dimensoes = self.saveGeometry()
 
     def on_open_attachments(self, lancamento_id: int):
         """

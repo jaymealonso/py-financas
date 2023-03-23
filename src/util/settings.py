@@ -3,8 +3,10 @@ import logging
 import darkdetect
 from pathlib import Path
 from enum import Enum
-from PyQt5.QtCore import QSettings
-from PyQt5.QtWidgets import QWidget
+from PyQt5.QtCore import QSettings, QRect
+from PyQt5.QtWidgets import QWidget, QApplication
+from abc import ABC
+from util.singleton_meta import SingletonMeta
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -13,23 +15,57 @@ logging.basicConfig(
 )
 
 
-class ConfigGroups(Enum):
+class JanelaSettings(ABC):
+    def __init__(self, settings: QSettings, group:str):
+        super(JanelaSettings, self).__init__()
+        self.group = group
+        self.settings = settings
+
+    @property
+    def dimensoes(self) -> QRect:
+        # try:
+        geometry = self.settings.value(f"{self.group}/geometry")
+        if geometry is None:
+            raise Exception(f"Geometria da janela {self.group} tá vazia") 
+        return geometry
+    
+    @dimensoes.setter
+    def dimensoes(self, geometry: QRect): 
+        self.settings.beginGroup(self.group)
+        self.settings.setValue(f"geometry", geometry)
+        self.settings.endGroup()
+
+
+class JanelaContasSettings(JanelaSettings):
+    def __init__(self, settings: QSettings):
+        super(JanelaContasSettings, self).__init__(
+            settings, 
+            group="Janela-Contas"
+        )
+
+class JanelaLancamentosSettings(JanelaSettings):
+    def __init__(self, settings: QSettings, conta_id: str):
+        super(JanelaLancamentosSettings, self).__init__(
+            settings, 
+            group=f"Conta-Lancamento-{conta_id}"
+        )
+        self.conta_id = conta_id
+
+class Settings(metaclass=SingletonMeta):
     PADROES = "Padroes"
-    MAIN = "Janela-Contas"
-    CONTA_LANC = "Conta-Lancamento"
-
-
-class Settings:
     def __init__(self):
         super(Settings, self).__init__()
-        
+
         self.settings = QSettings(get_root_path("config.ini"), QSettings.IniFormat)   
+
+        self.janela_contas = JanelaContasSettings(self.settings)
+        self.janelas_lancamentos: list[JanelaLancamentosSettings] = []
 
     @property
     def db_location(self) -> str:
         DATABASE_DEFAULT_FILENAME = "database.db"
         try:
-            path = self.settings.value(f"{ConfigGroups.PADROES.value}/db_path")
+            path = self.settings.value(f"{Settings.PADROES}/db_path")
             if not path:
                 default_path = get_root_path(DATABASE_DEFAULT_FILENAME)
                 self.db_location = str(default_path)
@@ -41,13 +77,13 @@ class Settings:
 
     @db_location.setter
     def db_location(self, path: str):
-        self.settings.beginGroup(ConfigGroups.PADROES.value)
+        self.settings.beginGroup(Settings.PADROES)
         self.settings.setValue(f"db_path", path)
         self.settings.endGroup()
 
     @property
     def theme(self) -> str:
-        theme_name = self.settings.value(f"{ConfigGroups.PADROES.value}/theme")
+        theme_name = self.settings.value(f"{Settings.PADROES}/theme")
         if theme_name == "" or theme_name is None:
             theme_name = "light" if darkdetect.isLight() else "dark"
             self.theme = theme_name
@@ -55,42 +91,20 @@ class Settings:
 
     @theme.setter
     def theme(self, theme_name: str):
-        self.settings.beginGroup(ConfigGroups.PADROES.value)
+        self.settings.beginGroup(Settings.PADROES)
         self.settings.setValue(f"theme", theme_name)
         self.settings.endGroup()
 
-    def save_main_w_settings(self, window: QWidget):
-        self.settings.beginGroup(ConfigGroups.MAIN.value)
-        self.settings.setValue(f"geometry", window.saveGeometry())
-        self.settings.endGroup()
+    def load_lanc_settings(self, conta_id: int) -> JanelaLancamentosSettings:
 
-    def load_main_w_settings(self, window: QWidget):
-        try:
-            geometry = self.settings.value(f"{ConfigGroups.MAIN.value}/geometry")
-            window.restoreGeometry(geometry)
-            return True
-        except Exception as e:
-            logging.error(f"Error loading window settings {e}.")
-            return False
-
-    def save_lanc_settings(self, window: QWidget, conta_id: int):
-        """Salvar configuracoes de posicao nas janelas de lançamento"""
-        self.settings.beginGroup(f"{ConfigGroups.CONTA_LANC.value}-{conta_id}")
-        self.settings.setValue(f"geometry", window.saveGeometry())
-        self.settings.endGroup()
-
-    def load_lanc_settings(self, window: QWidget, conta_id: int):
-        """Carregar configuracoes de posicao nas janelas de lançamento"""
-        try:
-            geometry = self.settings.value(f"{ConfigGroups.CONTA_LANC.value}-{conta_id}/geometry")
-            # wState = self.settings.value(f"lanc-{conta_dc.id}-windowState")
-
-            window.restoreGeometry(geometry)
-            # window.setWindowState(wState)
-            return True
-        except Exception as e:
-            logging.error(f"Error loading window settings {e}.")
-            return False
+        janela_array = [janela for janela in self.janelas_lancamentos if janela.conta_id == conta_id]
+        if len(janela_array) != 0:
+            janela = janela_array[0]
+        else:
+            janela = JanelaLancamentosSettings(self.settings, conta_id)
+            self.janelas_lancamentos.append(janela)
+        
+        return janela
 
 def get_root_path(filename: str = "", paths: list[str] = []) -> str:
     """
@@ -112,6 +126,5 @@ def get_root_path(filename: str = "", paths: list[str] = []) -> str:
     path = path / filename
     logging.info(f'Retornando caminho: "{path}".')
     return str(path)
-
 
 

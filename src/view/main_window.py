@@ -21,14 +21,17 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__()
 
         self.app = app
-        self.settings = Settings()
+        self.global_settings = Settings()
+        self.settings = self.global_settings.janela_contas
         self.tabbar = self.get_tabbar()
         self.toolbar = self.addToolBar("Main")
         self.fill_toolbar(self.toolbar)
 
         self.setWindowTitle("Finanças - Python")
         self.setMinimumSize(800, 600)
-        if not self.settings.load_main_w_settings(self):
+        try:
+            self.restoreGeometry(self.settings.dimensoes)
+        except Exception as e:
             self.resize(1600, 900)
 
         layout = QVBoxLayout(self.window())
@@ -42,7 +45,7 @@ class MainWindow(QMainWindow):
         print("Entrou evento close")
         self.app.closeAllWindows()
 
-        self.settings.save_main_w_settings(self)
+        self.settings.dimensoes = self.saveGeometry()
 
         # @todo: descomentar antes de liberar
         # result = QMessageBox.question(self, "Sair?", "Deseja fechar o aplicativo?", QMessageBox.Yes | QMessageBox.No)

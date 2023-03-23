@@ -4,22 +4,13 @@ from sqlalchemy.engine import Engine
 from model.db.db_orm import Base
 from model.initial_load.initial_db_data import DataLoader
 from util.settings import Settings
+from util.singleton_meta import SingletonMeta
 
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[logging.StreamHandler()],
 )
-
-class SingletonMeta(type):
-    _instances = {}
-
-    def __call__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            cls._instances[cls] = super(
-                SingletonMeta, cls).__call__(*args, **kwargs)
-        return cls._instances[cls]
-
 
 class Database(metaclass=SingletonMeta):
     def __init__(self):

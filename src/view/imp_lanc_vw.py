@@ -1,5 +1,6 @@
+from dataclasses import dataclass
 import os.path
-from datetime import datetime
+from datetime import date, datetime
 import openpyxl
 import view.icons.icons as icons
 from model.Conta import Conta
@@ -110,10 +111,19 @@ class ImportarLancamentosView(QDialog):
             )
         )
 
+        @dataclass
+        class NewLancamento():
+            """ Classe local para organizar os valores e poder usar os __setattr__ mais a frente """
+            conta_id: int
+            nr_referencia:str
+            descricao:str
+            data: date
+            valor:int
+            categoria_id: int
+
         line = ImportarLancamentosTableLine(self)
         for row_index in unique_rows:
-            new_lancamento = Lancamento(
-                id=None,
+            new_lancamento = NewLancamento(
                 conta_id=int(self.conta_dc.id),
                 nr_referencia="",
                 descricao="Descrição lançamento",
@@ -135,7 +145,14 @@ class ImportarLancamentosView(QDialog):
                 else:
                     new_lancamento.__setattr__(col, cell_value)
 
-            self.model_lancamentos.add_new(new_lancamento)
+            self.model_lancamentos.add_new(
+                conta_id=new_lancamento.conta_id,
+                nr_referencia=new_lancamento.nr_referencia,
+                descricao=new_lancamento.descricao,
+                data=new_lancamento.data,
+                valor=new_lancamento.valor
+            )
+
         QToaster.showMessage(
             self,
             f"Foram criados {len(unique_rows)} novos lançamentos.",
