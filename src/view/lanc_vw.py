@@ -82,7 +82,8 @@ class LancamentosView(QDialog):
         self.setMinimumSize(800, 600)
         try:
             self.restoreGeometry(self.settings.dimensoes)
-        except: 
+        except Exception as e:
+            logging.error(str(e))
             self.resize(1600, 900)
 
         layout = QVBoxLayout()

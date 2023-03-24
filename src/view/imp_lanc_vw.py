@@ -21,13 +21,13 @@ from PyQt5.QtWidgets import (
     QLabel,
     QComboBox,
     QMessageBox,
-    QDialog
+    QDialog,
 )
 from model.Lancamento import Lancamentos
 from view.TableLine import TableLine
 from util.toaster import QToaster
 from util.settings import Settings
-
+from util.curr_formatter import str_curr_to_int
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -35,11 +35,12 @@ logging.basicConfig(
     handlers=[logging.StreamHandler()],
 )
 
+
 class ImportarLancamentosView(QDialog):
     def __init__(self, parent: QWidget, conta_dc: Conta):
         super(ImportarLancamentosView, self).__init__(parent)
-        
-        self.conta_dc = conta_dc       
+
+        self.conta_dc = conta_dc
         self.global_settings = Settings()
         self.settings = self.global_settings.load_lanc_settings(self.conta_dc.id)
 
@@ -80,8 +81,8 @@ class ImportarLancamentosView(QDialog):
 
         self.setLayout(layout)
 
-    def _on_change_params(self, source:QLineEdit ): 
-        logging.debug(f"Entrou no on change")
+    def _on_change_params(self, source: QLineEdit):
+        logging.debug("Entrou no on change")
         if source.objectName() == "separador_decimal":
             self.settings.separador_decimal = source.text()
         elif source.objectName() == "separador_milhar":
@@ -131,9 +132,9 @@ class ImportarLancamentosView(QDialog):
             self.table.removeRow(sel)
 
     def on_import_linhas(self):
-        """ 
+        """
         Gera lançamentos a partir das linhas selecionadas
-        """ 
+        """
         mapping_cols = {}
         for col_index in range(self.table.columnCount()):
             column_combo: QComboBox = self.table.cellWidget(0, col_index)
@@ -147,13 +148,14 @@ class ImportarLancamentosView(QDialog):
         )
 
         @dataclass
-        class NewLancamento():
-            """ Classe local para organizar os valores e poder usar os __setattr__ mais a frente """
+        class NewLancamento:
+            """Classe local para organizar os valores e poder usar os __setattr__ mais a frente"""
+
             conta_id: int
-            nr_referencia:str
-            descricao:str
+            nr_referencia: str
+            descricao: str
             data: date
-            valor:int
+            valor: int
             categoria_id: int
 
         line = ImportarLancamentosTableLine(self)
@@ -185,9 +187,9 @@ class ImportarLancamentosView(QDialog):
                 nr_referencia=new_lancamento.nr_referencia,
                 descricao=new_lancamento.descricao,
                 data=new_lancamento.data,
-                valor=new_lancamento.valor
+                valor=new_lancamento.valor,
             )
-        
+
         # salva mapeamento das colunas
         self.settings.import_col_position = mapping_cols
 
@@ -200,9 +202,9 @@ class ImportarLancamentosView(QDialog):
         )
 
     def on_procurar_clicked(self):
-        """ 
+        """
         Chama popup de procura arquivo a ser importado
-        """ 
+        """
         dialog = QFileDialog()
         dialog.setFileMode(QFileDialog.ExistingFile)
         (fileName, selectedFilter) = dialog.getOpenFileName()
@@ -211,9 +213,9 @@ class ImportarLancamentosView(QDialog):
             self._on_importar_clicked()
 
     def _on_importar_clicked(self):
-        """ 
+        """
         Apos arquivo selecionado inicia o processamento e exibição das linhas na tabela
-        """ 
+        """
         path = self.file_path.text()
         if not path:
             return
@@ -221,10 +223,10 @@ class ImportarLancamentosView(QDialog):
         self.table.clear()
         try:
             wb = openpyxl.load_workbook(path)
-        except:
+        except Exception as e:
             QMessageBox(
                 QMessageBox.Warning,
-                "Erro no formato",
+                f"Erro no formato {e}",
                 f'Arquivo "{self.file_path.text()}" não parece estar no formato excel.',
                 QMessageBox.Ok,
             ).exec_()
@@ -241,20 +243,31 @@ class ImportarLancamentosView(QDialog):
 
         # Adiciona primeira linha da tabela para seleção de campo a ser mapeado
         self.table.insertRow(0)
-        positions: list[int] = self.settings.import_col_position
+        positions: dict[int, set] = self.settings.import_col_position
         for i in range(column_count):
             combo = line.get_combo()
-            pos = -1
-            for col in positions:
-                if i == positions[col]:
-                    pos = 0
-            combo.setItemData(pos)
+            # pos = 0
+            filled_col_name = next((x for x, y in positions.items() if y == i), None)
+            if filled_col_name is not None:
+                for index in range(combo.count()):
+                    if combo.itemData(index) == filled_col_name:
+                        combo.setCurrentIndex(index)
+                        break
+            #     if i == positions[col]:
+            #         pos_array = [
+            #             index
+            #             for index, value in line.LANCAMENTO_COLUMNS.items()
+            #             if value["sql_colname"] == col
+            #         ]
+            #         if len(pos_array) == 1:
+            #             pos = pos_array[0]
+            # combo.setCurrentIndex(pos)
             self.table.setCellWidget(0, i, combo)
 
         row_no = 1
         skipcount = 0
         for row in ws.iter_rows():
-            rowvalues = [x.value for x in row if x.value != None]
+            rowvalues = [x.value for x in row if x.value != ""]
             if not rowvalues:
                 skipcount += 1
                 continue
@@ -289,12 +302,12 @@ class ImportarLancamentosView(QDialog):
 
 class ImportarLancamentosTableLine(TableLine):
     LANCAMENTO_COLUMNS = {
-        -1: {"name": "(vazio)", "sql_colname": ""},
-        0: {"name": "Número Ref.", "sql_colname": "nr_referencia"},
-        1: {"name": "Descrição", "sql_colname": "descricao"},
-        2: {"name": "Data", "sql_colname": "data"},
-        3: {"name": "Categorias", "sql_colname": "categoria_id"},
-        4: {"name": "Valor", "sql_colname": "valor"},
+        0: {"name": "(vazio)", "sql_colname": ""},
+        1: {"name": "Número Ref.", "sql_colname": "nr_referencia"},
+        2: {"name": "Descrição", "sql_colname": "descricao"},
+        3: {"name": "Data", "sql_colname": "data"},
+        4: {"name": "Categorias", "sql_colname": "categoria_id"},
+        5: {"name": "Valor", "sql_colname": "valor"},
     }
 
     def __init__(self, parent_view: ImportarLancamentosView):
@@ -303,8 +316,10 @@ class ImportarLancamentosTableLine(TableLine):
 
     def get_combo(self) -> QComboBox:
         combo = QComboBox()
-        for col in self.LANCAMENTO_COLUMNS.values():
-            combo.addItem(col["name"], col["sql_colname"])
+        for index, value in self.LANCAMENTO_COLUMNS.items():
+            name = value["name"]
+            sql_colname = value["sql_colname"]
+            combo.addItem(name, sql_colname)
 
         return combo
 
@@ -315,9 +330,9 @@ class ImportarLancamentosTableLine(TableLine):
             curr_str = curr_str.replace(mil_separator, "").replace(
                 decimal_separator, "."
             )
-            curr_int = int(curr_str)
-        except:
-            logging.error("Erro importando valor em currency!")
+            curr_int = str_curr_to_int(curr_str)
+        except Exception as e:
+            logging.error(f"Erro importando valor em currency!, {e}")
             curr_int = 0
 
         return curr_int

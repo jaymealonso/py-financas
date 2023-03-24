@@ -7,4 +7,5 @@ output
 build
 htmlcov
 config.ini
+.pytest_cache
 storage
