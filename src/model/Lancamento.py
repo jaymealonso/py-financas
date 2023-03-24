@@ -75,16 +75,12 @@ class Lancamentos:
             nr_referencia="",
             descricao="",
             data=moment.now().date.date(),
-            valor=0,            
+            valor=0,
         )
 
-    def add_new(self,
-            conta_id: int,
-            nr_referencia: str,
-            descricao: str,
-            data: date,
-            valor: int
-        ) -> int:
+    def add_new(
+        self, conta_id: int, nr_referencia: str, descricao: str, data: date, valor: int
+    ) -> int:
         """
         Adiciona novo lancamento ao DB com os dados de entrada enviados
         e retorna o ID do novo lancamento
@@ -148,18 +144,18 @@ class Lancamentos:
         especial para Categoria por que é uma relação n:n
         """
         conn = self.__db.engine.connect()
-        session = Session(self.__db.engine)
         trans = conn.begin()
         if column_name == "categoria_id":
             stmt_delete = delete(ORMLancCateg).where(ORMLancCateg.c.lancamento_id == id)
-            stmt_insert = insert(ORMLancCateg).values(
-                {
-                    "lancamento_id": id,
-                    "categoria_id": value,
-                }
-            )
             conn.execute(stmt_delete)
-            conn.execute(stmt_insert)
+            if value > 0:
+                stmt_insert = insert(ORMLancCateg).values(
+                    {
+                        "lancamento_id": id,
+                        "categoria_id": value,
+                    }
+                )
+                conn.execute(stmt_insert)
         else:
             stmt_update = (
                 update(ORMLancamentos)

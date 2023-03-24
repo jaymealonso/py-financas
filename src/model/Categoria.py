@@ -1,6 +1,5 @@
 from typing import List
-from dataclasses import dataclass
-from sqlalchemy import select, insert, update
+from sqlalchemy import insert, update
 from sqlalchemy.orm import Session
 from model.db.db import Database
 from model.db.db_orm import Categorias as ORMCategorias
