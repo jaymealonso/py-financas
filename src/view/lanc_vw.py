@@ -192,10 +192,8 @@ class LancamentosView(QDialog):
 
         column_data = self.COLUMNS.get(col)
 
-        logging.debug(
-            f"Modificando lancamento numero:{lancamento_id} campo \" \
-            {column_data['sql_colname']}\" para valor \"{value}\""
-        )
+        logging.debug(f"Modificando lancamento numero:{lancamento_id}")
+        logging.debug(f"\"{column_data['sql_colname']}\" >> \"{value}\"")
 
         self.model_lancamentos.update(lancamento_id, column_data["sql_colname"], value)
 
@@ -299,7 +297,7 @@ class LancamentosView(QDialog):
                 model.index(new_index, 5),
                 {
                     Qt.DisplayRole: categoria.nm_categoria,
-                    Qt.UserRole: categoria.id or 0,
+                    Qt.UserRole: categoria.id or -1,
                 },
             )
             model.setItemData(
@@ -326,7 +324,7 @@ class LancamentosView(QDialog):
         col2_del.changed.connect(self.on_model_item_changed)
         col3_del = self.tableline.get_date_input()
         col3_del.changed.connect(self.on_model_item_changed)
-        col4_del = self.tableline.get_tipo_conta_dropdown_delegate()
+        col4_del = self.tableline.get_categoria_dropdown_delegate()
         col4_del.changed.connect(self.on_model_item_changed)
         col5_del = self.tableline.get_currency_value_delegate()
         col5_del.changed.connect(self.on_model_item_changed)
@@ -379,7 +377,7 @@ class LancamentoTableLine(TableLine):
     def get_currency_value_delegate(self) -> CurrencyEditDelegate:
         return CurrencyEditDelegate(self.parentOne.table)
 
-    def get_tipo_conta_dropdown_delegate(self):
+    def get_categoria_dropdown_delegate(self):
         categorias = {}
         for item in self.parentOne.model_categorias.items:
             categorias[item.id] = item.nm_categoria

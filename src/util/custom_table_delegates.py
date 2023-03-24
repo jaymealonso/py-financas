@@ -2,7 +2,7 @@ import datetime
 import locale
 import logging
 import util.curr_formatter as curr
-from PyQt5.QtCore import Qt, QModelIndex, pyqtSignal
+from PyQt5.QtCore import Qt, QModelIndex, pyqtSignal, QStringListModel
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import (
     QWidget,
@@ -13,6 +13,7 @@ from PyQt5.QtWidgets import (
     QDateEdit,
     QStyledItemDelegate,
     QStyleOptionViewItem,
+    QCompleter,
 )
 from util.currency_editor import QCurrencyLineEdit
 
@@ -63,7 +64,7 @@ class CurrencyEditDelegate(EmitterItemDelegade):
         logging.debug(
             f"Before setModelData {index.row()}/{index.column()} = int {editor.text()}"
         )
-        value_int: int = editor.valueAsInt()        
+        value_int: int = editor.valueAsInt()
         value_str: str = curr.str_curr_to_locale(value_int)
         model.setData(index, value_int, Qt.UserRole)
         model.setData(index, value_str, Qt.DisplayRole)
@@ -110,31 +111,41 @@ class ComboBoxDelegate(EmitterItemDelegade):
         Cria editor widget e retorna ele
         """
         logging.debug(f"Create editor, row: {index.row()}, col: {index.column()}")
-        editor = QComboBox(widget)
+        # editor = QComboBox(widget)
+        editor = ComboBoxWithSearch(
+            self.parent_table, [x for x in self.key_values.values()]
+        )
+        editor.activated.connect(self.commitAndCloseEditor)
 
-        def fn_close(combo_index: int):
-            logging.debug(f"Close Editor, combo index: {combo_index}")
-            # grava o valor no modelo (chama setModelData)
-            self.commitData.emit(editor)
-            # fecha o controle
-            self.closeEditor.emit(editor)
-
-        editor.activated.connect(fn_close)
+        # def fn_close(combo_index: int):
+        #     logging.debug(f"Close Editor, combo index: {combo_index}")
+        #     # grava o valor no modelo (chama setModelData)
+        #     self.commitData.emit(editor)
+        #     # fecha o controle
+        #     self.closeEditor.emit(editor)
+        #
+        # editor.activated.connect(fn_close)
 
         for key in self.key_values:
             editor.addItem(self.key_values[key], key)
         return editor
 
+    def commitAndCloseEditor(self):
+        editor = self.sender()
+        self.commitData.emit(editor)
+        self.closeEditor.emit(editor, QStyledItemDelegate.NoHint)
+
     def setEditorData(self, editor: QComboBox, index):
         """
         Envia dados para o widget quando aberto
         """
-        model = self.parent_table.model()
-        tipo_id = model.itemData(index)[Qt.UserRole]
-        value = editor.findData(tipo_id)
-        logging.debug(f"Definindo dados do Editor tipo_id: {tipo_id}, value: {value}")
-        if value:
-            editor.setCurrentIndex(int(value))
+        # model = self.parent_table.model()
+        # tipo_id = model.itemData(index)[Qt.UserRole]
+        # value = editor.findData(tipo_id)
+        # logging.debug(f"Definindo dados do Editor tipo_id: {tipo_id}, value: {value}")
+        # if value:
+        #     editor.setCurrentIndex(int(value))
+        editor.setEditText("")
         editor.showPopup()
 
     def setModelData(self, editor, model, index):
@@ -142,7 +153,7 @@ class ComboBoxDelegate(EmitterItemDelegade):
         Na finalização envia os dados de volta para o modelo
         """
         tipo_id = editor.currentData()
-        if tipo_id == None:
+        if tipo_id is None:
             logging.debug("tipo_id vazio!")
             return
         model.setData(index, tipo_id, Qt.UserRole)
@@ -150,21 +161,43 @@ class ComboBoxDelegate(EmitterItemDelegade):
         logging.debug("setModelData")
         self.changed.emit(index, editor)
 
-    def updateEditorGeometry(self, editor, option, index):
-        editor.setGeometry(option.rect)
+    # def updateEditorGeometry(self, editor, option, index):
+    #     editor.setGeometry(option.rect)
 
-    def paint(self, painter, option, index):
-        text = ""
-        try:
-            model = self.parent_table.model()
-            tipo_id = model.itemData(index)[Qt.UserRole]
-            text = self.key_values[tipo_id]
-        except Exception as e:
-            logging.error(
-                f"Exception paint combobox {e} row {index.row()}, col {index.column()}"
-            )
-        option.text = text
-        QApplication.style().drawControl(QStyle.CE_ItemViewItem, option, painter)
+    # def paint(self, painter, option, index):
+    #     text = ""
+    #     try:
+    #         model = self.parent_table.model()
+    #         tipo_id = model.itemData(index)[Qt.UserRole]
+    #         text = self.key_values[tipo_id]
+    #     except Exception as e:
+    #         logging.error(
+    #             f"Exception paint combobox {e} row {index.row()}, col {index.column()}"
+    #         )
+    #     option.text = text
+    #     QApplication.style().drawControl(QStyle.CE_ItemViewItem, option, painter)
+
+
+class ComboBoxWithSearch(QComboBox):
+    def __init__(self, parent: QWidget, items: list[str]):
+        super().__init__(parent)
+        self.items = items
+
+        self.setEditable(True)
+        self.lineEdit().textChanged.connect(self.on_text_changed)
+
+        self.model = QStringListModel()
+        self.completer = QCompleter(self.model, self)
+        self.completer.setCaseSensitivity(Qt.CaseInsensitive)
+        self.setCompleter(self.completer)
+
+    def on_text_changed(self, text):
+        matching_items = [item for item in self.items if text.lower() in item.lower()]
+        self.model.setStringList(matching_items)
+
+        if matching_items:
+            self.completer.complete()
+            self.setCurrentIndex(self.findText(matching_items[0]))
 
 
 class DateEditDelegate(EmitterItemDelegade):

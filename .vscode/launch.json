@@ -13,14 +13,14 @@
             "justMyCode": true
         },
         {
-            "name": "Python: Main, Abre lançamento 6",
+            "name": "Python: Main, Abre lançamento 5",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/src/main.py",
             "console": "integratedTerminal",
             "args": [
                 "-o",
-                "6",
+                "5",
                 // "-T",
                 // "dark",
                 // "light",
