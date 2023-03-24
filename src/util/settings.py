@@ -23,7 +23,6 @@ class JanelaSettings(ABC):
 
     @property
     def dimensoes(self) -> QRect:
-        # try:
         geometry = self.settings.value(f"{self.group}/geometry")
         if geometry is None:
             raise Exception(f"Geometria da janela {self.group} tá vazia") 
@@ -50,6 +49,59 @@ class JanelaLancamentosSettings(JanelaSettings):
             group=f"Conta-Lancamento-{conta_id}"
         )
         self.conta_id = conta_id
+
+    @property
+    def separador_milhar(self) -> str:
+        separador = self.settings.value(f"{self.group}/separador_milhar")
+        if separador is None:
+            separador = '.'
+        return separador
+
+    @separador_milhar.setter
+    def separador_milhar(self, separador:str) -> None:
+        self.settings.beginGroup(self.group)
+        self.settings.setValue(f"separador_milhar", separador)
+        self.settings.endGroup()
+
+    @property
+    def separador_decimal(self) -> str:
+        separador = self.settings.value(f"{self.group}/separador_decimal")
+        if separador is None:
+            separador = ','
+        return separador
+
+    @separador_decimal.setter
+    def separador_decimal(self, separador:str) -> None:
+        self.settings.beginGroup(self.group)
+        self.settings.setValue(f"separador_decimal", separador)
+        self.settings.endGroup()
+
+    @property
+    def formato_data(self) -> str:
+        formato_data = self.settings.value(f"{self.group}/formato_data")
+        if formato_data is None:
+            formato_data = "%d-%m-%Y"
+        return formato_data
+
+    @formato_data.setter
+    def formato_data(self, formato:str) -> None:
+        self.settings.beginGroup(self.group)
+        self.settings.setValue(f"formato_data", formato)
+        self.settings.endGroup()
+
+    @property
+    def import_col_position(self) -> list[int]:
+        col_position = self.settings.value(f"{self.group}/import_col_position")
+        if col_position is None:
+            col_position = []
+        return col_position
+        
+    @import_col_position.setter
+    def import_col_position(self, fields: list[int]) -> None:
+        self.settings.beginGroup(self.group)
+        self.settings.setValue(f"import_col_position", fields)
+        self.settings.endGroup()
+
 
 class Settings(metaclass=SingletonMeta):
     PADROES = "Padroes"

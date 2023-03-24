@@ -1,8 +1,9 @@
-from dataclasses import dataclass
+import logging
 import os.path
-from datetime import date, datetime
 import openpyxl
 import view.icons.icons as icons
+from datetime import date, datetime
+from dataclasses import dataclass
 from model.Conta import Conta
 from PyQt5.QtGui import QCursor
 from PyQt5.QtCore import Qt
@@ -25,22 +26,44 @@ from PyQt5.QtWidgets import (
 from model.Lancamento import Lancamentos
 from view.TableLine import TableLine
 from util.toaster import QToaster
+from util.settings import Settings
 
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[logging.StreamHandler()],
+)
 
 class ImportarLancamentosView(QDialog):
     def __init__(self, parent: QWidget, conta_dc: Conta):
+        super(ImportarLancamentosView, self).__init__(parent)
+        
+        self.conta_dc = conta_dc       
+        self.global_settings = Settings()
+        self.settings = self.global_settings.load_lanc_settings(self.conta_dc.id)
+
         self.btn_procurar = QPushButton("Procurar...")
         self.table = QTableWidget()
         self.toolbar = QToolBar()
         self.file_path = QLineEdit()
-        self.decimal_separator = QLineEdit(",")
-        self.mil_separator = QLineEdit(".")
-        self.date_format = QLineEdit("%d-%m-%Y")
-        self.conta_dc = conta_dc
+        self.decimal_separator = QLineEdit(self.settings.separador_decimal)
+        self.decimal_separator.setObjectName("separador_decimal")
+        self.decimal_separator.editingFinished.connect(
+            lambda: self._on_change_params(self.decimal_separator)
+        )
+        self.mil_separator = QLineEdit(self.settings.separador_milhar)
+        self.mil_separator.setObjectName("separador_milhar")
+        self.mil_separator.editingFinished.connect(
+            lambda: self._on_change_params(self.mil_separator)
+        )
+        self.date_format = QLineEdit(self.settings.formato_data)
+        self.date_format.setObjectName("formato_data")
+        self.date_format.editingFinished.connect(
+            lambda: self._on_change_params(self.date_format)
+        )
 
         self.model_lancamentos = Lancamentos(conta_dc)
-
-        super(ImportarLancamentosView, self).__init__(parent)
 
         self.setWindowModality(Qt.ApplicationModal)
         self.setWindowTitle(
@@ -56,6 +79,15 @@ class ImportarLancamentosView(QDialog):
         layout.addWidget(self.get_table())
 
         self.setLayout(layout)
+
+    def _on_change_params(self, source:QLineEdit ): 
+        logging.debug(f"Entrou no on change")
+        if source.objectName() == "separador_decimal":
+            self.settings.separador_decimal = source.text()
+        elif source.objectName() == "separador_milhar":
+            self.settings.separador_milhar = source.text()
+        elif source.objectName() == "formato_data":
+            self.settings.formato_data = source.text()
 
     def get_import_file_line(self):
         layout = QHBoxLayout()
@@ -99,6 +131,9 @@ class ImportarLancamentosView(QDialog):
             self.table.removeRow(sel)
 
     def on_import_linhas(self):
+        """ 
+        Gera lançamentos a partir das linhas selecionadas
+        """ 
         mapping_cols = {}
         for col_index in range(self.table.columnCount()):
             column_combo: QComboBox = self.table.cellWidget(0, col_index)
@@ -152,6 +187,9 @@ class ImportarLancamentosView(QDialog):
                 data=new_lancamento.data,
                 valor=new_lancamento.valor
             )
+        
+        # salva mapeamento das colunas
+        self.settings.import_col_position = mapping_cols
 
         QToaster.showMessage(
             self,
@@ -162,6 +200,9 @@ class ImportarLancamentosView(QDialog):
         )
 
     def on_procurar_clicked(self):
+        """ 
+        Chama popup de procura arquivo a ser importado
+        """ 
         dialog = QFileDialog()
         dialog.setFileMode(QFileDialog.ExistingFile)
         (fileName, selectedFilter) = dialog.getOpenFileName()
@@ -170,6 +211,9 @@ class ImportarLancamentosView(QDialog):
             self._on_importar_clicked()
 
     def _on_importar_clicked(self):
+        """ 
+        Apos arquivo selecionado inicia o processamento e exibição das linhas na tabela
+        """ 
         path = self.file_path.text()
         if not path:
             return
@@ -195,9 +239,17 @@ class ImportarLancamentosView(QDialog):
 
         line = ImportarLancamentosTableLine(self)
 
+        # Adiciona primeira linha da tabela para seleção de campo a ser mapeado
         self.table.insertRow(0)
+        positions: list[int] = self.settings.import_col_position
         for i in range(column_count):
-            self.table.setCellWidget(0, i, line.get_combo())
+            combo = line.get_combo()
+            pos = -1
+            for col in positions:
+                if i == positions[col]:
+                    pos = 0
+            combo.setItemData(pos)
+            self.table.setCellWidget(0, i, combo)
 
         row_no = 1
         skipcount = 0
@@ -209,7 +261,7 @@ class ImportarLancamentosView(QDialog):
 
             self.table.insertRow(row_no)
             column_no = 0
-            print(f"Adding row {row_no} cols: ", end=" ")
+            logging.info(f"Adding row {row_no} ...")
             for cell in row:
                 if hasattr(cell, "is_date") and cell.is_date:
                     cell_widget = QTableWidgetItem(cell.value.isoformat()[:10])
@@ -219,13 +271,11 @@ class ImportarLancamentosView(QDialog):
                     cell_widget = QTableWidgetItem(cell.value)
                 cell_widget.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
                 self.table.setItem(row_no, column_no, cell_widget)
-                print(f"{column_no},", end=" ")
                 column_no += 1
-            print(" Finished ROW!")
 
             row_no += 1
 
-        print(f"SkipCount: {skipcount}")
+        logging.info(f"SkipCount: {skipcount}")
 
         self.table.resizeColumnsToContents()
 
@@ -251,7 +301,7 @@ class ImportarLancamentosTableLine(TableLine):
         super(TableLine, self).__init__()
         self.parentView = parent_view
 
-    def get_combo(self):
+    def get_combo(self) -> QComboBox:
         combo = QComboBox()
         for col in self.LANCAMENTO_COLUMNS.values():
             combo.addItem(col["name"], col["sql_colname"])
@@ -267,7 +317,7 @@ class ImportarLancamentosTableLine(TableLine):
             )
             curr_int = int(curr_str)
         except:
-            print("Erro importando valor em currency!")
+            logging.error("Erro importando valor em currency!")
             curr_int = 0
 
         return curr_int
@@ -277,7 +327,7 @@ class ImportarLancamentosTableLine(TableLine):
         try:
             date = datetime.strptime(date_str, date_format)
         except Exception as e:
-            print("Erro importando valor em formato data!", e)
+            logging.error("Erro importando valor em formato data!", e)
             date = None
 
         return date
