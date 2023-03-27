@@ -32,6 +32,9 @@ Os icones foram pegos desta coleção, provavelmente irão mudar no futuro.
 
 https://iconarchive.com/show/farm-fresh-icons-by-fatcow.html
 
+Download aqui 👇
+https://fatcow.com/free-icons 
+
 
 ## Para executar o programa
 
