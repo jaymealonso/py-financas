@@ -1,7 +1,7 @@
 import moment
 from openpyxl import Workbook
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QToolBar, QTableWidgetItem, QLabel, QDialog, QFileDialog
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QToolBar, QTableWidgetItem, QLabel, QDialog, QFileDialog, QSizePolicy
 from util.settings import Settings
 
 import view.contas_vw as cv
@@ -43,6 +43,11 @@ class VisaoGeralView(QDialog):
 
             self.toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
 
+            spacer = QWidget()
+            spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+            self.toolbar.addWidget(spacer)
+
+
             btn_exportar_planilha = self.toolbar.addAction(icons.exportar_planilha(), "Exportar")
             btn_exportar_planilha.triggered.connect(self.on_exportar_planilha)
 
@@ -75,6 +80,8 @@ class VisaoGeralView(QDialog):
                 cell = None
                 if col_index == 0:
                     cell = self.table.itemFromIndex(self.table.model().index(row_index,col_index))
+                    if cell is None:
+                        cell = self.table.cellWidget(row_index,col_index)
                     if cell is not None:
                         value = cell.text()
                 else: 

@@ -69,8 +69,9 @@ def abrir_anexo_arquivo() -> QIcon:
 def abrir_anexo_diretorio() -> QIcon:
     return QIcon(QPixmap(path + r"/open_attach_dir.png"))
 
+
 def exportar_planilha() -> QIcon:
-    return QIcon(QPixmap(path + r"/open_attach_dir.png"))
+    return QIcon(QPixmap(path + r"/export_excel.png"))
 
 
 
