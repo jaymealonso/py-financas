@@ -10,7 +10,6 @@ from PyQt5.QtGui import (
     QValidator,
     QCursor,
     QStandardItemModel,
-    QStandardItem,
 )
 from PyQt5.QtWidgets import (
     QWidget,

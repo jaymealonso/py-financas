@@ -35,7 +35,7 @@ class QCurrencyLineEdit(QLineEdit):
 
             key_event: QKeyEvent = event
             # Modifica valor para negativo / positivo
-            if key_event.key() == Qt.Key_Minus:
+            if key_event.key() == Qt.Key_Minus and qlineedit.valueAsInt() > 0:
                 pos = qlineedit.cursorPosition()
                 if len(qlineedit.text()) == 0:
                     return True

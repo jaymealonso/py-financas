@@ -1,3 +1,4 @@
+import locale
 import logging
 import os.path
 import openpyxl
@@ -246,22 +247,12 @@ class ImportarLancamentosView(QDialog):
         positions: dict[int, set] = self.settings.import_col_position
         for i in range(column_count):
             combo = line.get_combo()
-            # pos = 0
             filled_col_name = next((x for x, y in positions.items() if y == i), None)
             if filled_col_name is not None:
                 for index in range(combo.count()):
                     if combo.itemData(index) == filled_col_name:
                         combo.setCurrentIndex(index)
                         break
-            #     if i == positions[col]:
-            #         pos_array = [
-            #             index
-            #             for index, value in line.LANCAMENTO_COLUMNS.items()
-            #             if value["sql_colname"] == col
-            #         ]
-            #         if len(pos_array) == 1:
-            #             pos = pos_array[0]
-            # combo.setCurrentIndex(pos)
             self.table.setCellWidget(0, i, combo)
 
         row_no = 1
@@ -324,11 +315,13 @@ class ImportarLancamentosTableLine(TableLine):
         return combo
 
     def parse_curr(self, curr_str: str):
-        decimal_separator = self.parentView.decimal_separator.text()
-        mil_separator = self.parentView.mil_separator.text()
+        dec_separador = self.parentView.decimal_separator.text()
+        mil_separador = self.parentView.mil_separator.text()
         try:
-            curr_str = curr_str.replace(mil_separator, "").replace(
-                decimal_separator, "."
+            decimal_point = locale.localeconv()['decimal_point']
+            thousands_sep = locale.localeconv()['thousands_sep'] 
+            curr_str = curr_str.replace(mil_separador, thousands_sep).replace(
+                dec_separador, decimal_point
             )
             curr_int = str_curr_to_int(curr_str)
         except Exception as e:

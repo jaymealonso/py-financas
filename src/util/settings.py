@@ -93,7 +93,7 @@ class JanelaLancamentosSettings(JanelaSettings):
     def import_col_position(self) -> list[int]:
         col_position = self.settings.value(f"{self.group}/import_col_position")
         if col_position is None:
-            col_position = []
+            col_position = dict([])
         return col_position
         
     @import_col_position.setter

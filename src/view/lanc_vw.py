@@ -94,6 +94,7 @@ class LancamentosView(QDialog):
         self.setLayout(layout)
 
         self.load_table_data()
+        self.reset_table_size()
 
     def get_toolbar(self) -> QToolBar:
         """
@@ -335,15 +336,6 @@ class LancamentosView(QDialog):
         self.table.setItemDelegateForColumn(5, col4_del)
         self.table.setItemDelegateForColumn(6, col5_del)
 
-        self.table.resizeColumnToContents(0)
-        self.table.resizeColumnToContents(1)
-        self.table.resizeColumnToContents(2)
-        self.table.resizeColumnToContents(3)
-        self.table.setColumnWidth(4, 160)
-        self.table.setColumnWidth(5, 260)
-        self.table.setColumnWidth(6, 160)
-        self.table.setColumnWidth(7, 100)
-
         # Define valor do TOTAL que aparece no rodapé da janela
         self.total_label.set_int_value(self.model_lancamentos.total)
 
@@ -356,6 +348,21 @@ class LancamentosView(QDialog):
         Disparado pela modificação de um WIDGET na linha da tabela
         """
         self.table_cell_changed(item)
+
+    def reset_table_size(self):
+        # self.table.resizeColumnToContents(0)
+        # self.table.resizeColumnToContents(1)
+        # self.table.resizeColumnToContents(2)
+        # self.table.resizeColumnToContents(3)
+        self.table.setColumnWidth(0, 90)
+        self.table.setColumnWidth(1, 100)
+        self.table.setColumnWidth(2, 100)
+        self.table.setColumnWidth(3, 500)
+
+        self.table.setColumnWidth(4, 160)
+        self.table.setColumnWidth(5, 260)
+        self.table.setColumnWidth(6, 160)
+        self.table.setColumnWidth(7, 100)
 
 
 class TotalCurrLabel(QLabel):

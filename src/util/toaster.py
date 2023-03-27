@@ -1,3 +1,4 @@
+import sys
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 class QToaster(QtWidgets.QFrame):
@@ -14,9 +15,10 @@ class QToaster(QtWidgets.QFrame):
             QToaster {
                 border: 1px solid black;
                 border-radius: 4px; 
-                background: palette(window);
             }
         ''')
+                # linha abaixo removido from setStylesheet
+                # background: palette(window);
         # alternatively:
         # self.setAutoFillBackground(True)
         # self.setFrameShape(self.Box)
