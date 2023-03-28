@@ -15,7 +15,6 @@ from view.categorias_vw import CategoriasView
 import view.icons.icons as icons
 from util.settings import Settings
 
-
 class MainWindow(QMainWindow):
     def __init__(self, app: QApplication):
         super(MainWindow, self).__init__()
@@ -96,28 +95,10 @@ class MainWindow(QMainWindow):
         pass
 
     def on_configure(self):
-        QToaster.showMessage(
-            self,
-            "On CONFIGURAR clicked",
-            closable=False,
-            timeout=2000,
-            corner=Qt.BottomRightCorner,
-        )
+        QToaster.showMessage(self, "On CONFIGURAR clicked")
 
     def on_load(self, s):
-        QToaster.showMessage(
-            self,
-            "On LOAD clicked",
-            closable=False,
-            timeout=2000,
-            corner=Qt.BottomRightCorner,
-        )
+        QToaster.showMessage(self, "On LOAD clicked")
 
     def on_save(self):
-        QToaster.showMessage(
-            self,
-            "On SAVE clicked",
-            closable=False,
-            timeout=2000,
-            corner=Qt.BottomRightCorner,
-        )
+        QToaster.showMessage(self, "On SAVE clicked")

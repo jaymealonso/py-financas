@@ -36,13 +36,7 @@ class AgendaView(QWidget):
         self.table.setCellWidget(new_index, 0, AgendaTabLine.get_number_input(self))
         self.table.setCellWidget(new_index, 4, AgendaTabLine.get_del_button(self))
         if show_message:
-            QToaster.showMessage(
-                self,
-                "On ADD CONTA clicked",
-                closable=False,
-                timeout=2000,
-                corner=Qt.BottomRightCorner,
-            )
+            QToaster.showMessage(self, "On ADD CONTA clicked")
 
     def on_add_compromisso(self, show_message=True):
         new_index = self.table.rowCount()
@@ -53,23 +47,12 @@ class AgendaView(QWidget):
             new_index, 4, AgendaTabLine.get_del_button(self, new_index)
         )
         if show_message:
-            QToaster.showMessage(
-                self,
-                "On ADD CONTA clicked",
-                closable=False,
-                timeout=2000,
-                corner=Qt.BottomRightCorner,
-            )
+            QToaster.showMessage(self, "On ADD COMPROMISSO clicked")
 
     def on_del_compromisso(self, index):
         self.table.removeRow(index)
-        QToaster.showMessage(
-            self,
-            f"On DELETE CONTA index:{index} clicked",
-            closable=False,
-            timeout=2000,
-            corner=Qt.BottomRightCorner,
-        )
+        QToaster.showMessage(self,
+            f"On DELETE CONTA index:{index} clicked")
 
     def get_table(self) -> QTableWidget:
         self.table = QTableWidget()

@@ -218,6 +218,7 @@ class LancamentosView(QDialog):
 
         logging.debug(f"Eliminando lancamento {lancamento_id} do banco de dados ...")
         self.model_lancamentos.delete(str(lancamento_id))
+
         logging.debug("Done !!!")
         self.load_table_data()
         self.parent.load_table_data()
@@ -230,13 +231,7 @@ class LancamentosView(QDialog):
         post_event(Eventos.LANCAMENTO_CREATED, new_lancamento_id)
         self.load_table_data()
         if show_message:
-            QToaster.showMessage(
-                self,
-                "On ADD CONTA clicked",
-                closable=False,
-                timeout=2000,
-                corner=Qt.BottomRightCorner,
-            )
+            QToaster.showMessage(self, "Nova conta adicionada.")
 
     def load_table_data(self):
         """

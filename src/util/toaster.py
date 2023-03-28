@@ -1,6 +1,11 @@
 import sys
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+class QToasterDefaults:
+    DEFAULT_CORNER = QtCore.Qt.BottomRightCorner
+    CLOSEABLE = False
+    TIMEOUT = 2000
+
 class QToaster(QtWidgets.QFrame):
     closed = QtCore.pyqtSignal()
 
@@ -111,12 +116,14 @@ class QToaster(QtWidgets.QFrame):
             self.setMask(QtGui.QRegion(path.toFillPolygon(QtGui.QTransform()).toPolygon()))
         else:
             self.clearMask()
+    
 
     @staticmethod
     def showMessage(parent, message,
-                    icon=QtWidgets.QStyle.SP_MessageBoxInformation,
-                    corner=QtCore.Qt.TopLeftCorner, margin=10, closable=True,
-                    timeout=5000, desktop=False, parentWindow=True):
+                    icon=None, # QtWidgets.QStyle.SP_MessageBoxInformation,
+                    corner=QToasterDefaults.DEFAULT_CORNER, margin=10, 
+                    closable=QToasterDefaults.CLOSEABLE,
+                    timeout=QToasterDefaults.TIMEOUT, desktop=False, parentWindow=True):
 
         if parent and parentWindow:
             parent = parent.window()

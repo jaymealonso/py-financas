@@ -28,10 +28,10 @@ futuramente:
 
 - [x] Visão Mensal: Exibição de tabela/planilha receitas e despesas no movimento bancário(extrato) agrupadas por categorias
 - [x] Importar Lançamentos: Importação de XLS/XLSX com movimento bancário
-- [ ] Exportar para Excel
+- [x] Exportar para Excel
 - [ ] Agendamento de despesas recorrentes para controle do que foi pago
-- [ ] Organização de uma estrututa de arquivos(PDF/IMG/Outros) em diretórios com fatura, comprovantes de pagamento e outros.
-- [ ] Associação das despesas agendadas com os arquivos relacionados de fatura, comprovantes de pagamento e outros.
+- [x] Organização de uma estrututa de arquivos(PDF/IMG/Outros) em diretórios com fatura, comprovantes de pagamento e outros.
+- [x] Associação das despesas agendadas com os arquivos relacionados de fatura, comprovantes de pagamento e outros.
 
 ## Para fazer build do projeto ver link
 
