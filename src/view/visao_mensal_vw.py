@@ -1,7 +1,8 @@
 import moment
 from openpyxl import Workbook
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTableWidget, QToolBar, QTableWidgetItem, QLabel, QDialog, QFileDialog, QSizePolicy
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTableWidget, \
+    QToolBar, QTableWidgetItem, QDialog, QFileDialog, QSizePolicy, QLineEdit
 from util.settings import Settings
 
 import view.contas_vw as cv
@@ -141,7 +142,9 @@ class VisaoGeralViewLine(TableLine):
         return label
 
     def get_label_for_total_text(self, value: str):
-        label = QLabel(value)
+        label = QLineEdit(value)
+        label.setReadOnly(True)
+        label.setFocusPolicy(Qt.NoFocus)
         label.setStyleSheet("font-weight: bold")
         return label
 

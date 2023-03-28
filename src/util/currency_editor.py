@@ -63,6 +63,7 @@ class QCurrencyLineEdit(QLineEdit):
         return super(QCurrencyLineEdit, self).eventFilter(source, event)
 
     def setTextInt(self, value_int: int) -> None:
+        """ Define valor em inteiro que será o valor da coluna """
         try:
             value_float: float = value_int / 100
             form_txt = locale.currency(val=value_float, symbol=False, grouping=False)
@@ -71,6 +72,7 @@ class QCurrencyLineEdit(QLineEdit):
         self.setText(form_txt)
 
     def valueAsInt(self) -> int:
+        """ Busca valor como inteiro """
         try:
             return curr.str_curr_to_int(self.text())
         except:

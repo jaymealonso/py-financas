@@ -10,6 +10,7 @@ from PyQt5.QtGui import (
     QValidator,
     QCursor,
     QStandardItemModel,
+    QColor,
 )
 from PyQt5.QtWidgets import (
     QWidget,
@@ -22,6 +23,7 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QApplication,
     QTableView,
+    QTableWidgetItem,
 )
 from model.Conta import ContasTipo, Contas, Conta
 from util.events import subscribe, unsubscribe_refs, Eventos
@@ -250,7 +252,7 @@ class ContasView(QWidget):
         self.table.setItemDelegateForColumn(2, GenericInputDelegate(self.table))
         self.table.setItemDelegateForColumn(3, GenericInputDelegate(self.table))
 
-        self.table.resizeColumnToContents(0)
+        self.table.setColumnWidth(0, 100)
         self.table.resizeColumnToContents(1)
         self.table.resizeColumnToContents(2)
         self.table.resizeColumnToContents(3)
