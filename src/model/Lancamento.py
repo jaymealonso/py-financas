@@ -27,6 +27,13 @@ class Lancamentos:
     def items(self) -> list[ORMLancamentos]:
         return self.__items
 
+    def get_lancamento(self, lancamento_id: int) -> ORMLancamentos:
+        items = [item for item in self.items if item.id == lancamento_id]
+        if len(items) > 0:
+            return items[0]
+        else:
+            return None
+
     @property
     def total(self) -> int:
         """
@@ -62,14 +69,6 @@ class Lancamentos:
                 item.nr_anexos = found[1]
 
     def add_new_empty(self, conta_id: int) -> int:
-        # new_lancamento = ORMLancamentos(
-        #     id=None,
-        #     conta_id=conta_id,
-        #     nr_referencia="",
-        #     descricao="",
-        #     data=moment.now().date.date(),
-        #     valor=0,
-        # )
         return self.add_new(
             conta_id=conta_id,
             nr_referencia="",

@@ -114,7 +114,6 @@ class AnexosView(QDialog):
         self.model_anexos.add_new(
             id=str(uuid),
             descricao=origin_file.name,
-            caminho=str(dest_file),
             nome_arquivo=origin_file.name,
             lancamento_id=self.lancamento.id,
         )

@@ -69,7 +69,7 @@ class Anexos(Base):
 
     id = Column(String, primary_key=True)
     descricao = Column(String)
-    caminho = Column(String)
+    # caminho = Column(String)
     nome_arquivo = Column(String)
 
     lancamento_id = Column(Integer, ForeignKey("lancamentos.id"), nullable=False)

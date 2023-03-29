@@ -10,7 +10,6 @@ from PyQt5.QtGui import (
     QValidator,
     QCursor,
     QStandardItemModel,
-    QColor,
 )
 from PyQt5.QtWidgets import (
     QWidget,
@@ -23,7 +22,6 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QApplication,
     QTableView,
-    QTableWidgetItem,
 )
 from model.Conta import ContasTipo, Contas, Conta
 from util.events import subscribe, unsubscribe_refs, Eventos
