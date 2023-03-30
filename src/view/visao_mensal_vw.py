@@ -1,8 +1,17 @@
 import moment
 from openpyxl import Workbook
 from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QTableWidget, \
-    QToolBar, QTableWidgetItem, QDialog, QFileDialog, QSizePolicy, QLineEdit
+from PyQt5.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QTableWidget,
+    QToolBar,
+    QTableWidgetItem,
+    QDialog,
+    QFileDialog,
+    QSizePolicy,
+    QLineEdit,
+)
 from util.settings import Settings
 
 import view.contas_vw as cv
@@ -48,29 +57,32 @@ class VisaoGeralView(QDialog):
             spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
             self.toolbar.addWidget(spacer)
 
-
-            btn_exportar_planilha = self.toolbar.addAction(icons.exportar_planilha(), "Exportar")
+            btn_exportar_planilha = self.toolbar.addAction(
+                icons.exportar_planilha(), "Exportar"
+            )
             btn_exportar_planilha.triggered.connect(self.on_exportar_planilha)
 
         return self.toolbar
 
     def on_exportar_planilha(self):
-        datetime_str:str = moment.now().isoformat().replace(":", "_")[:19]
+        datetime_str: str = moment.now().isoformat().replace(":", "_")[:19]
         default_filename: str = f"{self.conta_dc.descricao}-{datetime_str}.xlsx"
         dialog = QFileDialog()
-        (filename, selectedFilter) = dialog.getSaveFileName(self, "Exportar planilha", default_filename)
-        if filename is None or filename == '':
+        (filename, selectedFilter) = dialog.getSaveFileName(
+            self, "Exportar planilha", default_filename
+        )
+        if filename is None or filename == "":
             return
 
         wb = Workbook()
         ws = wb.active
-        
+
         column_count = self.table.columnCount()
         row_count = self.table.rowCount()
 
-        col_titles = map( 
-            lambda index: self.table.horizontalHeaderItem(index).text(), 
-            [i for i in range(column_count)] 
+        col_titles = map(
+            lambda index: self.table.horizontalHeaderItem(index).text(),
+            [i for i in range(column_count)],
         )
         ws.append(list(col_titles))
 
@@ -80,13 +92,15 @@ class VisaoGeralView(QDialog):
                 value = ""
                 cell = None
                 if col_index == 0:
-                    cell = self.table.itemFromIndex(self.table.model().index(row_index,col_index))
+                    cell = self.table.itemFromIndex(
+                        self.table.model().index(row_index, col_index)
+                    )
                     if cell is None:
-                        cell = self.table.cellWidget(row_index,col_index)
+                        cell = self.table.cellWidget(row_index, col_index)
                     if cell is not None:
                         value = cell.text()
-                else: 
-                    cell = self.table.cellWidget(row_index,col_index)
+                else:
+                    cell = self.table.cellWidget(row_index, col_index)
                     if cell is not None:
                         value = str_curr_to_int(cell.text()) / 100
                 row_values.append(value)
@@ -119,16 +133,28 @@ class VisaoGeralView(QDialog):
             col_index = self.header_labels.index(cell.ano_mes)
             row_index = self.categorias_labels.index(cell.nm_categoria)
             # self.table.setItem(row_index, col_index, QTableWidgetItem(curr.float_to_locale(cell.valor)))
-            self.table.setCellWidget(row_index, col_index, self.line.get_label_for_currency(cell.valor))
+            self.table.setCellWidget(
+                row_index, col_index, self.line.get_label_for_currency(cell.valor)
+            )
 
         # TOTAL
         row_index += 1
         for key, col_label in enumerate(self.header_labels):
             if key < 1:
-                self.table.setCellWidget(row_index, key, self.line.get_label_for_total_text("TOTAL"))
+                self.table.setCellWidget(
+                    row_index, key, self.line.get_label_for_total_text("TOTAL")
+                )
                 continue
-            total = sum([cell.valor for cell in self.model_visao_mensal.values if cell.ano_mes == col_label])
-            self.table.setCellWidget(row_index, key, self.line.get_label_for_total(total))
+            total = sum(
+                [
+                    cell.valor
+                    for cell in self.model_visao_mensal.values
+                    if cell.ano_mes == col_label
+                ]
+            )
+            self.table.setCellWidget(
+                row_index, key, self.line.get_label_for_total(total)
+            )
 
 
 class VisaoGeralViewLine(TableLine):
@@ -147,6 +173,3 @@ class VisaoGeralViewLine(TableLine):
         label.setFocusPolicy(Qt.NoFocus)
         label.setStyleSheet("font-weight: bold")
         return label
-
-
-

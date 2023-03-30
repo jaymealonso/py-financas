@@ -3,7 +3,7 @@ import logging
 import typing
 import util.curr_formatter as curr
 from PyQt5.QtCore import Qt, QLocale, QRegExp, QObject, QEvent
-from PyQt5.QtGui import QValidator, QKeyEvent, QKeySequence
+from PyQt5.QtGui import QValidator, QKeyEvent
 from PyQt5.QtWidgets import QLineEdit, QTableView
 
 logging.basicConfig(
@@ -30,7 +30,8 @@ class QCurrencyLineEdit(QLineEdit):
         if event.type() == QEvent.KeyPress:
             try:
                 qlineedit: QLineEdit = source
-            except:
+            except Exception as e:
+                logging.info(f"erro lineedit {e}, retornando padrão...")
                 return super(QCurrencyLineEdit, self).eventFilter(source, event)
 
             key_event: QKeyEvent = event
@@ -57,25 +58,27 @@ class QCurrencyLineEdit(QLineEdit):
                 if pos == -1:
                     return super(QCurrencyLineEdit, self).eventFilter(source, event)
                 qlineedit.setCursorPosition(pos + 1)
-                logging.debug(f"KeyPress COMMA")
+                logging.debug("KeyPress COMMA")
                 return True
 
         return super(QCurrencyLineEdit, self).eventFilter(source, event)
 
     def setTextInt(self, value_int: int) -> None:
-        """ Define valor em inteiro que será o valor da coluna """
+        """Define valor em inteiro que será o valor da coluna"""
         try:
             value_float: float = value_int / 100
             form_txt = locale.currency(val=value_float, symbol=False, grouping=False)
-        except:
+        except Exception as e:
+            logging.info(f'Não consegui formatar string, retornando vazio "". {e}')
             form_txt = ""
         self.setText(form_txt)
 
     def valueAsInt(self) -> int:
-        """ Busca valor como inteiro """
+        """Busca valor como inteiro"""
         try:
             return curr.str_curr_to_int(self.text())
-        except:
+        except Exception as e:
+            logging.info(f"Não inteiro, retornando zero. {e}")
             return 0
 
     def setTextFormat(self):

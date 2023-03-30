@@ -107,7 +107,7 @@ class ContasView(QWidget):
                 text=f"Abertura automática de janela de lançamentos da conta: {conta_id} não foi possível.\nConta não encontrada!"
             ).exec()
             return
-        
+
         if conta_id not in self.lanc_windows_open:
             lancamentos_window = view.lanc_vw.LancamentosView(self, conta_dc)
             subscribe(
@@ -139,7 +139,7 @@ class ContasView(QWidget):
         if not conta:
             logging.error(f"Conta {conta_id} não encontrada!")
             return
-        
+
         self.visao_geral_window = VisaoGeralView(self, conta)
         self.visao_geral_window.show()
 
@@ -184,7 +184,7 @@ class ContasView(QWidget):
             logging.debug("Disconnecting model.itemChanged...")
             model.itemChanged.disconnect()
         except Exception as e:
-            logging.error("model.itemChanged was not connected! Error: {e}")
+            logging.error(f"model.itemChanged was not connected! Error: {e}")
 
         logging.debug("Loading contas data...")
         self.model_contas.load()

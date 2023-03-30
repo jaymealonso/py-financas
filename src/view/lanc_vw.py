@@ -44,6 +44,7 @@ from util.custom_table_delegates import (
     DateEditDelegate,
     CurrencyEditDelegate,
 )
+from enum import auto, IntEnum
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -53,16 +54,35 @@ logging.basicConfig(
 
 
 class LancamentosView(QDialog):
+    class Column(IntEnum):
+        ID = 0
+        SEQ_ORDEM_LINHA = auto()
+        NR_REFERENCIA = auto()
+        DESCRICAO = auto()
+        DATA = auto()
+        CATEGORIA_ID = auto()
+        VALOR = auto()
+        SALDO = auto()
+        REMOVER = auto()
+        ANEXOS = auto()
+
     COLUMNS = {
-        0: {"title": "ID", "sql_colname": "id"},
-        1: {"title": "Seq Linha", "sql_colname": "seq_ordem_linha"},
-        2: {"title": "Número Ref.", "sql_colname": "nr_referencia"},
-        3: {"title": "Descrição", "sql_colname": "descricao"},
-        4: {"title": "Data", "sql_colname": "data"},
-        5: {"title": "Categorias", "sql_colname": "categoria_id"},
-        6: {"title": "Valor", "sql_colname": "valor"},
-        7: {"title": "Remover"},
-        8: {"title": "Anexos"},
+        Column.ID: {"title": "ID", "sql_colname": "id"},
+        Column.SEQ_ORDEM_LINHA: {
+            "title": "Seq Linha",
+            "sql_colname": "seq_ordem_linha",
+        },
+        Column.NR_REFERENCIA: {
+            "title": "Número Ref.",
+            "sql_colname": "nr_referencia",
+        },
+        Column.DESCRICAO: {"title": "Descrição", "sql_colname": "descricao"},
+        Column.DATA: {"title": "Data", "sql_colname": "data"},
+        Column.CATEGORIA_ID: {"title": "Categorias", "sql_colname": "categoria_id"},
+        Column.VALOR: {"title": "Valor", "sql_colname": "valor"},
+        Column.SALDO: {"title": "Saldo"},
+        Column.REMOVER: {"title": "Remover"},
+        Column.ANEXOS: {"title": "Anexos"},
     }
 
     def __init__(self, parent: QWidget, conta_dc: Conta):
@@ -101,7 +121,12 @@ class LancamentosView(QDialog):
         self.setLayout(layout)
 
         self.load_table_data()
-        self.reset_table_size()
+        self.set_column_default_sizes()
+
+    def keyPressEvent(self, event):
+        """Revove a funcionalidade de fechar a janela quando se pressiona ESC"""
+        if not event.key() == Qt.Key_Escape:
+            super(LancamentosView, self).keyPressEvent(event)
 
     def get_toolbar(self) -> QToolBar:
         """
@@ -210,7 +235,7 @@ class LancamentosView(QDialog):
         logging.debug(f"Cell changed row/col: {row}/{col}")
 
         model = self.table.model()
-        lancamento_id = model.data(model.index(row, 0), Qt.UserRole)
+        lancamento_id = model.data(model.index(row, self.Column.ID), Qt.UserRole)
         value = model.data(item, Qt.UserRole)
 
         column_data = self.COLUMNS.get(col)
@@ -286,12 +311,14 @@ class LancamentosView(QDialog):
         # clear table
         model.setRowCount(0)
 
+        saldo: int = 0
         for row in self.model_lancamentos.items:
             new_index: int = model.rowCount()
             model.insertRow(new_index)
 
             self.table.setIndexWidget(
-                model.index(new_index, 0), self.tableline.get_label_for_id(str(row.id))
+                model.index(new_index, self.Column.ID),
+                self.tableline.get_label_for_id(str(row.id)),
             )
             self.table.setIndexWidget(
                 model.index(new_index, 1),
@@ -299,23 +326,23 @@ class LancamentosView(QDialog):
             )
 
             model.setItemData(
-                model.index(new_index, 0),
+                model.index(new_index, self.Column.ID),
                 {Qt.UserRole: row.id},
             )
             model.setItemData(
-                model.index(new_index, 1),
+                model.index(new_index, self.Column.SEQ_ORDEM_LINHA),
                 {Qt.UserRole: row.seq_ordem_linha},
             )
             model.setItemData(
-                model.index(new_index, 2),
+                model.index(new_index, self.Column.NR_REFERENCIA),
                 {Qt.DisplayRole: row.nr_referencia, Qt.UserRole: row.nr_referencia},
             )
             model.setItemData(
-                model.index(new_index, 3),
+                model.index(new_index, self.Column.DESCRICAO),
                 {Qt.DisplayRole: row.descricao, Qt.UserRole: row.descricao},
             )
             model.setItemData(
-                model.index(new_index, 4),
+                model.index(new_index, self.Column.DATA),
                 {Qt.DisplayRole: row.data.strftime("%x"), Qt.UserRole: row.data},
             )
             if len(row.Categorias) > 0:
@@ -323,27 +350,38 @@ class LancamentosView(QDialog):
             else:
                 categoria = self.model_categorias.items[0]
             model.setItemData(
-                model.index(new_index, 5),
+                model.index(new_index, self.Column.CATEGORIA_ID),
                 {
                     Qt.DisplayRole: categoria.nm_categoria,
                     Qt.UserRole: categoria.id or -1,
                 },
             )
             model.setItemData(
-                model.index(new_index, 6),
+                model.index(new_index, self.Column.VALOR),
                 {
                     Qt.DisplayRole: curr.str_curr_to_locale(row.valor or 0),
                     Qt.UserRole: row.valor or 0,
                 },
             )
-
+            saldo += row.valor
+            # model.setItemData(
+            #     model.index(new_index, self.Column.SALDO),
+            #     {
+            #         Qt.DisplayRole: curr.str_curr_to_locale(saldo),
+            #         Qt.UserRole: saldo,
+            #     },
+            # )
             self.table.setIndexWidget(
-                model.index(new_index, 7),
+                model.index(new_index, self.Column.SALDO),
+                self.tableline.get_label_for_saldo(saldo),
+            )
+            self.table.setIndexWidget(
+                model.index(new_index, self.Column.REMOVER),
                 self.tableline.get_del_button(self, row.id),
             )
 
             self.table.setIndexWidget(
-                model.index(new_index, 8),
+                model.index(new_index, self.Column.ANEXOS),
                 self.tableline.get_attach_button(self, row.nr_anexos, row.id),
             )
 
@@ -358,11 +396,11 @@ class LancamentosView(QDialog):
         col5_del = self.tableline.get_currency_value_delegate()
         col5_del.changed.connect(self.on_model_item_changed)
 
-        self.table.setItemDelegateForColumn(2, col1_del)
-        self.table.setItemDelegateForColumn(3, col2_del)
-        self.table.setItemDelegateForColumn(4, col3_del)
-        self.table.setItemDelegateForColumn(5, col4_del)
-        self.table.setItemDelegateForColumn(6, col5_del)
+        self.table.setItemDelegateForColumn(self.Column.NR_REFERENCIA, col1_del)
+        self.table.setItemDelegateForColumn(self.Column.DESCRICAO, col2_del)
+        self.table.setItemDelegateForColumn(self.Column.DATA, col3_del)
+        self.table.setItemDelegateForColumn(self.Column.CATEGORIA_ID, col4_del)
+        self.table.setItemDelegateForColumn(self.Column.VALOR, col5_del)
 
         # Define valor do TOTAL que aparece no rodapé da janela
         self.total_label.set_int_value(self.model_lancamentos.total)
@@ -377,20 +415,19 @@ class LancamentosView(QDialog):
         """
         self.table_cell_changed(item)
 
-    def reset_table_size(self):
-        # self.table.resizeColumnToContents(0)
-        # self.table.resizeColumnToContents(1)
-        # self.table.resizeColumnToContents(2)
-        # self.table.resizeColumnToContents(3)
-        self.table.setColumnWidth(0, 90)
-        self.table.setColumnWidth(1, 100)
-        self.table.setColumnWidth(2, 100)
-        self.table.setColumnWidth(3, 500)
+    def set_column_default_sizes(self):
+        self.table.setColumnWidth(self.Column.ID, 90)
+        self.table.setColumnWidth(self.Column.SEQ_ORDEM_LINHA, 100)
+        self.table.setColumnWidth(self.Column.NR_REFERENCIA, 100)
+        self.table.setColumnWidth(self.Column.DESCRICAO, 500)
 
-        self.table.setColumnWidth(4, 160)
-        self.table.setColumnWidth(5, 260)
-        self.table.setColumnWidth(6, 160)
-        self.table.setColumnWidth(7, 100)
+        self.table.setColumnWidth(self.Column.DATA, 160)
+        self.table.setColumnWidth(self.Column.CATEGORIA_ID, 260)
+        self.table.setColumnWidth(self.Column.VALOR, 160)
+        self.table.setColumnWidth(self.Column.SALDO, 160)
+
+        self.table.setColumnWidth(self.Column.REMOVER, 100)
+        self.table.setColumnWidth(self.Column.ANEXOS, 100)
 
 
 class TotalCurrLabel(QLabel):
@@ -432,6 +469,10 @@ class LancamentoTableLine(TableLine):
 
     def on_curr_input_text_changed(self, *args, **kwargs):
         self.sender().setTextFormat()
+
+    def get_label_for_saldo(self, value: int):
+        label = super().get_label_for_currency(value)
+        return label
 
     @staticmethod
     def get_del_button(parent: LancamentosView, index: int):

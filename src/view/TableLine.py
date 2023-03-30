@@ -1,5 +1,5 @@
 from PyQt5.QtCore import QObject, Qt
-from PyQt5.QtWidgets import QLabel, QWidget, QLineEdit
+from PyQt5.QtWidgets import QWidget, QLineEdit
 import util.curr_formatter as curr
 
 
