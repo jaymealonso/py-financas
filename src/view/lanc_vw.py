@@ -1,4 +1,3 @@
-from datetime import date
 from model.Anexos import Anexos
 import view.icons.icons as icons
 import view.contas_vw as cv
@@ -8,7 +7,11 @@ from view.anexos_vw import AnexosView
 from view.TableLine import TableLine
 from model.Conta import Conta
 from model.Categoria import Categorias
-from model.Lancamento import Lancamentos, ORMLancamentos
+from model.Lancamento import Lancamentos
+from model.db.db_orm import (
+    Lancamentos as ORMLancamentos,
+    Anexos as ORMAnexos,
+)
 from PyQt5.QtGui import (
     QCloseEvent,
     QStandardItemModel,
@@ -74,7 +77,9 @@ class LancamentosView(QDialog):
         self.model_categorias = Categorias()
         self.model_categorias.load()
         self.global_settings = Settings()
-        self.settings:JanelaLancamentosSettings = self.global_settings.load_lanc_settings(self.conta_dc.id)
+        self.settings: JanelaLancamentosSettings = (
+            self.global_settings.load_lanc_settings(self.conta_dc.id)
+        )
 
         super(LancamentosView, self).__init__(parent)
 
@@ -169,7 +174,27 @@ class LancamentosView(QDialog):
             return
         self.anexos_vw = AnexosView(self, lancamento)
 
+        self.anexos_vw.changed.connect(self.on_changed_anexos)
+
         self.anexos_vw.show()
+
+    def on_changed_anexos(self, anexo: ORMAnexos, total_anexos: int):
+        # model = self.table.model()
+
+        # index_changed = next(
+        #     (
+        #         i
+        #         for i in range(model.rowCount())
+        #         if model.data(model.index(i, 0), Qt.UserRole) == anexo.lancamento_id
+        #     ),
+        #     None,
+        # )
+        # if not index_changed:
+        #     return
+
+        # model.data(model.index(index_changed, 0))
+        self.model_lancamentos.load()
+        self.load_table_data()
 
     def on_import_lancam(self):
         """
@@ -192,19 +217,21 @@ class LancamentosView(QDialog):
         sql_colname = column_data["sql_colname"]
 
         logging.debug(f"Modificando lancamento numero:{lancamento_id}")
-        logging.debug(f"\"{sql_colname}\" >> \"{value}\"")
+        logging.debug(f'"{sql_colname}" >> "{value}"')
 
         # self.model_lancamentos.update(lancamento_id, sql_colname, value)
         # se for modificação de data, move os anexos para o novo diretório, se necessário.
         if sql_colname == "data":
-            lancamento:ORMLancamentos = self.model_lancamentos.get_lancamento(lancamento_id)
-            anexos = Anexos(lancamento.id)            
+            lancamento: ORMLancamentos = self.model_lancamentos.get_lancamento(
+                lancamento_id
+            )
+            anexos = Anexos(lancamento.id)
             anexos.load()
             anexos.move_anexos(lancamento, value)
 
         self.model_lancamentos.update(lancamento_id, sql_colname, value)
-
         self.model_lancamentos.load()
+
         # recalcula total
         self.total_label.set_int_value(self.model_lancamentos.total)
         self.parent.load_table_data()
@@ -364,6 +391,7 @@ class LancamentosView(QDialog):
         self.table.setColumnWidth(5, 260)
         self.table.setColumnWidth(6, 160)
         self.table.setColumnWidth(7, 100)
+
 
 class TotalCurrLabel(QLabel):
     def set_int_value(self, value_int: int):

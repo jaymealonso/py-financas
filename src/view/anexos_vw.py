@@ -7,7 +7,7 @@ from pathlib import Path
 import view.icons.icons as icons
 from view.TableLine import TableLine
 from PyQt5.QtGui import QStandardItemModel
-from PyQt5.QtCore import Qt, QModelIndex
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import (
     QWidget,
     QTableView,
@@ -18,13 +18,18 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QFileDialog,
+    QMessageBox,
+    QCheckBox,
 )
-from model.db.db_orm import Lancamentos as ORMLancamentos
+from model.db.db_orm import Lancamentos as ORMLancamentos, Anexos as ORMAnexos
 from model.Anexos import Anexos
 from util.settings import get_root_path
 
 
 class AnexosView(QDialog):
+    # anexo:ORMAnexos, total_anexos:int
+    changed = pyqtSignal(ORMAnexos, int)
+
     COLUMNS = {
         0: {"title": "id", "sql_colname": "id"},
         1: {"title": "descricao", "sql_colname": "descricao"},
@@ -98,20 +103,19 @@ class AnexosView(QDialog):
         data = self.lancamento.data
 
         origin_file = Path(file_fullpath)
-        dest_dir = Path(get_root_path(paths=[
-                "storage",
-                f"{data.year}",
-                f"{data.year}.{data.month:0>2}"
-            ])
+        dest_dir = Path(
+            get_root_path(
+                paths=["storage", f"{data.year}", f"{data.year}.{data.month:0>2}"]
+            )
         )
         uuid = uuid4()
         dest_file = dest_dir / f"{uuid}_{origin_file.name}"
-        
+
         dest_dir.mkdir(parents=True, exist_ok=True)
 
         shutil.copy(file_fullpath, str(dest_file))
 
-        self.model_anexos.add_new(
+        anexo = self.model_anexos.add_new(
             id=str(uuid),
             descricao=origin_file.name,
             nome_arquivo=origin_file.name,
@@ -119,6 +123,7 @@ class AnexosView(QDialog):
         )
         self.model_anexos.load()
         self.load_table_data()
+        self.changed.emit(anexo, len(self.model_anexos.items))
 
     def load_table_data(self) -> None:
         """
@@ -144,12 +149,13 @@ class AnexosView(QDialog):
             )
 
             model.setItemData(
-                model.index(new_index, 2), {
+                model.index(new_index, 2),
+                {
                     # Remove o diretorio base mantendo somente a estrutura dentro do
                     # diretorio em que o executavel (ou main.py) está contido
                     # ex: storage/2023/2023.03/file.txt
                     Qt.DisplayRole: str(Path(row.caminho)).replace(get_root_path(), ""),
-                    Qt.UserRole: row.caminho
+                    Qt.UserRole: row.caminho,
                 },
             )
 
@@ -160,20 +166,20 @@ class AnexosView(QDialog):
 
             self.table.setIndexWidget(
                 model.index(new_index, 4),
-                self.tableline.get_open_att_button(self, row.id),
+                self.tableline.get_open_att_button(self, row),
             )
 
             self.table.setIndexWidget(
                 model.index(new_index, 5),
-                self.tableline.get_open_att_dir_button(self, row.id),
+                self.tableline.get_open_att_dir_button(self, row),
             )
 
             self.table.setIndexWidget(
                 model.index(new_index, 6),
-                self.tableline.get_att_delete_button(self, row.id),
+                self.tableline.get_att_delete_button(self, row),
             )
 
-        self.table.setColumnWidth(0, 100)        
+        self.table.setColumnWidth(0, 100)
         self.table.setColumnWidth(1, 300)
         self.table.setColumnWidth(2, 300)
         self.table.setColumnWidth(3, 300)
@@ -181,13 +187,13 @@ class AnexosView(QDialog):
         self.table.setColumnWidth(5, 150)
         self.table.setColumnWidth(6, 150)
 
-
-    def on_open_att(self, index: int):
-        attachments = [item for item in self.model_anexos.items if item.id == index]
-        if len(attachments) != 1:
+    def on_open_att(self, anexo_id: ORMAnexos.id):
+        """Abre anexo"""
+        anexo = self.model_anexos.by_id(anexo_id)
+        if not anexo:
             return
 
-        attach_path: str = attachments[0].caminho
+        attach_path: str = anexo.caminho
         if platform.system() == "Darwin":  # macOS
             subprocess.call(("open", attach_path))
         elif platform.system() == "Windows":  # Windows
@@ -195,12 +201,13 @@ class AnexosView(QDialog):
         else:  # linux variants
             subprocess.call(("xdg-open", attach_path))
 
-    def on_open_att_dir(self, index: QModelIndex):
-        attachments = [item for item in self.model_anexos.items if item.id == index]
-        if len(attachments) != 1:
+    def on_open_att_dir(self, anexo_id: ORMAnexos.id):
+        """Abre diretório onde se localiza o anexo"""
+        anexo = self.model_anexos.by_id(anexo_id)
+        if not anexo:
             return
 
-        attach_file: Path = Path(attachments[0].caminho)
+        attach_file: Path = Path(anexo.caminho)
         attach_path: str = str(attach_file.parents[0])
         if platform.system() == "Darwin":  # macOS
             subprocess.call(("open", attach_path))
@@ -209,8 +216,32 @@ class AnexosView(QDialog):
         else:  # linux variants
             subprocess.call(("xdg-open", attach_path))
 
-    def on_del_att(self, index: QModelIndex):
-        ...
+    def on_del_att(self, anexo_id: ORMAnexos.id):
+        """Apaga anexo"""
+        anexo = self.model_anexos.by_id(anexo_id)
+        if not anexo:
+            return
+
+        question = QMessageBox(
+            QMessageBox.Icon.Question,
+            "Remove Anexo?",
+            f'Deseja remover o anexo "{anexo.nome_arquivo}" ?',
+            parent=self,
+            buttons=QMessageBox.Yes | QMessageBox.No,
+        )
+        self.checkbox = QCheckBox("Eliminar arquivo físico?")
+        self.checkbox.setEnabled(anexo.caminho.strip() != "")
+        self.checkbox.setChecked(anexo.caminho.strip() != "")
+        question.setCheckBox(self.checkbox)
+        question.setDefaultButton(QMessageBox.No)
+        button = question.exec()
+        if button == QMessageBox.No:
+            return
+
+        self.model_anexos.delete(anexo.id, delete_file=self.checkbox.isChecked())
+        self.model_anexos.load()
+        self.load_table_data()
+        self.changed.emit(anexo, len(self.model_anexos.items))
 
 
 class AnexoTableLine(TableLine):
@@ -219,25 +250,30 @@ class AnexoTableLine(TableLine):
         self.parent: AnexosView = parent
 
     @staticmethod
-    def get_open_att_button(parent: AnexosView, index: QModelIndex):
+    def get_open_att_button(parent: AnexosView, anexo: ORMAnexos):
         open_att_pbutt = QPushButton()
         open_att_pbutt.setToolTip("Abrir anexo")
         open_att_pbutt.setIcon(icons.abrir_anexo_arquivo())
-        open_att_pbutt.clicked.connect(lambda: parent.on_open_att(index))
+        open_att_pbutt.setEnabled(anexo.caminho.strip() != "")
+        open_att_pbutt.clicked.connect(lambda: parent.on_open_att(anexo.id))
         return open_att_pbutt
 
     @staticmethod
-    def get_open_att_dir_button(parent: AnexosView, index: QModelIndex):
+    def get_open_att_dir_button(parent: AnexosView, anexo: ORMAnexos):
         open_att_dir_pbutt = QPushButton()
         open_att_dir_pbutt.setToolTip("Abrir diretório do anexo")
         open_att_dir_pbutt.setIcon(icons.abrir_anexo_diretorio())
-        open_att_dir_pbutt.clicked.connect(lambda: parent.on_open_att_dir(index))
+        open_att_dir_pbutt.setEnabled(anexo.caminho.strip() != "")
+        open_att_dir_pbutt.clicked.connect(lambda: parent.on_open_att_dir(anexo.id))
         return open_att_dir_pbutt
 
     @staticmethod
-    def get_att_delete_button(parent: AnexosView, index: QModelIndex):
+    def get_att_delete_button(parent: AnexosView, anexo: ORMAnexos):
         del_pbutt = QPushButton()
         del_pbutt.setToolTip("Eliminar Anexo")
         del_pbutt.setIcon(icons.delete())
-        del_pbutt.clicked.connect(lambda: parent.on_del_att(index))
+        # deixa enable caso o caminho esteja invalido mas ainda pode deletar o
+        # registro da base de dados
+        # del_pbutt.setEnabled(anexo.caminho.strip() != "")
+        del_pbutt.clicked.connect(lambda: parent.on_del_att(anexo.id))
         return del_pbutt

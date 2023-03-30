@@ -45,6 +45,7 @@ class Conta:
     lanc_classif: int
     total: int
 
+
 class Contas:
     def __init__(self):
         self.__items: List[Conta] = []
@@ -56,9 +57,10 @@ class Contas:
 
     def load(self):
         self.__items.clear()
-        sql = text(""" 
+        sql = text(
+            """ 
             select c.id, c.descricao, c.numero, c.moeda, c.tipo_id,
-				( select ifnull(sum(l.valor),0)
+                ( select ifnull(sum(l.valor),0)
 					from lancamentos as l 
 				where l.conta_id = c.id ) as total,
 				( select count(*) 
@@ -71,7 +73,8 @@ class Contas:
 						inner join lancamentos_categorias as lc1 on lc1.lancamento_id = l1.id
             where l1.conta_id = c.id ) as count_categ		
               from contas as c
-        """)
+        """
+        )
         with self.__db.engine.connect() as conn:
             result = conn.execute(sql).all()
             for i in result:
@@ -83,21 +86,22 @@ class Contas:
                     tipo_id=i.tipo_id,
                     lanc_n_class=i.count_n_categ,
                     lanc_classif=i.count_categ,
-                    total=i.total,                            
-                )                    
+                    total=i.total,
+                )
                 self.__items.append(conta)
 
     def add_new(self, conta: Conta):
         session = Session(self.__db.engine)
         session.execute(
-            insert(ORMContas), [
-            {
-                "descricao": conta.descricao,
-                "numero": conta.numero,
-                "moeda": conta.moeda,
-                "tipo_id": conta.tipo_id,
-            },
-            ]
+            insert(ORMContas),
+            [
+                {
+                    "descricao": conta.descricao,
+                    "numero": conta.numero,
+                    "moeda": conta.moeda,
+                    "tipo_id": conta.tipo_id,
+                },
+            ],
         )
         session.commit()
 
@@ -109,15 +113,11 @@ class Contas:
     def update(self, conta_id: str, fieldname: str, value):
         session = Session(self.__db.engine)
         session.execute(
-            update(ORMContas)
-            .where(ORMContas.id == conta_id)
-            .values({
-                fieldname: value
-            })
+            update(ORMContas).where(ORMContas.id == conta_id).values({fieldname: value})
         )
         session.commit()
 
-    def find_by_id(self, id: int) -> Conta: 
+    def find_by_id(self, id: int) -> Conta:
         # enc_conta = None
         # for item in self.__items:
         #     if item.id == id:
@@ -125,4 +125,3 @@ class Contas:
         # return enc_conta
         contas_found = [item for item in self.__items if item.id == id]
         return contas_found[0] if len(contas_found) > 0 else None
-
