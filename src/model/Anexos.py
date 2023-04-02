@@ -1,12 +1,19 @@
 from datetime import date
 from pathlib import Path
 import shutil
+import logging
 from typing import List
 from model.db.db import Database
 from model.db.db_orm import Anexos as ORMAnexos, Lancamentos as ORMLancamentos
 from sqlalchemy import insert
 from sqlalchemy.orm import Session
 from util.settings import get_root_path
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[logging.StreamHandler()],
+)
 
 
 class Anexos:
@@ -60,7 +67,6 @@ class Anexos:
                     {
                         "id": id,
                         "descricao": descricao,
-                        # "caminho": caminho,
                         "nome_arquivo": nome_arquivo,
                         "lancamento_id": lancamento_id,
                     }
@@ -73,6 +79,9 @@ class Anexos:
     def move_anexos(self, lancamento: ORMLancamentos, new_data: date):
         """Move arquivos anexos e atualiza a base de dados"""
         anexos = self.get_anexos_lancamento(lancamento.id)
+        if len(anexos) == 0:
+            logging.info("Não existe nenhum anexo para mover.")
+            return
         ano_mes_old = f"{lancamento.data.year}{lancamento.data.month:0>2}"
         ano_mes_new = f"{new_data.year}{new_data.month:0>2}"
 

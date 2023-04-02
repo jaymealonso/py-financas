@@ -244,7 +244,6 @@ class LancamentosView(QDialog):
         logging.debug(f"Modificando lancamento numero:{lancamento_id}")
         logging.debug(f'"{sql_colname}" >> "{value}"')
 
-        # self.model_lancamentos.update(lancamento_id, sql_colname, value)
         # se for modificação de data, move os anexos para o novo diretório, se necessário.
         if sql_colname == "data":
             lancamento: ORMLancamentos = self.model_lancamentos.get_lancamento(

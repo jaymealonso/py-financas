@@ -9,3 +9,4 @@ htmlcov
 config.ini
 .pytest_cache
 storage
+*.spec
