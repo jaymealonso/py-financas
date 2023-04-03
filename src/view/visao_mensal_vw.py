@@ -157,7 +157,23 @@ class VisaoGeralView(QDialog):
     def get_lancamentos(self):
         """Janela de descricao de lancamentos"""
         lancamentos = LancamentosView(self, self.conta_dc)
+        lancamentos.changed.connect(self.handle_lancamento_changed)
+        lancamentos.add_lancamento.connect(self.handle_lancamento_created)
+        lancamentos.on_close.connect(self.handle_close_lancamento)
+        lancamentos.on_delete.connect(self.handle_delete_lancamento)
         return lancamentos
+
+    def handle_lancamento_changed(self):
+        self.load_table_data()
+
+    def handle_lancamento_created(self):
+        self.load_table_data()
+
+    def handle_close_lancamento(self):
+        self.load_table_data()
+
+    def handle_delete_lancamento(self):
+        self.load_table_data()
 
     def load_table_data(self):
         self.model_visao_mensal.load()
