@@ -1,5 +1,6 @@
 import moment
 from openpyxl import Workbook
+import PyQt5.QtGui as QtGui
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
     QWidget,
@@ -11,15 +12,23 @@ from PyQt5.QtWidgets import (
     QFileDialog,
     QSizePolicy,
     QLineEdit,
+    QSplitter,
 )
-from util.settings import Settings
-
+from util.settings import JanelaVisaoMensalSettings, Settings
+import logging
 import view.contas_vw as cv
 import view.icons.icons as icons
 from view.TableLine import TableLine
 from model.Conta import Conta
 from model.VisaoMensal import VisaoMensal
 from util.curr_formatter import str_curr_to_int
+from view.lanc_vw import LancamentosView
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[logging.StreamHandler()],
+)
 
 
 class VisaoGeralView(QDialog):
@@ -30,28 +39,59 @@ class VisaoGeralView(QDialog):
         self.conta_dc = conta_dc
         self.model_visao_mensal = VisaoMensal(self.conta_dc)
         self.parent: cv.ContasView = parent
-        self.settings = Settings()
+        self.global_settings = Settings()
+        self.settings: JanelaVisaoMensalSettings = (
+            self.global_settings.load_visaomensal_settings(self.conta_dc.id)
+        )
 
         super(VisaoGeralView, self).__init__(parent)
 
         self.setWindowModality(Qt.ApplicationModal)
         self.setWindowTitle(f"Visão Mensal - (Conta {conta_dc.id})")
         self.setMinimumSize(800, 600)
-        self.resize(1600, 900)
+        try:
+            self.restoreGeometry(self.settings.dimensoes)
+        except Exception as e:
+            logging.error(str(e))
+            self.resize(1600, 900)
 
         layout = QVBoxLayout()
         layout.addWidget(self.get_toolbar())
-        layout.addWidget(self.get_table())
+
+        self.splitter = QSplitter(self)
+        self.splitter.addWidget(self.get_table())
+        self.splitter.addWidget(self.get_lancamentos())
+
+        try:
+            splisizes: list[int] = self.settings.divisoes
+        except Exception as e:
+            logging.error(str(e))
+            splisize = int(self.size().width() / 2)
+            splisizes: list[int] = [splisize, splisize]
+        finally:
+            self.splitter.setSizes(splisizes)
+
+        layout.addWidget(self.splitter)
+        # layout.addWidget(self.get_toolbar())
+        # layout.addWidget(self.get_table())
 
         self.load_table_data()
 
         self.setLayout(layout)
+
+    def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
+        self.settings.dimensoes = self.saveGeometry()
+        self.settings.divisoes = self.splitter.sizes()
+        return super().closeEvent(a0)
 
     def get_toolbar(self) -> QToolBar:
         if self.toolbar is None:
             self.toolbar = QToolBar()
 
             self.toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+
+            refresh_act = self.toolbar.addAction(icons.atualizar(), "Atualizar")
+            refresh_act.triggered.connect(lambda: self.load_table_data())
 
             spacer = QWidget()
             spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
@@ -109,9 +149,15 @@ class VisaoGeralView(QDialog):
         wb.save(filename)
 
     def get_table(self):
+        """Tabela de visão mensal"""
         if self.table is None:
             self.table = QTableWidget()
         return self.table
+
+    def get_lancamentos(self):
+        """Janela de descricao de lancamentos"""
+        lancamentos = LancamentosView(self, self.conta_dc)
+        return lancamentos
 
     def load_table_data(self):
         self.model_visao_mensal.load()

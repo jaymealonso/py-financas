@@ -2,9 +2,7 @@ import sys
 import logging
 import darkdetect
 from pathlib import Path
-from enum import Enum
 from PyQt5.QtCore import QSettings, QRect
-from PyQt5.QtWidgets import QWidget, QApplication
 from abc import ABC
 from util.singleton_meta import SingletonMeta
 
@@ -16,7 +14,7 @@ logging.basicConfig(
 
 
 class JanelaSettings(ABC):
-    def __init__(self, settings: QSettings, group:str):
+    def __init__(self, settings: QSettings, group: str):
         super(JanelaSettings, self).__init__()
         self.group = group
         self.settings = settings
@@ -25,55 +23,75 @@ class JanelaSettings(ABC):
     def dimensoes(self) -> QRect:
         geometry = self.settings.value(f"{self.group}/geometry")
         if geometry is None:
-            raise Exception(f"Geometria da janela {self.group} tá vazia") 
+            raise Exception(f"Geometria da janela {self.group} tá vazia")
         return geometry
-    
+
     @dimensoes.setter
-    def dimensoes(self, geometry: QRect): 
+    def dimensoes(self, geometry: QRect):
         self.settings.beginGroup(self.group)
-        self.settings.setValue(f"geometry", geometry)
+        self.settings.setValue("geometry", geometry)
         self.settings.endGroup()
 
 
 class JanelaContasSettings(JanelaSettings):
     def __init__(self, settings: QSettings):
-        super(JanelaContasSettings, self).__init__(
-            settings, 
-            group="Janela-Contas"
+        super(JanelaContasSettings, self).__init__(settings, group="Janela-Contas")
+
+
+class JanelaVisaoMensalSettings(JanelaSettings):
+    def __init__(self, settings: QSettings, conta_id: str):
+        self.conta_id = conta_id
+
+        super(JanelaVisaoMensalSettings, self).__init__(
+            settings, group=f"VisaoMensal-{self.conta_id}"
         )
+
+    @property
+    def divisoes(self) -> list[int]:
+        divisoes = self.settings.value(f"{self.group}/divisoes", type=int)
+        if divisoes is None or divisoes == 0:
+            raise Exception(f"Divisões não existem na janela {self.group}.")
+        return divisoes
+
+    @divisoes.setter
+    def divisoes(self, divisoes: list[int]):
+        self.settings.beginGroup(self.group)
+        self.settings.setValue("divisoes", divisoes)
+        self.settings.endGroup()
+
 
 class JanelaLancamentosSettings(JanelaSettings):
     def __init__(self, settings: QSettings, conta_id: str):
-        super(JanelaLancamentosSettings, self).__init__(
-            settings, 
-            group=f"Conta-Lancamento-{conta_id}"
-        )
         self.conta_id = conta_id
+
+        super(JanelaLancamentosSettings, self).__init__(
+            settings, group=f"Conta-Lancamento-{self.conta_id}"
+        )
 
     @property
     def separador_milhar(self) -> str:
         separador = self.settings.value(f"{self.group}/separador_milhar")
         if separador is None:
-            separador = '.'
+            separador = "."
         return separador
 
     @separador_milhar.setter
-    def separador_milhar(self, separador:str) -> None:
+    def separador_milhar(self, separador: str) -> None:
         self.settings.beginGroup(self.group)
-        self.settings.setValue(f"separador_milhar", separador)
+        self.settings.setValue("separador_milhar", separador)
         self.settings.endGroup()
 
     @property
     def separador_decimal(self) -> str:
         separador = self.settings.value(f"{self.group}/separador_decimal")
         if separador is None:
-            separador = ','
+            separador = ","
         return separador
 
     @separador_decimal.setter
-    def separador_decimal(self, separador:str) -> None:
+    def separador_decimal(self, separador: str) -> None:
         self.settings.beginGroup(self.group)
-        self.settings.setValue(f"separador_decimal", separador)
+        self.settings.setValue("separador_decimal", separador)
         self.settings.endGroup()
 
     @property
@@ -84,9 +102,9 @@ class JanelaLancamentosSettings(JanelaSettings):
         return formato_data
 
     @formato_data.setter
-    def formato_data(self, formato:str) -> None:
+    def formato_data(self, formato: str) -> None:
         self.settings.beginGroup(self.group)
-        self.settings.setValue(f"formato_data", formato)
+        self.settings.setValue("formato_data", formato)
         self.settings.endGroup()
 
     @property
@@ -95,23 +113,25 @@ class JanelaLancamentosSettings(JanelaSettings):
         if col_position is None:
             col_position = dict([])
         return col_position
-        
+
     @import_col_position.setter
     def import_col_position(self, fields: list[int]) -> None:
         self.settings.beginGroup(self.group)
-        self.settings.setValue(f"import_col_position", fields)
+        self.settings.setValue("import_col_position", fields)
         self.settings.endGroup()
 
 
 class Settings(metaclass=SingletonMeta):
     PADROES = "Padroes"
+
     def __init__(self):
         super(Settings, self).__init__()
 
-        self.settings = QSettings(get_root_path("config.ini"), QSettings.IniFormat)   
+        self.settings = QSettings(get_root_path("config.ini"), QSettings.IniFormat)
 
         self.janela_contas = JanelaContasSettings(self.settings)
         self.janelas_lancamentos: list[JanelaLancamentosSettings] = []
+        self.janelas_visao_mensal: list[JanelaVisaoMensalSettings] = []
 
     @property
     def db_location(self) -> str:
@@ -130,7 +150,7 @@ class Settings(metaclass=SingletonMeta):
     @db_location.setter
     def db_location(self, path: str):
         self.settings.beginGroup(Settings.PADROES)
-        self.settings.setValue(f"db_path", path)
+        self.settings.setValue("db_path", path)
         self.settings.endGroup()
 
     @property
@@ -144,30 +164,46 @@ class Settings(metaclass=SingletonMeta):
     @theme.setter
     def theme(self, theme_name: str):
         self.settings.beginGroup(Settings.PADROES)
-        self.settings.setValue(f"theme", theme_name)
+        self.settings.setValue("theme", theme_name)
         self.settings.endGroup()
 
     def load_lanc_settings(self, conta_id: int) -> JanelaLancamentosSettings:
-
-        janela_array = [janela for janela in self.janelas_lancamentos if janela.conta_id == conta_id]
+        janela_array = [
+            janela for janela in self.janelas_lancamentos if janela.conta_id == conta_id
+        ]
         if len(janela_array) != 0:
             janela = janela_array[0]
         else:
             janela = JanelaLancamentosSettings(self.settings, conta_id)
             self.janelas_lancamentos.append(janela)
-        
+
         return janela
+
+    def load_visaomensal_settings(self, conta_id) -> JanelaVisaoMensalSettings:
+        janela_array = [
+            janela
+            for janela in self.janelas_visao_mensal
+            if janela.conta_id == conta_id
+        ]
+        if len(janela_array) != 0:
+            janela = janela_array[0]
+        else:
+            janela = JanelaVisaoMensalSettings(self.settings, conta_id)
+            self.janelas_visao_mensal.append(janela)
+
+        return janela
+
 
 def get_root_path(filename: str = "", paths: list[str] = []) -> str:
     """
     Busca raiz onde o executavel se localiza no BUNDLED, ou caminho base na execução no não BUNDLE(main.py)
     """
-    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-        logging.info('Executando em um Bundle PyInstaller.')
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        logging.info("Executando em um Bundle PyInstaller.")
         path = Path(sys.executable).parents[0]
     else:
-        logging.info('Executando em um processo Python normal. Não Bundled.') 
-        # vai dois niveis para baixo, assume-se que este arquivo(settings.py) está no diretório 
+        logging.info("Executando em um processo Python normal. Não Bundled.")
+        # vai dois niveis para baixo, assume-se que este arquivo(settings.py) está no diretório
         #   "./py-financas/src/util/settings.py"
         # mas deve-se retornar
         #   "./py-financas/{filename}"
@@ -178,5 +214,3 @@ def get_root_path(filename: str = "", paths: list[str] = []) -> str:
     path = path / filename
     logging.info(f'Retornando caminho: "{path}".')
     return str(path)
-
-

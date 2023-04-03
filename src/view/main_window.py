@@ -15,6 +15,7 @@ from view.categorias_vw import CategoriasView
 import view.icons.icons as icons
 from util.settings import Settings
 
+
 class MainWindow(QMainWindow):
     def __init__(self, app: QApplication):
         super(MainWindow, self).__init__()
