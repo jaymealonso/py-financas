@@ -18,7 +18,7 @@ from PyQt5.QtGui import (
     QCursor,
     QStandardItem,
 )
-from PyQt5.QtCore import Qt, QObject, QModelIndex
+from PyQt5.QtCore import Qt, QObject, QModelIndex, pyqtSignal
 from PyQt5.QtWidgets import (
     QWidget,
     QHBoxLayout,
@@ -34,7 +34,6 @@ from PyQt5.QtWidgets import (
     QDialog,
 )
 from util.toaster import QToaster
-from util.events import post_event, Eventos
 from util.currency_editor import QCurrencyLineEdit
 import util.curr_formatter as curr
 from util.settings import Settings, JanelaLancamentosSettings
@@ -54,6 +53,14 @@ logging.basicConfig(
 
 
 class LancamentosView(QDialog):
+    # lancamento: ORMLancamentos, field:str
+    changed = pyqtSignal(ORMLancamentos, str)
+    # lancamento_id: int
+    add_lancamento = pyqtSignal(int)
+    on_close = pyqtSignal(int)
+    # lancamento_id: int
+    on_delete = pyqtSignal(int)
+
     class Column(IntEnum):
         ID = 0
         SEQ_ORDEM_LINHA = auto()
@@ -183,11 +190,8 @@ class LancamentosView(QDialog):
         return footer
 
     def closeEvent(self, event: QCloseEvent) -> None:
-        logging.debug(
-            f"Lancamento close event INSIDE LANCAMENTOS conta: {self.conta_dc.id}"
-        )
-        post_event(Eventos.LANCAMENTO_WINDOW_CLOSED, self.conta_dc.id)
         self.settings.dimensoes = self.saveGeometry()
+        self.on_close.emit(self.conta_dc.id)
 
     def on_open_attachments(self, lancamento_id: int):
         """
@@ -204,20 +208,6 @@ class LancamentosView(QDialog):
         self.anexos_vw.show()
 
     def on_changed_anexos(self, anexo: ORMAnexos, total_anexos: int):
-        # model = self.table.model()
-
-        # index_changed = next(
-        #     (
-        #         i
-        #         for i in range(model.rowCount())
-        #         if model.data(model.index(i, 0), Qt.UserRole) == anexo.lancamento_id
-        #     ),
-        #     None,
-        # )
-        # if not index_changed:
-        #     return
-
-        # model.data(model.index(index_changed, 0))
         self.model_lancamentos.load()
         self.load_table_data()
 
@@ -258,7 +248,13 @@ class LancamentosView(QDialog):
 
         # recalcula total
         self.total_label.set_int_value(self.model_lancamentos.total)
-        self.parent.load_table_data()
+
+        lancamento: ORMLancamentos = self.model_lancamentos.get_lancamento(
+            lancamento_id
+        )
+        self.changed.emit(lancamento, sql_colname)
+
+        # self.parent.load_table_data()
         self.table.setFocus()
 
     def on_del_lancamento(self, lancamento_id: int):
@@ -278,14 +274,15 @@ class LancamentosView(QDialog):
 
         logging.debug("Done !!!")
         self.load_table_data()
-        self.parent.load_table_data()
+        self.on_delete.emit(lancamento_id)
 
     def on_add_lancamento(self, show_message=True):
         logging.debug("Adding new lancamento in the database...")
         new_lancamento_id = self.model_lancamentos.add_new_empty(self.conta_dc.id)
 
         logging.debug(f"Done !!! Lancamento criado com id: {new_lancamento_id}")
-        post_event(Eventos.LANCAMENTO_CREATED, new_lancamento_id)
+        self.add_lancamento.emit(new_lancamento_id)
+        # post_event(Eventos.LANCAMENTO_CREATED, new_lancamento_id)
         self.load_table_data()
         if show_message:
             QToaster.showMessage(self, "Nova conta adicionada.")
@@ -363,13 +360,6 @@ class LancamentosView(QDialog):
                 },
             )
             saldo += row.valor
-            # model.setItemData(
-            #     model.index(new_index, self.Column.SALDO),
-            #     {
-            #         Qt.DisplayRole: curr.str_curr_to_locale(saldo),
-            #         Qt.UserRole: saldo,
-            #     },
-            # )
             self.table.setIndexWidget(
                 model.index(new_index, self.Column.SALDO),
                 self.tableline.get_label_for_saldo(saldo),

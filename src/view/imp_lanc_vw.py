@@ -7,7 +7,7 @@ from datetime import date, datetime
 from dataclasses import dataclass
 from model.Conta import Conta
 from PyQt5.QtGui import QCursor
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -24,7 +24,7 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QDialog,
 )
-from model.Lancamento import Lancamentos
+from model.Lancamento import Lancamentos as ORMLancamentos
 from view.TableLine import TableLine
 from util.toaster import QToaster
 from util.settings import Settings
@@ -65,7 +65,7 @@ class ImportarLancamentosView(QDialog):
             lambda: self._on_change_params(self.date_format)
         )
 
-        self.model_lancamentos = Lancamentos(conta_dc)
+        self.model_lancamentos = ORMLancamentos(conta_dc)
 
         self.setWindowModality(Qt.ApplicationModal)
         self.setWindowTitle(
@@ -318,8 +318,8 @@ class ImportarLancamentosTableLine(TableLine):
         dec_separador = self.parentView.decimal_separator.text()
         mil_separador = self.parentView.mil_separator.text()
         try:
-            decimal_point = locale.localeconv()['decimal_point']
-            thousands_sep = locale.localeconv()['thousands_sep'] 
+            decimal_point = locale.localeconv()["decimal_point"]
+            thousands_sep = locale.localeconv()["thousands_sep"]
             curr_str = curr_str.replace(mil_separador, thousands_sep).replace(
                 dec_separador, decimal_point
             )

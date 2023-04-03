@@ -24,8 +24,8 @@ from PyQt5.QtWidgets import (
     QTableView,
 )
 from model.Conta import ContasTipo, Contas, Conta
-from util.events import subscribe, unsubscribe_refs, Eventos
 from util.custom_table_delegates import GenericInputDelegate, ComboBoxDelegate
+from model.db.db_orm import Lancamentos as ORMLancamentos
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -110,16 +110,10 @@ class ContasView(QWidget):
 
         if conta_id not in self.lanc_windows_open:
             lancamentos_window = view.lanc_vw.LancamentosView(self, conta_dc)
-            subscribe(
-                Eventos.LANCAMENTO_CREATED,
-                self.handle_lancamento_created,
-                lancamentos_window,
-            )
-            subscribe(
-                Eventos.LANCAMENTO_WINDOW_CLOSED,
-                self.handle_close_lancamento,
-                lancamentos_window,
-            )
+            lancamentos_window.changed.connect(self.handle_lancamento_changed)
+            lancamentos_window.add_lancamento.connect(self.handle_lancamento_created)
+            lancamentos_window.on_close.connect(self.handle_close_lancamento)
+            lancamentos_window.on_delete.connect(self.handle_delete_lancamento)
             self.lanc_windows_open[conta_id] = lancamentos_window
         else:
             lancamentos_window = self.lanc_windows_open[conta_id]
@@ -144,13 +138,24 @@ class ContasView(QWidget):
         self.visao_geral_window.show()
 
     def handle_close_lancamento(self, conta_id: int):
-        logging.debug(f"Lancamento close event UNSUBSCRIBE conta: {conta_id}")
-        unsubscribe_refs(self.lanc_windows_open[conta_id])
         del self.lanc_windows_open[conta_id]
 
     def handle_lancamento_created(self, lancamento_id: int):
-        logging.debug(
+        logging.info(
             f"Lancamento criado {lancamento_id}, recarregando dados na contas view."
+        )
+        self.load_table_data()
+
+    def handle_lancamento_changed(self, lancamento: ORMLancamentos, field: str):
+        logging.info(
+            f"Lancamento modificado {lancamento.id}, recarregando dados na contas view."
+        )
+        if field == "categoria_id":
+            self.load_table_data()
+
+    def handle_delete_lancamento(self, lancamento_id: int):
+        logging.info(
+            f"Lancamento eliminado {lancamento_id}, recarregando dados na contas view."
         )
         self.load_table_data()
 
