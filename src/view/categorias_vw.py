@@ -1,6 +1,6 @@
-import dataclasses
-
+import logging
 import view.icons.icons as icons
+from enum import IntEnum, auto
 from view.TableLine import TableLine
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QCursor
@@ -15,11 +15,27 @@ from PyQt5.QtWidgets import (
 from model.Categoria import Categorias
 import operator
 
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[logging.StreamHandler()],
+)
+
+
+class Column(IntEnum):
+    ID = 0
+    NM_CATEGORIA = auto()
+    NR_LANCAMENTOS = auto()
+
 
 class CategoriasView(QWidget):
     COLUMNS = {
-        0: {"title": "ID", "sql_colname": "_id"},
-        1: {"title": "Categoria", "sql_colname": "nm_categoria"},
+        Column.ID: {"title": "ID", "sql_colname": "_id"},
+        Column.NM_CATEGORIA: {"title": "Categoria", "sql_colname": "nm_categoria"},
+        Column.NR_LANCAMENTOS: {
+            "title": "Lançamentos",
+            "sql_colname": "tot_lancamentos",
+        },
     }
 
     def __init__(self):
@@ -60,13 +76,13 @@ class CategoriasView(QWidget):
     def load_table_data(self):
         QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
         try:
-            print("> Disconnecting table cellChanged... ", end=" ")
+            logging.debug("> Disconnecting table cellChanged... ")
             self.table.cellChanged.disconnect()
-            print("Disconnected!")
-        except:
-            print("Cellchanged not connected!")
+            logging.debug("Disconnected!")
+        except Exception as e:
+            logging.error(f"Cellchanged not connected! {e}")
 
-        print("Loading categorias data...")
+        logging.info("Loading categorias data...")
         self.model_categ.load()
 
         # Limpa a tabela
@@ -80,19 +96,27 @@ class CategoriasView(QWidget):
             new_index = self.table.rowCount()
             self.table.insertRow(new_index)
 
-            # self.table.setItem(new_index, 0, QTableWidgetItem(str(row.id)))
-            self.table.setCellWidget(new_index, 0, line.get_label_for_id(str(row.id)))
-            self.table.setItem(new_index, 1, QTableWidgetItem(row.nm_categoria))
+            self.table.setCellWidget(
+                new_index, Column.ID, line.get_label_for_id(str(row.id))
+            )
+            self.table.setItem(
+                new_index, Column.NM_CATEGORIA, QTableWidgetItem(row.nm_categoria)
+            )
+
+            widget = QTableWidgetItem(str(row.tot_lancamentos))
+            widget.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+            widget.setFlags(widget.flags() & ~Qt.ItemIsEditable)
+            self.table.setItem(new_index, Column.NR_LANCAMENTOS, widget)
 
         self.table.resizeColumnToContents(0)
         self.table.setColumnWidth(1, 300)
 
         self.table.cellChanged.connect(self.table_cell_changed)
-        print("> Cellchanged connected again!")
+        logging.info("> Cellchanged connected again!")
         QApplication.restoreOverrideCursor()
 
     def on_add_categoria(self):
-        categoria_id = self.model_categ.add_new_empty()
+        self.model_categ.add_new_empty()
         self.load_table_data()
 
     def table_cell_changed(self, row: int, col: int):
@@ -100,8 +124,9 @@ class CategoriasView(QWidget):
         item = self.table.item(row, col)
         column_data = self.COLUMNS.get(col)
 
-        print(
-            f"Modificando categoria numero:{categ_dc.id} campo \"{column_data['sql_colname']}\" para valor \"{item.text()}\""
+        logging.info(
+            f"Modificando categoria numero:{categ_dc.id}",
+            f"campo \"{column_data['sql_colname']}\" para valor \"{item.text()}\"",
         )
 
         # categ_dc.__setattr__(column_data["sql_colname"], item.text())

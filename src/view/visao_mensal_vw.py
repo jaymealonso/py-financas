@@ -72,8 +72,6 @@ class VisaoGeralView(QDialog):
             self.splitter.setSizes(splisizes)
 
         layout.addWidget(self.splitter)
-        # layout.addWidget(self.get_toolbar())
-        # layout.addWidget(self.get_table())
 
         self.load_table_data()
 
@@ -178,6 +176,9 @@ class VisaoGeralView(QDialog):
     def load_table_data(self):
         self.model_visao_mensal.load()
 
+        self.table.setRowCount(0)
+        self.table.setColumnCount(0)
+
         # unique row_labels
         self.categorias_labels = self.model_visao_mensal.get_unique_row_labels()
         self.table.setRowCount(len(self.categorias_labels) + 1)
@@ -188,13 +189,11 @@ class VisaoGeralView(QDialog):
         self.header_labels = [col.ano_mes for col in self.model_visao_mensal.columns]
         self.header_labels.insert(0, "Categoria")
         self.table.setHorizontalHeaderLabels(self.header_labels)
-        # self.table.setVerticalHeaderLabels(row_labels)
 
         row_index = 0
         for cell in self.model_visao_mensal.values:
             col_index = self.header_labels.index(cell.ano_mes)
             row_index = self.categorias_labels.index(cell.nm_categoria)
-            # self.table.setItem(row_index, col_index, QTableWidgetItem(curr.float_to_locale(cell.valor)))
             self.table.setCellWidget(
                 row_index, col_index, self.line.get_label_for_currency(cell.valor)
             )

@@ -103,9 +103,10 @@ class ContasView(QWidget):
     def on_open_lancamentos(self, conta_id: int):
         conta_dc = self.model_contas.find_by_id(conta_id)
         if not conta_dc:
-            QMessageBox(
-                text=f"Abertura automática de janela de lançamentos da conta: {conta_id} não foi possível.\nConta não encontrada!"
-            ).exec()
+            msg = f"Abertura automática de janela de lançamentos da conta: {conta_id}".join(
+                " não foi possível.\nConta não encontrada!"
+            )
+            QMessageBox(text=msg).exec()
             return
 
         if conta_id not in self.lanc_windows_open:

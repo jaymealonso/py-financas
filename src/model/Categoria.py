@@ -1,8 +1,8 @@
 from typing import List
-from sqlalchemy import insert, update
+from sqlalchemy import func, insert, select, update
 from sqlalchemy.orm import Session
 from model.db.db import Database
-from model.db.db_orm import Categorias as ORMCategorias
+from model.db.db_orm import Categorias as ORMCategorias, Lancamentos as ORMLancamentos
 
 
 class Categorias:
@@ -17,13 +17,22 @@ class Categorias:
     def load(self):
         self.__categorias.clear()
 
-        self.__categorias.append(ORMCategorias(id=0, nm_categoria="(vazio)"))
+        categ_vazio = ORMCategorias(id=0, nm_categoria="(vazio)")
+        categ_vazio.tot_lancamentos = 0
+        self.__categorias.append(categ_vazio)
         with Session(self.__db.engine) as session:
-            query_result = (
-                session.query(ORMCategorias).order_by(ORMCategorias.nm_categoria).all()
-            )
-            for categoria in query_result:
-                self.__categorias.append(categoria)
+            result = session.execute(
+                select(
+                    ORMCategorias.id,
+                    ORMCategorias.nm_categoria,
+                    func.count(ORMLancamentos.id).label("tot_lancamentos"),
+                )
+                .join(ORMCategorias.Lancamentos, isouter=True)
+                .group_by(ORMCategorias)
+            ).all()
+
+            self.__categorias = self.__categorias + result
+
         print(f">>> Carregadas {len(self.__categorias)} categorias.")
 
     def add_new_empty(self) -> int:

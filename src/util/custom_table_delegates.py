@@ -107,27 +107,15 @@ class ComboBoxDelegate(EmitterItemDelegade):
         self.key_values = values
 
     def createEditor(self, widget, option, index):
-        """
-        Cria editor widget e retorna ele
-        """
+        """Cria editor widget e retorna ele"""
         logging.debug(f"Create editor, row: {index.row()}, col: {index.column()}")
-        # editor = QComboBox(widget)
-        editor = ComboBoxWithSearch(
-            self.parent_table, [x for x in self.key_values.values()]
-        )
+        # editor = ComboBoxWithSearch(
+        #     self.parent_table, [x for x in self.key_values.values()]
+        # )
+        editor = ComboBoxWithSearch(self.parent_table, self.key_values.values())
         editor.activated.connect(self.commitAndCloseEditor)
-
-        # def fn_close(combo_index: int):
-        #     logging.debug(f"Close Editor, combo index: {combo_index}")
-        #     # grava o valor no modelo (chama setModelData)
-        #     self.commitData.emit(editor)
-        #     # fecha o controle
-        #     self.closeEditor.emit(editor)
-        #
-        # editor.activated.connect(fn_close)
-
-        for key in self.key_values:
-            editor.addItem(self.key_values[key], key)
+        # for key in self.key_values:
+        #     editor.addItem(self.key_values[key], key)
         return editor
 
     def commitAndCloseEditor(self):
@@ -136,9 +124,7 @@ class ComboBoxDelegate(EmitterItemDelegade):
         self.closeEditor.emit(editor, QStyledItemDelegate.NoHint)
 
     def setEditorData(self, editor: QComboBox, index):
-        """
-        Envia dados para o widget quando aberto
-        """
+        """Envia dados para o widget quando aberto"""
         # model = self.parent_table.model()
         # tipo_id = model.itemData(index)[Qt.UserRole]
         # value = editor.findData(tipo_id)
@@ -149,11 +135,9 @@ class ComboBoxDelegate(EmitterItemDelegade):
         editor.showPopup()
 
     def setModelData(self, editor, model, index):
-        """
-        Na finalização envia os dados de volta para o modelo
-        """
-        tipo_id = editor.currentData()
-        if tipo_id is None:
+        """Na finalização envia os dados de volta para o modelo"""
+        tipo_id = editor.findText(editor.lineEdit().text())
+        if tipo_id is None or tipo_id == -1:
             logging.debug("tipo_id vazio!")
             return
         model.setData(index, tipo_id, Qt.UserRole)
@@ -182,6 +166,7 @@ class ComboBoxWithSearch(QComboBox):
     def __init__(self, parent: QWidget, items: list[str]):
         super().__init__(parent)
         self.items = items
+        self.addItems(self.items)
 
         self.setEditable(True)
         self.lineEdit().textChanged.connect(self.on_text_changed)

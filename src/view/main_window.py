@@ -1,3 +1,4 @@
+import logging
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtWidgets import (
     QMainWindow,
@@ -14,6 +15,12 @@ from view.agenda_vw import AgendaView
 from view.categorias_vw import CategoriasView
 import view.icons.icons as icons
 from util.settings import Settings
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[logging.StreamHandler()],
+)
 
 
 class MainWindow(QMainWindow):
@@ -32,6 +39,7 @@ class MainWindow(QMainWindow):
         try:
             self.restoreGeometry(self.settings.dimensoes)
         except Exception as e:
+            logging.info(f"Sem tamanho padrão da janela.{e}")
             self.resize(1600, 900)
 
         layout = QVBoxLayout(self.window())
@@ -90,9 +98,11 @@ class MainWindow(QMainWindow):
         config_act.triggered.connect(self.on_configure)
 
     def on_undo(self):
+        QToaster.showMessage(self, "On UNDO clicked")
         pass
 
     def on_redo(self):
+        QToaster.showMessage(self, "On REDO clicked")
         pass
 
     def on_configure(self):

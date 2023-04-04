@@ -57,6 +57,7 @@ class LancamentosView(QDialog):
     changed = pyqtSignal(ORMLancamentos, str)
     # lancamento_id: int
     add_lancamento = pyqtSignal(int)
+    # lancamento_id: int
     on_close = pyqtSignal(int)
     # lancamento_id: int
     on_delete = pyqtSignal(int)
@@ -301,7 +302,7 @@ class LancamentosView(QDialog):
         except Exception as e:
             logging.error(f"itemChanged not connected! Error: {str(e)}")
 
-        logging.debug(f"Loading lancamentos (conta id: {self.conta_dc.id}) data...")
+        logging.info(f"Loading lancamentos (conta id: {self.conta_dc.id}) data...")
         self.model_lancamentos.load()
 
         # clear table
