@@ -44,6 +44,14 @@
                 // "light",
             ],
             "justMyCode": true
+        },
+        {
+            "name": "Python: TableTest",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/tabletest.py",
+            "console": "integratedTerminal",
+            "justMyCode": true
         }
     ]
 }

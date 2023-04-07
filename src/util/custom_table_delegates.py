@@ -145,22 +145,6 @@ class ComboBoxDelegate(EmitterItemDelegade):
         logging.debug("setModelData")
         self.changed.emit(index, editor)
 
-    # def updateEditorGeometry(self, editor, option, index):
-    #     editor.setGeometry(option.rect)
-
-    # def paint(self, painter, option, index):
-    #     text = ""
-    #     try:
-    #         model = self.parent_table.model()
-    #         tipo_id = model.itemData(index)[Qt.UserRole]
-    #         text = self.key_values[tipo_id]
-    #     except Exception as e:
-    #         logging.error(
-    #             f"Exception paint combobox {e} row {index.row()}, col {index.column()}"
-    #         )
-    #     option.text = text
-    #     QApplication.style().drawControl(QStyle.CE_ItemViewItem, option, painter)
-
 
 class ComboBoxWithSearch(QComboBox):
     def __init__(self, parent: QWidget, items: list[str]):
@@ -169,20 +153,12 @@ class ComboBoxWithSearch(QComboBox):
         self.addItems(self.items)
 
         self.setEditable(True)
-        self.lineEdit().textChanged.connect(self.on_text_changed)
 
-        self.model = QStringListModel()
-        self.completer = QCompleter(self.model, self)
+        model = QStringListModel(self.items)
+        self.setModel(model)
+        self.completer = QCompleter(self.model(), self)
         self.completer.setCaseSensitivity(Qt.CaseInsensitive)
         self.setCompleter(self.completer)
-
-    def on_text_changed(self, text):
-        matching_items = [item for item in self.items if text.lower() in item.lower()]
-        self.model.setStringList(matching_items)
-
-        if matching_items:
-            self.completer.complete()
-            self.setCurrentIndex(self.findText(matching_items[0]))
 
 
 class DateEditDelegate(EmitterItemDelegade):
