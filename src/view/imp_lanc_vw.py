@@ -1,13 +1,15 @@
 import locale
 import logging
 import os.path
+from random import randint
+
 import openpyxl
 import view.icons.icons as icons
 from datetime import date, datetime
 from dataclasses import dataclass
 from model.Conta import Conta
 from PyQt5.QtGui import QCursor
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -22,7 +24,7 @@ from PyQt5.QtWidgets import (
     QLabel,
     QComboBox,
     QMessageBox,
-    QDialog,
+    QDialog, QProgressBar,
 )
 from model.Lancamento import Lancamentos as ORMLancamentos
 from model.Categoria import Categorias as ORMCategorias
@@ -150,6 +152,7 @@ class ImportarLancamentosView(QDialog):
                 [x.row() for x in self.table.selectedIndexes() if x.row() > 0]
             )
         )
+        created_lines = 0
 
         @dataclass
         class NewLancamento:
@@ -161,6 +164,9 @@ class ImportarLancamentosView(QDialog):
             data: date
             valor: int
             categoria_id: int
+
+            def valid(self) -> bool:
+                return self.descricao and self.data and self.valor
 
         line = ImportarLancamentosTableLine(self)
         for row_index in selected_row_indexes:
@@ -189,6 +195,10 @@ class ImportarLancamentosView(QDialog):
                     new_lancamento.categoria_id = categ_value
                 else:
                     new_lancamento.__setattr__(col, cell_value)
+            if not new_lancamento.valid():
+                logging.error(
+                    f"Erro ao adicionar linha {row_index}. Devem ao menos existir atributos: data, valor e descricao")
+                continue
 
             new_lancamento_id = self.model_lancamentos.add_new(
                 conta_id=new_lancamento.conta_id,
@@ -197,16 +207,17 @@ class ImportarLancamentosView(QDialog):
                 data=new_lancamento.data,
                 valor=new_lancamento.valor,
             )
+            created_lines += 1
             if new_lancamento.categoria_id:
                 self.model_lancamentos.update(new_lancamento_id, 'categoria_id', new_lancamento.categoria_id)
-
 
         # salva mapeamento das colunas
         self.settings.import_col_position = mapping_cols
 
         QToaster.showMessage(
             self,
-            f"Foram criados {len(selected_row_indexes)} novos lançamentos.",
+            f"Foram criados {created_lines} novos lançamentos." if created_lines > 0
+                else "Não foram criados lançamentos.",
             closable=False,
             timeout=2000,
             corner=Qt.BottomRightCorner,
@@ -267,6 +278,12 @@ class ImportarLancamentosView(QDialog):
 
         row_no = 1
         skipcount = 0
+
+        # prog_bar = AddingRowProgressBar(len(list(ws.rows)))
+        prog_bar = QProgressBar()
+        prog_bar.setRange(1, len(list(ws.rows)))
+        self.layout().addWidget(prog_bar)
+
         for row in ws.iter_rows():
             rowvalues = [x.value for x in row if x.value != ""]
             if not rowvalues:
@@ -275,7 +292,11 @@ class ImportarLancamentosView(QDialog):
 
             self.table.insertRow(row_no)
             column_no = 0
+
             logging.info(f"Adding row {row_no} ...")
+            prog_bar.setValue(row_no)
+            QApplication.processEvents()
+
             for cell in row:
                 if hasattr(cell, "is_date") and cell.is_date and not cell.value is None:
                     cell_widget = QTableWidgetItem(cell.value.isoformat()[:10])
@@ -292,6 +313,8 @@ class ImportarLancamentosView(QDialog):
         logging.info(f"SkipCount: {skipcount}")
 
         self.table.resizeColumnsToContents()
+
+        self.layout().removeWidget(prog_bar)
 
         QApplication.restoreOverrideCursor()
 
