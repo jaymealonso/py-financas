@@ -31,7 +31,7 @@ from PyQt5.QtWidgets import (
     QLabel,
     QCheckBox,
     QApplication,
-    QDialog,
+    QDialog, QStyledItemDelegate,
 )
 from util.toaster import QToaster
 from util.currency_editor import QCurrencyLineEdit
@@ -260,10 +260,14 @@ class LancamentosView(QDialog):
         # self.parent.load_table_data()
         self.table.setFocus()
 
-    def on_del_lancamento(self, table_row_index: int):
+    def on_del_lancamento(self, lancamento_id: int):
 
         model = self.table.model()
-        lancamento_id = model.data(model.item(table_row_index,self.Column.ID).index(), Qt.UserRole)
+
+        items_found = model.match(model.index(0, 0), Qt.UserRole, lancamento_id, 1 )
+        if len(items_found) == 0:
+            return
+        table_row_index = items_found[0].row()
 
         if not self.check_del_not_ask.isChecked():
             button = QMessageBox.question(
@@ -278,7 +282,11 @@ class LancamentosView(QDialog):
 
         logging.debug(f"Eliminando lancamento {lancamento_id} do banco de dados ...")
         self.model_lancamentos.delete(str(lancamento_id))
-        model.removeRow(table_row_index)
+
+        # model.removeRow(table_row_index)
+        # self.load_model_only()
+        # TODO: melhorar performance do reload recarregando somente o modelo.
+        self.load_table_data()
 
         logging.debug("Done !!!")
         self.on_delete.emit(lancamento_id)
@@ -293,6 +301,57 @@ class LancamentosView(QDialog):
         self.load_table_data()
         if show_message:
             QToaster.showMessage(self, "Nova conta adicionada.")
+
+    def load_model_only(self):
+        self.model_lancamentos.load()
+
+        model = self.table.model()
+        model.setRowCount(len(self.model_lancamentos.items))
+        for (new_index, row) in enumerate(self.model_lancamentos.items):
+            model.setItemData(
+                model.index(new_index, self.Column.ID),
+                {Qt.UserRole: row.id},
+            )
+            model.setItemData(
+                model.index(new_index, self.Column.SEQ_ORDEM_LINHA),
+                {Qt.UserRole: row.seq_ordem_linha},
+            )
+            model.setItemData(
+                model.index(new_index, self.Column.NR_REFERENCIA),
+                {Qt.DisplayRole: row.nr_referencia, Qt.UserRole: row.nr_referencia},
+            )
+            model.setItemData(
+                model.index(new_index, self.Column.DESCRICAO),
+                {Qt.DisplayRole: row.descricao, Qt.UserRole: row.descricao},
+            )
+            model.setItemData(
+                model.index(new_index, self.Column.DESCRICAO_USER),
+                {Qt.DisplayRole: row.descricao_user, Qt.UserRole: row.descricao_user},
+            )
+            model.setItemData(
+                model.index(new_index, self.Column.DATA),
+                {Qt.DisplayRole: row.data.strftime("%x"), Qt.UserRole: row.data},
+            )
+            if len(row.Categorias) > 0:
+                categoria = row.Categorias[0]
+            else:
+                categoria = self.model_categorias.items[0]
+            model.setItemData(
+                model.index(new_index, self.Column.CATEGORIA_ID),
+                {
+                    Qt.DisplayRole: categoria.nm_categoria,
+                    Qt.UserRole: categoria.id or -1,
+                },
+            )
+            model.setItemData(
+                model.index(new_index, self.Column.VALOR),
+                {
+                    Qt.DisplayRole: curr.str_curr_to_locale(row.valor or 0),
+                    Qt.UserRole: row.valor or 0,
+                },
+            )
+
+        self.table.setModel(model)
 
     def load_table_data(self):
         """
@@ -377,7 +436,7 @@ class LancamentosView(QDialog):
             )
             self.table.setIndexWidget(
                 model.index(new_index, self.Column.REMOVER),
-                self.tableline.get_del_button(self, new_index),
+                self.tableline.get_del_button(self, row.id),
             )
 
             self.table.setIndexWidget(
@@ -397,6 +456,9 @@ class LancamentosView(QDialog):
         col5_del.changed.connect(self.on_model_item_changed)
         col6_del = GenericInputDelegate(self.table)
         col6_del.changed.connect(self.on_model_item_changed)
+
+        # col7_del = SimpleLabelDelegate(self.table)
+        # self.table.setItemDelegateForColumn(self.Column.ID, col7_del)
 
         self.table.setItemDelegateForColumn(self.Column.NR_REFERENCIA, col1_del)
         self.table.setItemDelegateForColumn(self.Column.DESCRICAO, col2_del)
@@ -478,11 +540,11 @@ class LancamentoTableLine(TableLine):
         return label
 
     @staticmethod
-    def get_del_button(parent: LancamentosView, index: int):
+    def get_del_button(parent: LancamentosView, lancamento_id: int):
         del_pbutt = QPushButton()
         del_pbutt.setToolTip("Eliminar Lançamento")
         del_pbutt.setIcon(icons.delete())
-        del_pbutt.clicked.connect(lambda: parent.on_del_lancamento(index))
+        del_pbutt.clicked.connect(lambda: parent.on_del_lancamento(lancamento_id))
         return del_pbutt
 
     @staticmethod
