@@ -67,6 +67,7 @@ class LancamentosView(QDialog):
         SEQ_ORDEM_LINHA = auto()
         NR_REFERENCIA = auto()
         DESCRICAO = auto()
+        DESCRICAO_USER = auto()
         DATA = auto()
         CATEGORIA_ID = auto()
         VALOR = auto()
@@ -85,6 +86,7 @@ class LancamentosView(QDialog):
             "sql_colname": "nr_referencia",
         },
         Column.DESCRICAO: {"title": "Descrição", "sql_colname": "descricao"},
+        Column.DESCRICAO_USER: {"title": "Descrição Usuário", "sql_colname": "descricao_user"},
         Column.DATA: {"title": "Data", "sql_colname": "data"},
         Column.CATEGORIA_ID: {"title": "Categorias", "sql_colname": "categoria_id"},
         Column.VALOR: {"title": "Valor", "sql_colname": "valor"},
@@ -339,6 +341,10 @@ class LancamentosView(QDialog):
                 {Qt.DisplayRole: row.descricao, Qt.UserRole: row.descricao},
             )
             model.setItemData(
+                model.index(new_index, self.Column.DESCRICAO_USER),
+                {Qt.DisplayRole: row.descricao_user, Qt.UserRole: row.descricao_user},
+            )
+            model.setItemData(
                 model.index(new_index, self.Column.DATA),
                 {Qt.DisplayRole: row.data.strftime("%x"), Qt.UserRole: row.data},
             )
@@ -385,9 +391,12 @@ class LancamentosView(QDialog):
         col4_del.changed.connect(self.on_model_item_changed)
         col5_del = self.tableline.get_currency_value_delegate()
         col5_del.changed.connect(self.on_model_item_changed)
+        col6_del = GenericInputDelegate(self.table)
+        col6_del.changed.connect(self.on_model_item_changed)
 
         self.table.setItemDelegateForColumn(self.Column.NR_REFERENCIA, col1_del)
         self.table.setItemDelegateForColumn(self.Column.DESCRICAO, col2_del)
+        self.table.setItemDelegateForColumn(self.Column.DESCRICAO_USER, col6_del)
         self.table.setItemDelegateForColumn(self.Column.DATA, col3_del)
         self.table.setItemDelegateForColumn(self.Column.CATEGORIA_ID, col4_del)
         self.table.setItemDelegateForColumn(self.Column.VALOR, col5_del)

@@ -136,6 +136,7 @@ class DataLoader:
                     "seq_ordem_linha": 2,
                     "nr_referencia": "334563",
                     "descricao": "Compra bala",
+                    "descricao_user": "Mercadinho da Esquina",
                     "data": moment.date("2019-11-30").date,
                     "valor": -10000,
                 },

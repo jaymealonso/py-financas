@@ -12,13 +12,14 @@ logging.basicConfig(
     handlers=[logging.StreamHandler()],
 )
 
+
 class Database(metaclass=SingletonMeta):
     def __init__(self):
         self.settings = Settings()
 
-        database_path:str = self.settings.db_location
+        database_path: str = self.settings.db_location
         logging.debug(f"Conectando a base de dados: {database_path}")
-        self.engine:Engine = create_engine(f"sqlite:///{database_path}", echo=True)
+        self.engine: Engine = create_engine(f"sqlite:///{database_path}", echo=True)
 
     @event.listens_for(Engine, "connect")
     def set_sqlite_pragma(dbapi_connection, connection_record):
@@ -34,14 +35,14 @@ class Database(metaclass=SingletonMeta):
         logging.debug("=====================================")
         logging.debug("Eliminando todas as tabelas")
         logging.debug("=====================================")
-        with self.engine.connect() as conn:                
+        with self.engine.connect() as conn:
             Base.metadata.drop_all(conn)
 
     def create_structure(self) -> None:
         logging.debug("=====================================")
         logging.debug("Criando banco de dados...(create_all)")
         logging.debug("=====================================")
-        with self.engine.connect() as conn:        
+        with self.engine.connect() as conn:
             Base.metadata.create_all(conn)
 
     def is_initial_load(self) -> bool:

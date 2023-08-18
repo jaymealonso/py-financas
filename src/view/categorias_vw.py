@@ -90,9 +90,8 @@ class CategoriasView(QWidget):
 
         line = CategoriasLine()
 
-        for row in sorted(
-            self.model_categ.items, key=operator.attrgetter("nm_categoria")
-        ):
+        sorted_items = sorted(self.model_categ.items, key=operator.attrgetter("nm_categoria"))
+        for row in sorted_items:
             new_index = self.table.rowCount()
             self.table.insertRow(new_index)
 
@@ -135,5 +134,4 @@ class CategoriasView(QWidget):
 
 
 class CategoriasLine(TableLine):
-    def nada(self):
-        pass
+    pass

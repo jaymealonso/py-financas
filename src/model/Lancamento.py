@@ -73,12 +73,13 @@ class Lancamentos:
             conta_id=conta_id,
             nr_referencia="",
             descricao="",
+            descricao_user="",
             data=moment.now().date.date(),
             valor=0,
         )
 
     def add_new(
-        self, conta_id: int, nr_referencia: str, descricao: str, data: date, valor: int
+        self, conta_id: int, nr_referencia: str, descricao: str, descricao_user: str, data: date, valor: int
     ) -> int:
         """
         Adiciona novo lancamento ao DB com os dados de entrada enviados
@@ -95,6 +96,7 @@ class Lancamentos:
                         "seq_ordem_linha": seq_ordem_linha,
                         "nr_referencia": nr_referencia,
                         "descricao": descricao,
+                        "descricao_user": descricao_user,
                         "data": data,
                         "valor": valor,
                     }

@@ -161,6 +161,7 @@ class ImportarLancamentosView(QDialog):
             conta_id: int
             nr_referencia: str
             descricao: str
+            descricao_user: str
             data: date
             valor: int
             categoria_id: int
@@ -174,6 +175,7 @@ class ImportarLancamentosView(QDialog):
                 conta_id=int(self.conta_dc.id),
                 nr_referencia="",
                 descricao="Descrição lançamento",
+                descricao_user="",
                 data=datetime.now(),
                 valor=0,
                 categoria_id=None,
@@ -204,6 +206,7 @@ class ImportarLancamentosView(QDialog):
                 conta_id=new_lancamento.conta_id,
                 nr_referencia=new_lancamento.nr_referencia,
                 descricao=new_lancamento.descricao,
+                descricao_user=new_lancamento.descricao_user,
                 data=new_lancamento.data,
                 valor=new_lancamento.valor,
             )
@@ -329,9 +332,10 @@ class ImportarLancamentosTableLine(TableLine):
         0: {"name": "(vazio)", "sql_colname": ""},
         1: {"name": "Número Ref.", "sql_colname": "nr_referencia"},
         2: {"name": "Descrição", "sql_colname": "descricao"},
-        3: {"name": "Data", "sql_colname": "data"},
-        4: {"name": "Categorias", "sql_colname": "categoria_id"},
-        5: {"name": "Valor", "sql_colname": "valor"},
+        3: {"name": "Descrição Usuário", "sql_colname": "descricao_user"},
+        4: {"name": "Data", "sql_colname": "data"},
+        5: {"name": "Categorias", "sql_colname": "categoria_id"},
+        6: {"name": "Valor", "sql_colname": "valor"},
     }
 
     def __init__(self, parent_view: ImportarLancamentosView):

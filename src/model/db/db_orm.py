@@ -45,6 +45,7 @@ class Lancamentos(Base):
     seq_ordem_linha = Column(Integer)
     nr_referencia = Column(String)
     descricao = Column(String)
+    descricao_user = Column(String)
     data = Column(DateTime)
     valor = Column(Integer)
 
