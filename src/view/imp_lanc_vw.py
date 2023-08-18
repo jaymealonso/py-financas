@@ -25,6 +25,7 @@ from PyQt5.QtWidgets import (
     QDialog,
 )
 from model.Lancamento import Lancamentos as ORMLancamentos
+from model.Categoria import Categorias as ORMCategorias
 from view.TableLine import TableLine
 from util.toaster import QToaster
 from util.settings import Settings
@@ -66,6 +67,8 @@ class ImportarLancamentosView(QDialog):
         )
 
         self.model_lancamentos = ORMLancamentos(conta_dc)
+        self.model_categoria = ORMCategorias()
+        self.model_categoria.load()
 
         self.setWindowModality(Qt.ApplicationModal)
         self.setWindowTitle(
@@ -142,7 +145,7 @@ class ImportarLancamentosView(QDialog):
             if column_combo.currentData() != "":
                 mapping_cols[column_combo.currentData()] = col_index
 
-        unique_rows = list(
+        selected_row_indexes = list(
             dict.fromkeys(
                 [x.row() for x in self.table.selectedIndexes() if x.row() > 0]
             )
@@ -160,7 +163,7 @@ class ImportarLancamentosView(QDialog):
             categoria_id: int
 
         line = ImportarLancamentosTableLine(self)
-        for row_index in unique_rows:
+        for row_index in selected_row_indexes:
             new_lancamento = NewLancamento(
                 conta_id=int(self.conta_dc.id),
                 nr_referencia="",
@@ -180,23 +183,30 @@ class ImportarLancamentosView(QDialog):
                 elif col == "valor":
                     curr_value = line.parse_curr(cell_value)
                     new_lancamento.__setattr__(col, curr_value)
+                elif col == "categoria_id":
+                    categ_value = next(
+                        (item.id for item in self.model_categoria.items if item.nm_categoria == cell_value), None)
+                    new_lancamento.categoria_id = categ_value
                 else:
                     new_lancamento.__setattr__(col, cell_value)
 
-            self.model_lancamentos.add_new(
+            new_lancamento_id = self.model_lancamentos.add_new(
                 conta_id=new_lancamento.conta_id,
                 nr_referencia=new_lancamento.nr_referencia,
                 descricao=new_lancamento.descricao,
                 data=new_lancamento.data,
                 valor=new_lancamento.valor,
             )
+            if new_lancamento.categoria_id:
+                self.model_lancamentos.update(new_lancamento_id, 'categoria_id', new_lancamento.categoria_id)
+
 
         # salva mapeamento das colunas
         self.settings.import_col_position = mapping_cols
 
         QToaster.showMessage(
             self,
-            f"Foram criados {len(unique_rows)} novos lançamentos.",
+            f"Foram criados {len(selected_row_indexes)} novos lançamentos.",
             closable=False,
             timeout=2000,
             corner=Qt.BottomRightCorner,

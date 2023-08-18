@@ -136,12 +136,13 @@ class ComboBoxDelegate(EmitterItemDelegade):
 
     def setModelData(self, editor, model, index):
         """Na finalização envia os dados de volta para o modelo"""
-        tipo_id = editor.findText(editor.lineEdit().text())
-        if tipo_id is None or tipo_id == -1:
+        tipo_id_combo_index = editor.findText(editor.lineEdit().text())
+        if tipo_id_combo_index is None or tipo_id_combo_index == -1:
             logging.debug("tipo_id vazio!")
             return
+        tipo_id = list(self.key_values.keys())[tipo_id_combo_index]
         model.setData(index, tipo_id, Qt.UserRole)
-        model.setData(index, self.key_values[tipo_id], Qt.DisplayRole)
+        model.setData(index, self.key_values.get(tipo_id), Qt.DisplayRole)
         logging.debug("setModelData")
         self.changed.emit(index, editor)
 

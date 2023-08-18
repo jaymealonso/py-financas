@@ -225,9 +225,10 @@ class ContasView(QWidget):
                 model.index(new_index, 3),
                 {Qt.DisplayRole: row.moeda, Qt.UserRole: row.moeda},
             )
+            tipo_conta_descr = next((item.descricao for item in self.model_tps_conta.items if item.id == row.tipo_id), "")
             model.setItemData(
                 model.index(new_index, 4),
-                {Qt.DisplayRole: row.tipo_id, Qt.UserRole: row.tipo_id},
+                {Qt.DisplayRole: tipo_conta_descr, Qt.UserRole: row.tipo_id},
             )
 
             # Fixed Values
