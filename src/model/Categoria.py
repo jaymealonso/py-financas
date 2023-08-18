@@ -19,8 +19,18 @@ class Categorias:
 
         categ_vazio = ORMCategorias(id=0, nm_categoria="(vazio)")
         categ_vazio.tot_lancamentos = 0
+        # categ_vazio_tuple = tuple([categ_vazio.__getattribute__(x) for x in categ_vazio.__dict__ if x[0] != '_'])
+
         self.__categorias.append(categ_vazio)
         with Session(self.__db.engine) as session:
+            # result = session.query(
+            #     ORMCategorias,
+            #     func.count(ORMLancamentos.id).label("tot_lancamentos"),
+            # )\
+            #     .join(ORMCategorias.Lancamentos, isouter=True)\
+            #     .group_by(ORMCategorias) \
+            #     .all()
+
             result = session.execute(
                 select(
                     ORMCategorias.id,
@@ -54,8 +64,8 @@ class Categorias:
     def update(self, categoria_id: int, fieldname: str, value):
         stmt = (
             update(ORMCategorias)
-            .where(ORMCategorias.id == categoria_id)
-            .values({fieldname: value})
+                .where(ORMCategorias.id == categoria_id)
+                .values({fieldname: value})
         )
 
         with self.__db.engine.connect() as conn:

@@ -260,7 +260,11 @@ class LancamentosView(QDialog):
         # self.parent.load_table_data()
         self.table.setFocus()
 
-    def on_del_lancamento(self, lancamento_id: int):
+    def on_del_lancamento(self, table_row_index: int):
+
+        model = self.table.model()
+        lancamento_id = model.data(model.item(table_row_index,self.Column.ID).index(), Qt.UserRole)
+
         if not self.check_del_not_ask.isChecked():
             button = QMessageBox.question(
                 self,
@@ -274,9 +278,9 @@ class LancamentosView(QDialog):
 
         logging.debug(f"Eliminando lancamento {lancamento_id} do banco de dados ...")
         self.model_lancamentos.delete(str(lancamento_id))
+        model.removeRow(table_row_index)
 
         logging.debug("Done !!!")
-        self.load_table_data()
         self.on_delete.emit(lancamento_id)
 
     def on_add_lancamento(self, show_message=True):
@@ -373,7 +377,7 @@ class LancamentosView(QDialog):
             )
             self.table.setIndexWidget(
                 model.index(new_index, self.Column.REMOVER),
-                self.tableline.get_del_button(self, row.id),
+                self.tableline.get_del_button(self, new_index),
             )
 
             self.table.setIndexWidget(
