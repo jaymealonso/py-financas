@@ -267,7 +267,7 @@ class ImportarLancamentosView(QDialog):
             column_no = 0
             logging.info(f"Adding row {row_no} ...")
             for cell in row:
-                if hasattr(cell, "is_date") and cell.is_date:
+                if hasattr(cell, "is_date") and cell.is_date and not cell.value is None:
                     cell_widget = QTableWidgetItem(cell.value.isoformat()[:10])
                 elif isinstance(cell.value, float) or isinstance(cell.value, int):
                     cell_widget = QTableWidgetItem(str(cell.value))
