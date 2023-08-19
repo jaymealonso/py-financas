@@ -20,7 +20,7 @@ from PyQt5.QtGui import (
     QCursor,
     QStandardItem,
 )
-from PyQt5.QtCore import Qt, QObject, QModelIndex, pyqtSignal
+from PyQt5.QtCore import Qt, QObject, QModelIndex, pyqtSignal, QItemSelectionModel
 from PyQt5.QtWidgets import (
     QWidget,
     QHBoxLayout,
@@ -261,10 +261,17 @@ class LancamentosView(MyDialog):
             anexos.move_anexos(lancamento, value)
 
         self.model_lancamentos.update(lancamento_id, sql_colname, value)
-        self.model_lancamentos.load()
+        # self.model_lancamentos.load()
 
         # recalcula total
-        self.total_label.set_int_value(self.model_lancamentos.total)
+        self.load_model_only(sql_colname == 'data')
+        if sql_colname == 'data':
+            item_new_indexes = model.match(model.index(0, self.Column.ID), Qt.UserRole, lancamento_id, 1)
+            if len(item_new_indexes) > 0:
+                item_new_index = model.index(item_new_indexes[0].row(), self.Column.DATA)
+                self.table.scrollTo(item_new_index)
+                self.table.selectionModel().select(item_new_index, QItemSelectionModel.SelectCurrent)
+                self.table.setCurrentIndex(item_new_index)
 
         lancamento: ORMLancamentos = self.model_lancamentos.get_lancamento(
             lancamento_id
@@ -311,13 +318,16 @@ class LancamentosView(MyDialog):
 
         logging.debug(f"Done !!! Lancamento criado com id: {new_lancamento_id}")
         self.add_lancamento.emit(new_lancamento_id)
-        # post_event(Eventos.LANCAMENTO_CREATED, new_lancamento_id)
-        # self.load_table_data()
         self.load_model_only()
+        model = self.table.model()
+        items_found = model.match(model.index(0, 0), Qt.UserRole, new_lancamento_id, 1)
+        self.table.scrollTo(items_found[0])
+        self.table.selectRow(items_found[0].row())
+
         if show_message:
             QToaster.showMessage(self, "Novo lançamento adicionado.")
 
-    def load_model_only(self):
+    def load_model_only(self, rerender_buttons: bool = True):
         self.model_lancamentos.load()
 
         model = self.table.model()
@@ -374,15 +384,16 @@ class LancamentosView(MyDialog):
                     Qt.UserRole: saldo,
                 },
             )
-            self.table.setIndexWidget(
-                model.index(new_index, self.Column.REMOVER),
-                self.tableline.get_del_button(self, row.id),
-            )
+            if rerender_buttons:
+                self.table.setIndexWidget(
+                    model.index(new_index, self.Column.REMOVER),
+                    self.tableline.get_del_button(self, row.id),
+                )
 
-            self.table.setIndexWidget(
-                model.index(new_index, self.Column.ANEXOS),
-                self.tableline.get_attach_button(self, row.nr_anexos, row.id),
-            )
+                self.table.setIndexWidget(
+                    model.index(new_index, self.Column.ANEXOS),
+                    self.tableline.get_attach_button(self, row.nr_anexos, row.id),
+                )
 
         self.table.setModel(model)
         # Define valor do TOTAL que aparece no rodapé da janela
@@ -418,8 +429,6 @@ class LancamentosView(MyDialog):
         col5_del.changed.connect(self.on_model_item_changed)
         col6_del = GenericInputDelegate(self.table)
         col6_del.changed.connect(self.on_model_item_changed)
-        col7_del = CurrencyLabelDelegate(self.table)
-        # col8_del = ButtonDelegate(self.table, self.on_del_lancamento)
 
         self.table.setItemDelegateForColumn(self.Column.ID, IDLabelDelegate(self.table))
         self.table.setItemDelegateForColumn(self.Column.SEQ_ORDEM_LINHA, IDLabelDelegate(self.table))
@@ -429,7 +438,7 @@ class LancamentosView(MyDialog):
         self.table.setItemDelegateForColumn(self.Column.DATA, col3_del)
         self.table.setItemDelegateForColumn(self.Column.CATEGORIA_ID, col4_del)
         self.table.setItemDelegateForColumn(self.Column.VALOR, col5_del)
-        self.table.setItemDelegateForColumn(self.Column.SALDO, col7_del)
+        self.table.setItemDelegateForColumn(self.Column.SALDO, CurrencyLabelDelegate(self.table))
         # self.table.setItemDelegateForColumn(self.Column.REMOVER, col8_del)
         # self.table.setItemDelegateForColumn(self.Column.ANEXOS, col7_del)
 
@@ -448,12 +457,10 @@ class LancamentosView(MyDialog):
         self.table.setColumnWidth(self.Column.SEQ_ORDEM_LINHA, 100)
         self.table.setColumnWidth(self.Column.NR_REFERENCIA, 100)
         self.table.setColumnWidth(self.Column.DESCRICAO, 500)
-
         self.table.setColumnWidth(self.Column.DATA, 160)
         self.table.setColumnWidth(self.Column.CATEGORIA_ID, 260)
         self.table.setColumnWidth(self.Column.VALOR, 160)
         self.table.setColumnWidth(self.Column.SALDO, 160)
-
         self.table.setColumnWidth(self.Column.REMOVER, 100)
         self.table.setColumnWidth(self.Column.ANEXOS, 100)
 
