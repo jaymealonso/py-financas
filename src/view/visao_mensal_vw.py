@@ -14,6 +14,8 @@ from PyQt5.QtWidgets import (
     QLineEdit,
     QSplitter,
 )
+
+from util.my_dialog import MyDialog
 from util.settings import JanelaVisaoMensalSettings, Settings
 import logging
 import view.contas_vw as cv
@@ -31,7 +33,7 @@ logging.basicConfig(
 )
 
 
-class VisaoGeralView(QDialog):
+class VisaoGeralView(MyDialog):
     def __init__(self, parent: QWidget, conta_dc: Conta):
         self.toolbar: QToolBar = None
         self.table: QTableWidget = None
@@ -45,6 +47,7 @@ class VisaoGeralView(QDialog):
         )
 
         super(VisaoGeralView, self).__init__(parent)
+        self.on_close_signal.connect(self.on_close)
 
         self.setWindowModality(Qt.ApplicationModal)
         self.setWindowTitle(f"Visão Mensal - (Conta {conta_dc.id})")
@@ -77,10 +80,9 @@ class VisaoGeralView(QDialog):
 
         self.setLayout(layout)
 
-    def closeEvent(self, a0: QtGui.QCloseEvent) -> None:
+    def on_close(self):
         self.settings.dimensoes = self.saveGeometry()
         self.settings.divisoes = self.splitter.sizes()
-        return super().closeEvent(a0)
 
     def get_toolbar(self) -> QToolBar:
         if self.toolbar is None:
@@ -157,7 +159,7 @@ class VisaoGeralView(QDialog):
         lancamentos = LancamentosView(self, self.conta_dc)
         lancamentos.changed.connect(self.handle_lancamento_changed)
         lancamentos.add_lancamento.connect(self.handle_lancamento_created)
-        lancamentos.on_close.connect(self.handle_close_lancamento)
+        lancamentos.on_close_signal.connect(self.handle_close_lancamento)
         lancamentos.on_delete.connect(self.handle_delete_lancamento)
         return lancamentos
 

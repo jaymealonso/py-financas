@@ -2,8 +2,9 @@ import datetime
 import locale
 import logging
 import util.curr_formatter as curr
-from PyQt5.QtCore import Qt, QModelIndex, pyqtSignal, QStringListModel
-from PyQt5.QtGui import QColor
+from collections.abc import Callable
+from PyQt5.QtCore import Qt, QModelIndex, pyqtSignal, QStringListModel, QPoint
+from PyQt5.QtGui import QColor, QIcon, QRegion
 from PyQt5.QtWidgets import (
     QWidget,
     QComboBox,
@@ -13,9 +14,10 @@ from PyQt5.QtWidgets import (
     QDateEdit,
     QStyledItemDelegate,
     QStyleOptionViewItem,
-    QCompleter,
+    QCompleter, QPushButton,
 )
 from util.currency_editor import QCurrencyLineEdit
+from view.icons import icons
 
 locale.setlocale(locale.LC_ALL, "pt_BR.utf8")
 
@@ -28,6 +30,120 @@ logging.basicConfig(
 
 class EmitterItemDelegade(QStyledItemDelegate):
     changed = pyqtSignal(QModelIndex, QWidget)
+
+
+class ButtonDelegate(QStyledItemDelegate):
+    pressed = pyqtSignal(QModelIndex, QWidget)
+
+    def __init__(self, parent_table: QTableView, function: Callable[[int], None]):
+        super(ButtonDelegate, self).__init__(parent_table)
+        self.function = function
+        self.parent_table = parent_table
+        logging.debug("Initialize Button")
+        self.button = self.get_del_button()
+
+    def createEditor(self, parent, option, index):
+        model = self.parent_table.model()
+        lancamento_id = model.itemData(model.index(0, 0)).get(Qt.UserRole)
+        self.button.clicked.connect(lambda: self.function(lancamento_id))
+        return self.button
+
+    def setEditorData(self, editor, index):
+        pass
+
+    def setModelData(self, editor, model, index):
+        pass
+
+    def get_del_button(self):
+        del_pbutt = QPushButton(self.parent_table)
+        del_pbutt.setToolTip("Eliminar Lançamento")
+        del_pbutt.setIcon(icons.delete())
+        # del_pbutt.clicked.connect(lambda: parent.on_del_lancamento(lancamento_id))
+        return del_pbutt
+
+    # @staticmethod
+    # def get_button(self, tooltip: str, icon: QIcon, function:callable()) -> QPushButton:
+    #     del_pbutt = QPushButton()
+    #     del_pbutt.setToolTip(tooltip)
+    #     del_pbutt.setIcon(icon)
+    #     del_pbutt.clicked.connect(lambda: function)
+    #     return del_pbutt
+
+    def paint(self, painter, option: QStyleOptionViewItem, index: QModelIndex):
+        painter.save()
+        painter.translate(option.rect.topLeft())
+        self.button.setGeometry(option.rect)
+        self.button.render(painter, QPoint(), QRegion(self.button.rect()), QWidget.DrawChildren)
+        painter.restore()
+
+
+class IDLabelDelegate(QStyledItemDelegate):
+    def __init__(self, parent_table: QTableView):
+        super(IDLabelDelegate, self).__init__(parent_table)
+        self.parent_table = parent_table
+        logging.debug("Initialize Label")
+
+    def createEditor(self, parent, option, index):
+        pass
+
+    def setEditorData(self, editor, index):
+        pass
+
+    def setModelData(self, editor, model, index):
+        pass
+
+    def paint(self, painter, option: QStyleOptionViewItem, index: QModelIndex):
+        text = ""
+        try:
+            item_data = self.parent_table.model().itemData(index)
+            text = item_data.get(Qt.UserRole) # "item_data[Qt.DisplayRole]
+        except Exception as e:
+            logging.error(f"Exception {e}")
+
+        painter.save()
+        painter.setPen(QColor(Qt.cyan))
+        option.rect.setWidth(option.rect.width() - 3)
+        option.rect.center()
+
+        painter.drawText(option.rect, Qt.AlignHCenter + Qt.AlignVCenter, str(text))
+        painter.restore()
+
+
+class CurrencyLabelDelegate(QStyledItemDelegate):
+    def __init__(self, parent_table: QTableView):
+        super(CurrencyLabelDelegate, self).__init__(parent_table)
+        self.parent_table = parent_table
+        logging.debug("Initialize Label")
+
+    def createEditor(self, parent, option, index):
+        pass
+
+    def setEditorData(self, editor, index):
+        pass
+
+    def setModelData(self, editor, model, index):
+        pass
+
+    def paint(self, painter, option: QStyleOptionViewItem, index: QModelIndex):
+        text = ""
+        value = 0
+        try:
+            item_data = self.parent_table.model().itemData(index)
+            value = item_data[Qt.UserRole]
+            text = item_data[Qt.DisplayRole]
+        except Exception as e:
+            logging.error(f"Exception {e}")
+
+        painter.save()
+        if value < 0:
+            painter.setPen(QColor(Qt.red))
+        else:
+            painter.setPen(QColor(Qt.darkGreen))
+        option.rect.setWidth(option.rect.width() - 3)
+        option.rect.center()
+
+        painter.drawText(option.rect, Qt.AlignRight + Qt.AlignVCenter, str(text))
+        painter.restore()
 
 
 class GenericInputDelegate(EmitterItemDelegade):

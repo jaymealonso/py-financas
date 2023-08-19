@@ -21,7 +21,7 @@ from PyQt5.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QApplication,
-    QTableView,
+    QTableView, QDialog,
 )
 from model.Conta import ContasTipo, Contas, Conta
 from util.custom_table_delegates import GenericInputDelegate, ComboBoxDelegate
@@ -113,7 +113,7 @@ class ContasView(QWidget):
             lancamentos_window = view.lanc_vw.LancamentosView(self, conta_dc)
             lancamentos_window.changed.connect(self.handle_lancamento_changed)
             lancamentos_window.add_lancamento.connect(self.handle_lancamento_created)
-            lancamentos_window.on_close.connect(self.handle_close_lancamento)
+            lancamentos_window.on_close_signal.connect(self.handle_close_lancamento)
             lancamentos_window.on_delete.connect(self.handle_delete_lancamento)
             self.lanc_windows_open[conta_id] = lancamentos_window
         else:
@@ -138,8 +138,8 @@ class ContasView(QWidget):
         self.visao_geral_window = VisaoGeralView(self, conta)
         self.visao_geral_window.show()
 
-    def handle_close_lancamento(self, conta_id: int):
-        del self.lanc_windows_open[conta_id]
+    def handle_close_lancamento(self, sender: view.lanc_vw.LancamentosView):
+        del self.lanc_windows_open[sender.conta_dc.id]
 
     def handle_lancamento_created(self, lancamento_id: int):
         logging.info(

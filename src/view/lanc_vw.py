@@ -3,6 +3,7 @@ import view.icons.icons as icons
 import view.contas_vw as cv
 import logging
 
+from util.my_dialog import MyDialog
 from view.categorias_vw import Column
 from view.imp_lanc_vw import ImportarLancamentosView
 from view.anexos_vw import AnexosView
@@ -15,7 +16,6 @@ from model.db.db_orm import (
     Anexos as ORMAnexos,
 )
 from PyQt5.QtGui import (
-    QCloseEvent,
     QStandardItemModel,
     QCursor,
     QStandardItem,
@@ -43,7 +43,7 @@ from util.custom_table_delegates import (
     GenericInputDelegate,
     ComboBoxDelegate,
     DateEditDelegate,
-    CurrencyEditDelegate,
+    CurrencyEditDelegate, CurrencyLabelDelegate, ButtonDelegate, IDLabelDelegate,
 )
 from enum import auto, IntEnum
 
@@ -56,13 +56,11 @@ logging.basicConfig(
 )
 
 
-class LancamentosView(QDialog):
+class LancamentosView(MyDialog):
     # lancamento: ORMLancamentos, field:str
     changed = pyqtSignal(ORMLancamentos, str)
     # lancamento_id: int
     add_lancamento = pyqtSignal(int)
-    # lancamento_id: int
-    on_close = pyqtSignal(int)
     # lancamento_id: int
     on_delete = pyqtSignal(int)
 
@@ -122,8 +120,7 @@ class LancamentosView(QDialog):
             f"Lançamentos - (Conta {self.conta_dc.id} | {self.conta_dc.descricao})"
         )
         self.restore_geometry()
-        self.setWindowFlag(Qt.WindowMinimizeButtonHint, True)
-        self.setWindowFlag(Qt.WindowMaximizeButtonHint, True)
+        self.on_close_signal.connect(self.on_close)
 
         layout = QVBoxLayout()
         layout.addWidget(self.toolbar)
@@ -135,6 +132,9 @@ class LancamentosView(QDialog):
         self.load_table_data()
         self.set_column_default_sizes()
 
+    def on_close(self):
+        self.settings.dimensoes = self.saveGeometry()
+
     def restore_geometry(self) -> None:
         self.setMinimumSize(800, 600)
         try:
@@ -142,17 +142,6 @@ class LancamentosView(QDialog):
         except Exception as e:
             logging.error(str(e))
             self.resize(1600, 900)
-
-    def keyPressEvent(self, event):
-        """Fecha a janela mas salva a geometria dela quando apertar o ESC"""
-        if event.key() == Qt.Key_Escape:
-            self.settings.dimensoes = self.saveGeometry()
-            self.on_close.emit(self.conta_dc.id)
-        super(LancamentosView, self).keyPressEvent(event)
-
-    def closeEvent(self, event: QCloseEvent) -> None:
-        self.settings.dimensoes = self.saveGeometry()
-        self.on_close.emit(self.conta_dc.id)
 
     def get_toolbar(self) -> QToolBar:
         """
@@ -239,13 +228,12 @@ class LancamentosView(QDialog):
         col = self.COLUMNS.get(logical_index)
         if not self.search_dialog:
             self.search_dialog = ColumnSearchView(self)
+            self.layout().insertWidget(1, self.search_dialog)
         self.search_dialog.show2(col["title"], logical_index)
-        self.on_close.connect(lambda: self.close_search_dialog())
+        self.search_dialog.on_close_signal.connect(self.on_close_search_dialog)
 
-    def close_search_dialog(self):
-        if self.search_dialog:
-            self.search_dialog.reject()
-            self.search_dialog = None
+    def on_close_search_dialog(self):
+        self.search_dialog = None
 
     def table_cell_changed(self, item: QModelIndex):
         row = item.row()
@@ -309,10 +297,10 @@ class LancamentosView(QDialog):
         logging.debug(f"Eliminando lancamento {lancamento_id} do banco de dados ...")
         self.model_lancamentos.delete(str(lancamento_id))
 
-        # model.removeRow(table_row_index)
-        # self.load_model_only()
         # TODO: melhorar performance do reload recarregando somente o modelo.
-        self.load_table_data()
+        model.removeRow(table_row_index)
+        self.load_model_only()
+        # self.load_table_data()
 
         logging.debug("Done !!!")
         self.on_delete.emit(lancamento_id)
@@ -324,15 +312,17 @@ class LancamentosView(QDialog):
         logging.debug(f"Done !!! Lancamento criado com id: {new_lancamento_id}")
         self.add_lancamento.emit(new_lancamento_id)
         # post_event(Eventos.LANCAMENTO_CREATED, new_lancamento_id)
-        self.load_table_data()
+        # self.load_table_data()
+        self.load_model_only()
         if show_message:
-            QToaster.showMessage(self, "Nova conta adicionada.")
+            QToaster.showMessage(self, "Novo lançamento adicionado.")
 
     def load_model_only(self):
         self.model_lancamentos.load()
 
         model = self.table.model()
         model.setRowCount(len(self.model_lancamentos.items))
+        saldo = 0
         for (new_index, row) in enumerate(self.model_lancamentos.items):
             model.setItemData(
                 model.index(new_index, self.Column.ID),
@@ -376,8 +366,27 @@ class LancamentosView(QDialog):
                     Qt.UserRole: row.valor or 0,
                 },
             )
+            saldo += row.valor
+            model.setItemData(
+                model.index(new_index, self.Column.SALDO),
+                {
+                    Qt.DisplayRole: curr.str_curr_to_locale(saldo or 0),
+                    Qt.UserRole: saldo,
+                },
+            )
+            self.table.setIndexWidget(
+                model.index(new_index, self.Column.REMOVER),
+                self.tableline.get_del_button(self, row.id),
+            )
+
+            self.table.setIndexWidget(
+                model.index(new_index, self.Column.ANEXOS),
+                self.tableline.get_attach_button(self, row.nr_anexos, row.id),
+            )
 
         self.table.setModel(model)
+        # Define valor do TOTAL que aparece no rodapé da janela
+        self.total_label.set_int_value(self.model_lancamentos.total)
 
     def load_table_data(self):
         """
@@ -394,81 +403,8 @@ class LancamentosView(QDialog):
             logging.error(f"itemChanged not connected! Error: {str(e)}")
 
         logging.info(f"Loading lancamentos (conta id: {self.conta_dc.id}) data...")
-        self.model_lancamentos.load()
 
-        # clear table
-        model.setRowCount(0)
-
-        saldo: int = 0
-        for row in self.model_lancamentos.items:
-            new_index: int = model.rowCount()
-            model.insertRow(new_index)
-
-            self.table.setIndexWidget(
-                model.index(new_index, self.Column.ID),
-                self.tableline.get_label_for_id(str(row.id)),
-            )
-            self.table.setIndexWidget(
-                model.index(new_index, 1),
-                self.tableline.get_label_for_id(str(row.seq_ordem_linha)),
-            )
-
-            model.setItemData(
-                model.index(new_index, self.Column.ID),
-                {Qt.UserRole: row.id},
-            )
-            model.setItemData(
-                model.index(new_index, self.Column.SEQ_ORDEM_LINHA),
-                {Qt.UserRole: row.seq_ordem_linha},
-            )
-            model.setItemData(
-                model.index(new_index, self.Column.NR_REFERENCIA),
-                {Qt.DisplayRole: row.nr_referencia, Qt.UserRole: row.nr_referencia},
-            )
-            model.setItemData(
-                model.index(new_index, self.Column.DESCRICAO),
-                {Qt.DisplayRole: row.descricao, Qt.UserRole: row.descricao},
-            )
-            model.setItemData(
-                model.index(new_index, self.Column.DESCRICAO_USER),
-                {Qt.DisplayRole: row.descricao_user, Qt.UserRole: row.descricao_user},
-            )
-            model.setItemData(
-                model.index(new_index, self.Column.DATA),
-                {Qt.DisplayRole: row.data.strftime("%x"), Qt.UserRole: row.data},
-            )
-            if len(row.Categorias) > 0:
-                categoria = row.Categorias[0]
-            else:
-                categoria = self.model_categorias.items[0]
-            model.setItemData(
-                model.index(new_index, self.Column.CATEGORIA_ID),
-                {
-                    Qt.DisplayRole: categoria.nm_categoria,
-                    Qt.UserRole: categoria.id or -1,
-                },
-            )
-            model.setItemData(
-                model.index(new_index, self.Column.VALOR),
-                {
-                    Qt.DisplayRole: curr.str_curr_to_locale(row.valor or 0),
-                    Qt.UserRole: row.valor or 0,
-                },
-            )
-            saldo += row.valor
-            self.table.setIndexWidget(
-                model.index(new_index, self.Column.SALDO),
-                self.tableline.get_label_for_saldo(saldo),
-            )
-            self.table.setIndexWidget(
-                model.index(new_index, self.Column.REMOVER),
-                self.tableline.get_del_button(self, row.id),
-            )
-
-            self.table.setIndexWidget(
-                model.index(new_index, self.Column.ANEXOS),
-                self.tableline.get_attach_button(self, row.nr_anexos, row.id),
-            )
+        self.load_model_only()
 
         col1_del = GenericInputDelegate(self.table)
         col1_del.changed.connect(self.on_model_item_changed)
@@ -482,19 +418,20 @@ class LancamentosView(QDialog):
         col5_del.changed.connect(self.on_model_item_changed)
         col6_del = GenericInputDelegate(self.table)
         col6_del.changed.connect(self.on_model_item_changed)
+        col7_del = CurrencyLabelDelegate(self.table)
+        # col8_del = ButtonDelegate(self.table, self.on_del_lancamento)
 
-        # col7_del = SimpleLabelDelegate(self.table)
-        # self.table.setItemDelegateForColumn(self.Column.ID, col7_del)
-
+        self.table.setItemDelegateForColumn(self.Column.ID, IDLabelDelegate(self.table))
+        self.table.setItemDelegateForColumn(self.Column.SEQ_ORDEM_LINHA, IDLabelDelegate(self.table))
         self.table.setItemDelegateForColumn(self.Column.NR_REFERENCIA, col1_del)
         self.table.setItemDelegateForColumn(self.Column.DESCRICAO, col2_del)
         self.table.setItemDelegateForColumn(self.Column.DESCRICAO_USER, col6_del)
         self.table.setItemDelegateForColumn(self.Column.DATA, col3_del)
         self.table.setItemDelegateForColumn(self.Column.CATEGORIA_ID, col4_del)
         self.table.setItemDelegateForColumn(self.Column.VALOR, col5_del)
-
-        # Define valor do TOTAL que aparece no rodapé da janela
-        self.total_label.set_int_value(self.model_lancamentos.total)
+        self.table.setItemDelegateForColumn(self.Column.SALDO, col7_del)
+        # self.table.setItemDelegateForColumn(self.Column.REMOVER, col8_del)
+        # self.table.setItemDelegateForColumn(self.Column.ANEXOS, col7_del)
 
         logging.debug("> itemChanged connected again!")
         self.table.verticalScrollBar().setValue(vert_scr_position)
