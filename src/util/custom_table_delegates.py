@@ -32,6 +32,7 @@ class EmitterItemDelegade(QStyledItemDelegate):
     changed = pyqtSignal(QModelIndex, QWidget)
 
 
+# TODO: fazer um delegate para os botoes, este abaixo ainda nao funciona e ainda nao está sendo usado
 class ButtonDelegate(QStyledItemDelegate):
     pressed = pyqtSignal(QModelIndex, QWidget)
 
@@ -101,7 +102,7 @@ class IDLabelDelegate(QStyledItemDelegate):
             logging.error(f"Exception {e}")
 
         painter.save()
-        painter.setPen(QColor(Qt.cyan))
+        painter.setPen(QColor(63, 136, 192))
         option.rect.setWidth(option.rect.width() - 3)
         option.rect.center()
 
@@ -167,7 +168,7 @@ class CurrencyEditDelegate(EmitterItemDelegade):
         )
         model = self.parent_table.model()
         value = model.itemData(index)[Qt.UserRole]
-        curr_edit = QCurrencyLineEdit(self.parent_table, value)
+        curr_edit = QCurrencyLineEdit(widget, value)
         return curr_edit
 
     def setEditorData(self, editor: QCurrencyLineEdit, index):
