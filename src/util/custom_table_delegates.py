@@ -41,13 +41,13 @@ class ButtonDelegate(QStyledItemDelegate):
         self.function = function
         self.parent_table = parent_table
         logging.debug("Initialize Button")
-        self.button = self.get_del_button()
 
-    def createEditor(self, parent, option, index):
+    def createEditor(self, widget, option, index):
+        button = self.get_del_button(widget)
         model = self.parent_table.model()
         lancamento_id = model.itemData(model.index(0, 0)).get(Qt.UserRole)
-        self.button.clicked.connect(lambda: self.function(lancamento_id))
-        return self.button
+        button.clicked.connect(lambda: self.function(lancamento_id))
+        return button
 
     def setEditorData(self, editor, index):
         pass
@@ -55,8 +55,8 @@ class ButtonDelegate(QStyledItemDelegate):
     def setModelData(self, editor, model, index):
         pass
 
-    def get_del_button(self):
-        del_pbutt = QPushButton(self.parent_table)
+    def get_del_button(self, widget):
+        del_pbutt = QPushButton(widget)
         del_pbutt.setToolTip("Eliminar Lançamento")
         del_pbutt.setIcon(icons.delete())
         # del_pbutt.clicked.connect(lambda: parent.on_del_lancamento(lancamento_id))
@@ -229,7 +229,7 @@ class ComboBoxDelegate(EmitterItemDelegade):
         # editor = ComboBoxWithSearch(
         #     self.parent_table, [x for x in self.key_values.values()]
         # )
-        editor = ComboBoxWithSearch(self.parent_table, self.key_values.values())
+        editor = ComboBoxWithSearch(widget, self.key_values.values())
         editor.activated.connect(self.commitAndCloseEditor)
         # for key in self.key_values:
         #     editor.addItem(self.key_values[key], key)
@@ -292,7 +292,7 @@ class DateEditDelegate(EmitterItemDelegade):
         except Exception as e:
             logging.debug(f"sem data, erro: {e}")
             value = datetime.date.today()
-        date_edit = QDateEdit(self.parent_table)
+        date_edit = QDateEdit(widget)
         date_edit.setCalendarPopup(True)
         date_edit.setDate(value)
         return date_edit
