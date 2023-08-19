@@ -68,6 +68,15 @@ class JanelaLancamentosSettings(JanelaSettings):
             settings, group=f"Conta-Lancamento-{self.conta_id}"
         )
 
+
+class JanelaImportLancamentosSettings(JanelaSettings):
+    def __init__(self, settings: QSettings, conta_id: str):
+        self.conta_id = conta_id
+
+        super(JanelaImportLancamentosSettings, self).__init__(
+            settings, group=f"Conta-Lancamento-Import-{self.conta_id}"
+        )
+
     @property
     def separador_milhar(self) -> str:
         separador = self.settings.value(f"{self.group}/separador_milhar")
@@ -131,6 +140,7 @@ class Settings(metaclass=SingletonMeta):
 
         self.janela_contas = JanelaContasSettings(self.settings)
         self.janelas_lancamentos: list[JanelaLancamentosSettings] = []
+        self.janelas_imp_lancamentos: list[JanelaImportLancamentosSettings] = []
         self.janelas_visao_mensal: list[JanelaVisaoMensalSettings] = []
 
     @property
@@ -176,6 +186,18 @@ class Settings(metaclass=SingletonMeta):
         else:
             janela = JanelaLancamentosSettings(self.settings, conta_id)
             self.janelas_lancamentos.append(janela)
+
+        return janela
+
+    def load_impo_lanc_settings(self, conta_id: int) -> JanelaImportLancamentosSettings:
+        janela_array = [
+            janela for janela in self.janelas_imp_lancamentos if janela.conta_id == conta_id
+        ]
+        if len(janela_array) != 0:
+            janela = janela_array[0]
+        else:
+            janela = JanelaImportLancamentosSettings(self.settings, conta_id)
+            self.janelas_imp_lancamentos.append(janela)
 
         return janela
 

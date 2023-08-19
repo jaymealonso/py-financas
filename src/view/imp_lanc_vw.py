@@ -4,11 +4,13 @@ import os.path
 from random import randint
 
 import openpyxl
+from PyQt5 import QtGui
+
 import view.icons.icons as icons
 from datetime import date, datetime
 from dataclasses import dataclass
 from model.Conta import Conta
-from PyQt5.QtGui import QCursor
+from PyQt5.QtGui import QCursor, QCloseEvent
 from PyQt5.QtCore import Qt, pyqtSignal, QTimer
 from PyQt5.QtWidgets import (
     QWidget,
@@ -30,7 +32,7 @@ from model.Lancamento import Lancamentos as ORMLancamentos
 from model.Categoria import Categorias as ORMCategorias
 from view.TableLine import TableLine
 from util.toaster import QToaster
-from util.settings import Settings
+from util.settings import Settings, JanelaImportLancamentosSettings
 from util.curr_formatter import str_curr_to_int
 
 logging.basicConfig(
@@ -46,7 +48,9 @@ class ImportarLancamentosView(QDialog):
 
         self.conta_dc = conta_dc
         self.global_settings = Settings()
-        self.settings = self.global_settings.load_lanc_settings(self.conta_dc.id)
+#        self.settings = self.global_settings.load_lanc_settings(self.conta_dc.id)
+        self.settings: JanelaImportLancamentosSettings =\
+            self.global_settings.load_impo_lanc_settings(self.conta_dc.id)
 
         self.btn_procurar = QPushButton("Procurar...")
         self.table = QTableWidget()
@@ -76,8 +80,9 @@ class ImportarLancamentosView(QDialog):
         self.setWindowTitle(
             f"Importar Lançamentos - (Conta {conta_dc.id} | {conta_dc.descricao})"
         )
-        self.setMinimumSize(800, 600)
-        self.resize(1600, 900)
+        self.restore_geometry()
+        self.setWindowFlag(Qt.WindowMinimizeButtonHint, True)
+        self.setWindowFlag(Qt.WindowMaximizeButtonHint, True)
 
         layout = QVBoxLayout()
         layout.addLayout(self.get_import_file_line())
@@ -86,6 +91,14 @@ class ImportarLancamentosView(QDialog):
         layout.addWidget(self.get_table())
 
         self.setLayout(layout)
+
+    def restore_geometry(self) -> None:
+        self.setMinimumSize(800, 600)
+        try:
+            self.restoreGeometry(self.settings.dimensoes)
+        except Exception as e:
+            logging.error(str(e))
+            self.resize(1600, 900)
 
     def _on_change_params(self, source: QLineEdit):
         logging.debug("Entrou no on change")
@@ -282,7 +295,7 @@ class ImportarLancamentosView(QDialog):
         row_no = 1
         skipcount = 0
 
-        # prog_bar = AddingRowProgressBar(len(list(ws.rows)))
+        # TODO: mudar para QProgressDialog
         prog_bar = QProgressBar()
         prog_bar.setRange(1, len(list(ws.rows)))
         self.layout().addWidget(prog_bar)
@@ -325,6 +338,15 @@ class ImportarLancamentosView(QDialog):
         self.table.setColumnCount(0)
 
         return self.table
+
+    def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
+        """Fecha a janela mas salva a geometria dela quando apertar o ESC"""
+        if event.key() == Qt.Key_Escape:
+            self.settings.dimensoes = self.saveGeometry()
+        super(ImportarLancamentosView, self).keyPressEvent(event)
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        self.settings.dimensoes = self.saveGeometry()
 
 
 class ImportarLancamentosTableLine(TableLine):

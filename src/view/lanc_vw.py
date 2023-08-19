@@ -2,6 +2,8 @@ from model.Anexos import Anexos
 import view.icons.icons as icons
 import view.contas_vw as cv
 import logging
+
+from view.categorias_vw import Column
 from view.imp_lanc_vw import ImportarLancamentosView
 from view.anexos_vw import AnexosView
 from view.TableLine import TableLine
@@ -31,7 +33,7 @@ from PyQt5.QtWidgets import (
     QLabel,
     QCheckBox,
     QApplication,
-    QDialog, QStyledItemDelegate,
+    QDialog,
 )
 from util.toaster import QToaster
 from util.currency_editor import QCurrencyLineEdit
@@ -44,6 +46,8 @@ from util.custom_table_delegates import (
     CurrencyEditDelegate,
 )
 from enum import auto, IntEnum
+
+from view.inputsearch_vw import ColumnSearchView
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -96,12 +100,16 @@ class LancamentosView(QDialog):
     }
 
     def __init__(self, parent: QWidget, conta_dc: Conta):
+
+        super(LancamentosView, self).__init__(parent)
+
         self.toolbar = self.get_toolbar()
         table: QTableView = self.get_table()
         self.tableline = LancamentoTableLine(self)
         self.conta_dc = conta_dc
         self.parent: cv.ContasView = parent
         self.import_lanc_view = None
+        self.search_dialog = None
         self.total_label = TotalCurrLabel()
         self.model_lancamentos = Lancamentos(conta_dc)
         self.model_categorias = Categorias()
@@ -110,18 +118,12 @@ class LancamentosView(QDialog):
         self.settings: JanelaLancamentosSettings = (
             self.global_settings.load_lanc_settings(self.conta_dc.id)
         )
-
-        super(LancamentosView, self).__init__(parent)
-
         self.setWindowTitle(
             f"Lançamentos - (Conta {self.conta_dc.id} | {self.conta_dc.descricao})"
         )
-        self.setMinimumSize(800, 600)
-        try:
-            self.restoreGeometry(self.settings.dimensoes)
-        except Exception as e:
-            logging.error(str(e))
-            self.resize(1600, 900)
+        self.restore_geometry()
+        self.setWindowFlag(Qt.WindowMinimizeButtonHint, True)
+        self.setWindowFlag(Qt.WindowMaximizeButtonHint, True)
 
         layout = QVBoxLayout()
         layout.addWidget(self.toolbar)
@@ -133,10 +135,24 @@ class LancamentosView(QDialog):
         self.load_table_data()
         self.set_column_default_sizes()
 
+    def restore_geometry(self) -> None:
+        self.setMinimumSize(800, 600)
+        try:
+            self.restoreGeometry(self.settings.dimensoes)
+        except Exception as e:
+            logging.error(str(e))
+            self.resize(1600, 900)
+
     def keyPressEvent(self, event):
-        """Revove a funcionalidade de fechar a janela quando se pressiona ESC"""
-        if not event.key() == Qt.Key_Escape:
-            super(LancamentosView, self).keyPressEvent(event)
+        """Fecha a janela mas salva a geometria dela quando apertar o ESC"""
+        if event.key() == Qt.Key_Escape:
+            self.settings.dimensoes = self.saveGeometry()
+            self.on_close.emit(self.conta_dc.id)
+        super(LancamentosView, self).keyPressEvent(event)
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        self.settings.dimensoes = self.saveGeometry()
+        self.on_close.emit(self.conta_dc.id)
 
     def get_toolbar(self) -> QToolBar:
         """
@@ -172,6 +188,8 @@ class LancamentosView(QDialog):
         model.setHorizontalHeaderLabels([col["title"] for col in self.COLUMNS.values()])
         self.table.setModel(model)
         self.table.verticalHeader().setVisible(False)
+        hheader = self.table.horizontalHeader()
+        hheader.sectionClicked.connect(self.on_table_header_click)
 
         return self.table
 
@@ -191,10 +209,6 @@ class LancamentosView(QDialog):
         footer = QWidget(self)
         footer.setLayout(layout)
         return footer
-
-    def closeEvent(self, event: QCloseEvent) -> None:
-        self.settings.dimensoes = self.saveGeometry()
-        self.on_close.emit(self.conta_dc.id)
 
     def on_open_attachments(self, lancamento_id: int):
         """
@@ -220,6 +234,18 @@ class LancamentosView(QDialog):
         """
         self.import_lanc_view = ImportarLancamentosView(self, self.conta_dc)
         self.import_lanc_view.show()
+
+    def on_table_header_click(self, logical_index):
+        col = self.COLUMNS.get(logical_index)
+        if not self.search_dialog:
+            self.search_dialog = ColumnSearchView(self)
+        self.search_dialog.show2(col["title"], logical_index)
+        self.on_close.connect(lambda: self.close_search_dialog())
+
+    def close_search_dialog(self):
+        if self.search_dialog:
+            self.search_dialog.reject()
+            self.search_dialog = None
 
     def table_cell_changed(self, item: QModelIndex):
         row = item.row()
@@ -264,7 +290,7 @@ class LancamentosView(QDialog):
 
         model = self.table.model()
 
-        items_found = model.match(model.index(0, 0), Qt.UserRole, lancamento_id, 1 )
+        items_found = model.match(model.index(0, 0), Qt.UserRole, lancamento_id, 1)
         if len(items_found) == 0:
             return
         table_row_index = items_found[0].row()

@@ -1,10 +1,11 @@
+import logging
 from typing import List
 from dataclasses import dataclass
 from sqlalchemy import insert, update
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import text
 from model.db.db import Database
-from model.db.db_orm import ContasTipo as ORMContasTipo, Contas as ORMContas
+from model.db.db_orm import ContasTipo as ORMContasTipo, Contas as ORMContas, Lancamentos as ORMLancamentos
 
 
 @dataclass
@@ -107,7 +108,31 @@ class Contas:
 
     def delete(self, conta_id: str):
         with Session(self.__db.engine) as session:
-            session.query(ORMContas).filter(ORMContas.id == conta_id).delete()
+            conta = session.query(ORMContas).filter(ORMContas.id == conta_id).first()
+            # TODO: apagar conta nào está funcionando corretamente, corrigir
+            lancamentos = session.query(ORMLancamentos).filter(ORMLancamentos.conta_id == conta_id).all()
+            categorias = []
+            anexos = []
+            for lancamento in lancamentos:
+                for categoria in lancamento.Categorias:
+                    categorias.append(categoria)
+                for anexo in lancamento.Anexos:
+                    anexos.append(anexo)
+
+            for anexo in anexos:
+                session.delete(anexo)
+            for categoria in categorias:
+                session.delete(categoria)
+            for lancamento in lancamentos:
+                session.delete(lancamento)
+            session.delete(conta)
+
+            # lancamentos = session.query(ORMLancamentos).filter(ORMLancamentos.conta_id == conta_id)
+            # categorias = lancamentos.join(ORMLancamentos.Categorias, isouter=True).all()
+            #
+            # session.delete(categorias)
+            # lancamentos.delete()
+            # session.query(ORMContas).filter(ORMContas.id == conta_id).delete()
             session.commit()
 
     def update(self, conta_id: str, fieldname: str, value):
@@ -118,10 +143,5 @@ class Contas:
         session.commit()
 
     def find_by_id(self, id: int) -> Conta:
-        # enc_conta = None
-        # for item in self.__items:
-        #     if item.id == id:
-        #         enc_conta = item
-        # return enc_conta
         contas_found = [item for item in self.__items if item.id == id]
         return contas_found[0] if len(contas_found) > 0 else None
