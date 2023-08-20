@@ -277,8 +277,6 @@ class LancamentosView(MyDialog):
             lancamento_id
         )
         self.changed.emit(lancamento, sql_colname)
-
-        # self.parent.load_table_data()
         self.table.setFocus()
 
     def on_del_lancamento(self, lancamento_id: int):
@@ -304,10 +302,8 @@ class LancamentosView(MyDialog):
         logging.debug(f"Eliminando lancamento {lancamento_id} do banco de dados ...")
         self.model_lancamentos.delete(str(lancamento_id))
 
-        # TODO: melhorar performance do reload recarregando somente o modelo.
         model.removeRow(table_row_index)
         self.load_model_only()
-        # self.load_table_data()
 
         logging.debug("Done !!!")
         self.on_delete.emit(lancamento_id)

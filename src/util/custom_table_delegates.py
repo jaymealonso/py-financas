@@ -130,6 +130,8 @@ class CurrencyLabelDelegate(QStyledItemDelegate):
         value = 0
         try:
             item_data = self.parent_table.model().itemData(index)
+            if not item_data:
+                return
             value = item_data[Qt.UserRole]
             text = item_data[Qt.DisplayRole]
         except Exception as e:
