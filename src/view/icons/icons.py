@@ -6,6 +6,7 @@ path = os.path.dirname(os.path.abspath(__file__))
 
 print(f"Diretório de icones: {path}")
 
+
 def app_icon() -> QIcon:
     _app_icon = QIcon()
     _app_icon.addFile(f"{path}/app-icon-16.png", QSize(8, 8))
@@ -78,3 +79,13 @@ def cancel() -> QIcon:
     return QIcon(QPixmap(path + r"/cancel.png"))
 
 
+def tab_search() -> QIcon:
+    return QIcon(QPixmap(path + r"/table_tab_search.png"))
+
+
+def results_next() -> QIcon:
+    return QIcon(QPixmap(path + r"/resultset_next.png"))
+
+
+def results_prev() -> QIcon:
+    return QIcon(QPixmap(path + r"/resultset_previous.png"))

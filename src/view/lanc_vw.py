@@ -32,7 +32,7 @@ from PyQt5.QtWidgets import (
     QLabel,
     QCheckBox,
     QApplication,
-    QDialog,
+    QAction, QMenu,
 )
 from util.toaster import QToaster
 from util.currency_editor import QCurrencyLineEdit
@@ -177,7 +177,8 @@ class LancamentosView(MyDialog):
         self.table.setModel(model)
         self.table.verticalHeader().setVisible(False)
         hheader = self.table.horizontalHeader()
-        hheader.sectionClicked.connect(self.on_table_header_click)
+        hheader.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.table.horizontalHeader().customContextMenuRequested.connect(self.on_table_header_context_menu)
 
         return self.table
 
@@ -223,7 +224,7 @@ class LancamentosView(MyDialog):
         self.import_lanc_view = ImportarLancamentosView(self, self.conta_dc)
         self.import_lanc_view.show()
 
-    def on_table_header_click(self, logical_index):
+    def open_search(self, logical_index):
         col = self.COLUMNS.get(logical_index)
         if not self.search_dialog:
             self.search_dialog = ColumnSearchView(self)
@@ -233,6 +234,17 @@ class LancamentosView(MyDialog):
 
     def on_close_search_dialog(self):
         self.search_dialog = None
+
+    def on_table_header_context_menu(self, point):
+        hheader = self.table.horizontalHeader()
+        column = self.table.indexAt(point)
+        column_id = column.column()
+        if column_id < 2 or column_id > 8:
+            return
+
+        menu = QMenu(self)
+        menu.addAction(QAction(icons.tab_search(), 'Procurar', menu, triggered=lambda: self.open_search(column_id)))
+        menu.popup(hheader.mapToGlobal(point))
 
     def table_cell_changed(self, item: QModelIndex):
         row = item.row()
