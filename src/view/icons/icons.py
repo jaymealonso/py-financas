@@ -74,4 +74,7 @@ def exportar_planilha() -> QIcon:
     return QIcon(QPixmap(path + r"/export_excel.png"))
 
 
+def cancel() -> QIcon:
+    return QIcon(QPixmap(path + r"/cancel.png"))
+
 

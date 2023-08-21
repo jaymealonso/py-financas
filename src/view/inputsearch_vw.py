@@ -1,14 +1,19 @@
 import logging
 from enum import StrEnum
+from collections.abc import Callable
 
 from PyQt5.QtGui import QKeyEvent
 from PyQt5.QtCore import Qt, QModelIndex, pyqtSignal
 from PyQt5.QtWidgets import QDialog, QLineEdit, QPushButton, QWidget, QHBoxLayout, QTableView, QLabel
+from view.icons import icons
 
 
 class TEXTS(StrEnum):
     NADA_ENCONTRADO = 'Nada encontrado.'
     PROCURAR = 'Procurar'
+    SEARCH_BUTTON_TOOLTIP = 'Executa procura'
+    CANCEL_BUTTON_TOOLTIP = 'Ocultar busca'
+    FOUND_MATCHES = "{0} de {1}"
 
 
 class ColumnSearchView(QWidget):
@@ -24,13 +29,16 @@ class ColumnSearchView(QWidget):
         self.found_matches_index: int = -1
 
         layout = QHBoxLayout()
-        self.search_field = QLineEdit()
+        components = ColumnSearchViewComponents(self)
+        self.search_field = components.get_search_field()
         self.found_matches_label = QLabel(TEXTS.NADA_ENCONTRADO)
-        self.search_button = QPushButton(TEXTS.PROCURAR)
-        self.search_button.clicked.connect(lambda: self.on_click_search())
+        self.search_button = components.get_search_button()
+        self.cancel = components.get_cancel_button()
+
         layout.addWidget(self.search_field)
         layout.addWidget(self.found_matches_label)
         layout.addWidget(self.search_button)
+        layout.addWidget(self.cancel)
         self.setLayout(layout)
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
@@ -81,5 +89,34 @@ class ColumnSearchView(QWidget):
             self.found_matches_index = 0
 
         table.setCurrentIndex(set_index)
-        self.found_matches_label.setText(f"{self.found_matches_index + 1} de {len(self.found_matches)}")
+        self.found_matches_label.setText(
+            TEXTS.FOUND_MATCHES.format(self.found_matches_index + 1, len(self.found_matches))
+        )
         self.last_found_string = self.search_field.text()
+
+    def on_cancel(self):
+        self.on_close_signal.emit(self)
+        self.parent().layout().removeWidget(self)
+        self.deleteLater()
+
+
+class ColumnSearchViewComponents:
+    def __init__(self, parent: ColumnSearchView):
+        super(ColumnSearchViewComponents, self).__init__()
+        self.parent = parent
+
+    def get_search_button(self) -> QPushButton:
+        search_button = QPushButton(TEXTS.PROCURAR)
+        search_button.setToolTip(TEXTS.SEARCH_BUTTON_TOOLTIP)
+        search_button.clicked.connect(lambda: self.parent.on_click_search())
+        return search_button
+
+    def get_cancel_button(self) -> QPushButton:
+        cancel = QPushButton()
+        cancel.setIcon(icons.cancel())
+        cancel.setToolTip(TEXTS.CANCEL_BUTTON_TOOLTIP)
+        cancel.clicked.connect(lambda: self.parent.on_cancel())
+        return cancel
+
+    def get_search_field(self) -> QLineEdit:
+        return QLineEdit()

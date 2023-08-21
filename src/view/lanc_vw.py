@@ -4,7 +4,6 @@ import view.contas_vw as cv
 import logging
 
 from util.my_dialog import MyDialog
-from view.categorias_vw import Column
 from view.imp_lanc_vw import ImportarLancamentosView
 from view.anexos_vw import AnexosView
 from view.TableLine import TableLine
@@ -43,7 +42,7 @@ from util.custom_table_delegates import (
     GenericInputDelegate,
     ComboBoxDelegate,
     DateEditDelegate,
-    CurrencyEditDelegate, CurrencyLabelDelegate, ButtonDelegate, IDLabelDelegate,
+    CurrencyEditDelegate, CurrencyLabelDelegate, IDLabelDelegate,
 )
 from enum import auto, IntEnum
 
@@ -261,7 +260,6 @@ class LancamentosView(MyDialog):
             anexos.move_anexos(lancamento, value)
 
         self.model_lancamentos.update(lancamento_id, sql_colname, value)
-        # self.model_lancamentos.load()
 
         # recalcula total
         self.load_model_only(sql_colname == 'data')
