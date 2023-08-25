@@ -1,5 +1,11 @@
 # Financas Pessoais em Python com Qt
 
+Para baixar uma versão executável vá até [releases](https://github.com/jaymealonso/py-financas/releases) e baixe o .zip e descompacte em um diretório ou clique aqui 👉 [py-financas.zip](https://github.com/jaymealonso/py-financas/releases/download/v0.1.0/py-financas.zip)
+
+Opcionalmente você pode compilar ele usando as instruções para build abaixo.
+
+## Descrição
+
 Projeto de finanças pessoais em Python com PyQt5.
 Este projeto se propõe a criar um ***aplicativo de desktop*** que faça o controle das financas pessoais com importação de extratos bancários e categorização de receitas e despesas.
 
@@ -8,12 +14,13 @@ Este projeto tem como inspiração o Microsoft Money mas com a adição de outra
 ### O que este aplicativo faz/tem:
 
 - Histórico de movimentos bancários registrados manualmente pelo usuário.
-- Possibilita a importação de lançamentos em um arquivo excel diretamente no sistema.
+- Possibilita a importação de lançamentos em um arquivo de planilha diretamente no sistema.
 - Possibilita a classificação dos lançamentos em categorias.
 - Exibe a visão mensal dos lançamentos agrupados por categorias.
+- Exporta para planilha a visão mensal categorizada dos lançamentos.
+- Possibilita Armazenamento de documentos relacionados com as despesas(recibos).
 
 futuramente:
-- Possibilita Armazenamento de documentos relacionados com as despesas(recibos).
 - Cria uma agenda de compromissos de pagamento no mes, dia ou periodo selecionado.
 
 ### O Que este aplicativo ***não*** faz:
@@ -26,12 +33,10 @@ futuramente:
 
 ### Outras funcionalidades (planejadas):
 
-- [x] Visão Mensal: Exibição de tabela/planilha receitas e despesas no movimento bancário(extrato) agrupadas por categorias
-- [x] Importar Lançamentos: Importação de XLS/XLSX com movimento bancário
-- [x] Exportar para Excel
-- [ ] Agendamento de despesas recorrentes para controle do que foi pago
-- [x] Organização de uma estrututa de arquivos(PDF/IMG/Outros) em diretórios com fatura, comprovantes de pagamento e outros.
-- [x] Associação das despesas agendadas com os arquivos relacionados de fatura, comprovantes de pagamento e outros.
+- [ ] Exportar os lançamentos para Planilha.
+- [ ] Agendamento de despesas recorrentes para controle do que foi pago.
+- [ ] Associação das despesas agendadas com os arquivos relacionados de fatura, comprovantes de pagamento e outros.
+- [ ] Visão para gerenciamento dos documentos armazenados. 
 
 ## Para fazer build do projeto ver link
 
