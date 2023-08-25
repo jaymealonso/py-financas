@@ -1,15 +1,27 @@
 # Financas Pessoais em Python com Qt
 
-Para baixar uma versão executável vá até [releases](https://github.com/jaymealonso/py-financas/releases) e baixe o .zip e descompacte em um diretório ou clique aqui 👉 [py-financas.zip](https://github.com/jaymealonso/py-financas/releases/download/v0.1.0/py-financas.zip)
-
-Opcionalmente você pode compilar ele usando as instruções para build abaixo.
-
 ## Descrição
 
 Projeto de finanças pessoais em Python com PyQt5.
 Este projeto se propõe a criar um ***aplicativo de desktop*** que faça o controle das financas pessoais com importação de extratos bancários e categorização de receitas e despesas.
 
 Este projeto tem como inspiração o Microsoft Money mas com a adição de outras funcionalidades.
+
+Janela Principal
+![Janela Principal](doc/images/principal.png)
+
+Janela de Lançamentos
+![Janela de Lançamentos](doc/images/lancamentos.png)
+
+Anexos
+![Janela de Lançamentos](doc/images/anexos.png)
+
+Importação de lançamentos do arquivo xlsx
+![Janela de importação](doc/images/import.png)
+
+Visão Mensal
+![Visão mensal](doc/images/visao_mensal.png)
+
 
 ### O que este aplicativo faz/tem:
 
@@ -37,6 +49,11 @@ futuramente:
 - [ ] Agendamento de despesas recorrentes para controle do que foi pago.
 - [ ] Associação das despesas agendadas com os arquivos relacionados de fatura, comprovantes de pagamento e outros.
 - [ ] Visão para gerenciamento dos documentos armazenados. 
+
+### Como instalar
+Para baixar uma versão executável vá até [releases](https://github.com/jaymealonso/py-financas/releases) e baixe o .zip e descompacte em um diretório ou clique aqui 👉 [py-financas.zip](https://github.com/jaymealonso/py-financas/releases/download/v0.1.0/py-financas.zip)
+
+Opcionalmente você pode compilar ele usando as instruções para build abaixo.
 
 ## Para fazer build do projeto ver link
 
