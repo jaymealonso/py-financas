@@ -176,6 +176,7 @@ class LancamentosView(MyDialog):
         model.setHorizontalHeaderLabels([col["title"] for col in self.COLUMNS.values()])
         self.table.setModel(model)
         self.table.verticalHeader().setVisible(False)
+        # Enable context menu on the column header
         hheader = self.table.horizontalHeader()
         hheader.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.horizontalHeader().customContextMenuRequested.connect(self.on_table_header_context_menu)

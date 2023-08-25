@@ -67,7 +67,7 @@ class ContasView(QWidget):
 
         self.setLayout(layout)
 
-    def get_toolbar(self):
+    def get_toolbar(self) -> QToolBar:
         add_act = self.toolbar.addAction(icons.add(), "Adicionar Conta")
         add_act.triggered.connect(lambda: self.on_add_conta())
         self.toolbar.addSeparator()

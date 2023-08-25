@@ -300,13 +300,18 @@ class ImportarLancamentosView(QDialog):
         prog_bar.setRange(1, len(list(ws.rows)))
         self.layout().addWidget(prog_bar)
 
+        rowcount = 1 # starts at one because of the header line
+        for row in ws.rows:
+            rowcount += 1
+        self.table.setRowCount(rowcount)
+
         for row in ws.iter_rows():
             rowvalues = [x.value for x in row if x.value != ""]
             if not rowvalues:
                 skipcount += 1
                 continue
 
-            self.table.insertRow(row_no)
+            # self.table.insertRow(row_no)
             column_no = 0
 
             logging.info(f"Adding row {row_no} ...")

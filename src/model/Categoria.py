@@ -19,18 +19,12 @@ class Categorias:
 
         categ_vazio = ORMCategorias(id=0, nm_categoria="(vazio)")
         categ_vazio.tot_lancamentos = 0
-        # categ_vazio_tuple = tuple([categ_vazio.__getattribute__(x) for x in categ_vazio.__dict__ if x[0] != '_'])
 
         self.__categorias.append(categ_vazio)
-        with Session(self.__db.engine) as session:
-            # result = session.query(
-            #     ORMCategorias,
-            #     func.count(ORMLancamentos.id).label("tot_lancamentos"),
-            # )\
-            #     .join(ORMCategorias.Lancamentos, isouter=True)\
-            #     .group_by(ORMCategorias) \
-            #     .all()
 
+        # TODO: corrigir busca de valores de categoria vazio,
+        #  somatoria de nr_lancamentos está errada
+        with Session(self.__db.engine) as session:
             result = session.execute(
                 select(
                     ORMCategorias.id,
@@ -72,3 +66,14 @@ class Categorias:
             trans = conn.begin()
             conn.execute(stmt)
             trans.commit()
+
+    def delete(self, categoria_id: int):
+        """
+        Elimina categoria com o ID enviado
+        """
+        with Session(self.__db.engine) as session:
+            session.query(ORMCategorias).filter(
+                ORMCategorias.id == categoria_id
+            ).delete()
+
+            session.commit()

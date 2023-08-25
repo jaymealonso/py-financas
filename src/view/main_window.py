@@ -67,7 +67,7 @@ class MainWindow(QMainWindow):
 
         self.tabbar.addTab(ContasView(self), "Contas")
         self.tabbar.addTab(CategoriasView(), "Categorias")
-        self.tabbar.addTab(AgendaView(), "Agenda")
+        # self.tabbar.addTab(AgendaView(), "Agenda")
 
         return self.tabbar
 
@@ -78,17 +78,17 @@ class MainWindow(QMainWindow):
         toolbar.setIconSize(QSize(64, 64))
         toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
 
-        save_act = toolbar.addAction(icons.load(), "Carregar")
-        save_act.triggered.connect(self.on_load)
-
-        load_act = toolbar.addAction(icons.save(), "Salvar")
-        load_act.triggered.connect(self.on_save)
-
-        undo_act = toolbar.addAction(icons.undo(), "Desfazer")
-        undo_act.triggered.connect(self.on_undo)
-
-        redo_act = toolbar.addAction(icons.redo(), "Refazer")
-        redo_act.triggered.connect(self.on_redo)
+        # save_act = toolbar.addAction(icons.load(), "Carregar")
+        # save_act.triggered.connect(self.on_load)
+        #
+        # load_act = toolbar.addAction(icons.save(), "Salvar")
+        # load_act.triggered.connect(self.on_save)
+        #
+        # undo_act = toolbar.addAction(icons.undo(), "Desfazer")
+        # undo_act.triggered.connect(self.on_undo)
+        #
+        # redo_act = toolbar.addAction(icons.redo(), "Refazer")
+        # redo_act.triggered.connect(self.on_redo)
 
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
