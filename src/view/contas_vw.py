@@ -1,8 +1,9 @@
-from enum import StrEnum
+from enum import StrEnum, IntEnum, auto
 
 import view.icons.icons as icons
 import view.lanc_vw
 import logging
+import util.curr_formatter as curr
 from view.TableLine import TableLine
 from view.visao_mensal_vw import VisaoGeralView
 from typing import Tuple
@@ -26,7 +27,7 @@ from PyQt5.QtWidgets import (
     QTableView, QDialog,
 )
 from model.Conta import ContasTipo, Contas, Conta
-from util.custom_table_delegates import GenericInputDelegate, ComboBoxDelegate
+from util.custom_table_delegates import GenericInputDelegate, ComboBoxDelegate, IDLabelDelegate, CurrencyLabelDelegate
 from model.db.db_orm import Lancamentos as ORMLancamentos
 
 logging.basicConfig(
@@ -47,25 +48,40 @@ class TEXTS(StrEnum):
 
 
 class ContasView(QWidget):
+    class Column(IntEnum):
+        ID = 0
+        DESCRICAO = auto()
+        NUMERO = auto()
+        MOEDA = auto()
+        TIPO = auto()
+        TOTAL = auto()
+        N_CLASSIF = auto()
+        CLASSIFIC = auto()
+        REMOVER = auto()
+        LANCAMENTOS = auto()
+        VISAO_MENSAL = auto()
+
     COLUMNS = {
-        0: {"title": "ID", "sql_colname": "_id"},
-        1: {"title": "Descrição", "sql_colname": "descricao"},
-        2: {"title": "Número", "sql_colname": "numero"},
-        3: {"title": "Moeda", "sql_colname": "moeda"},
-        4: {"title": "Tipo", "sql_colname": "tipo_id"},
-        5: {"title": "Total"},
-        6: {"title": "Ñ classif."},
-        7: {"title": "Classif."},
-        8: {"title": "Remover"},
-        9: {"title": "Lanç."},
-        10: {"title": "Vis. Mensal"},
+        Column.ID: {"title": "ID", "sql_colname": "_id"},
+        Column.DESCRICAO: {"title": "Descrição", "sql_colname": "descricao"},
+        Column.NUMERO: {"title": "Número", "sql_colname": "numero"},
+        Column.MOEDA: {"title": "Moeda", "sql_colname": "moeda"},
+        Column.TIPO: {"title": "Tipo", "sql_colname": "tipo_id"},
+        Column.TOTAL: {"title": "Total"},
+        Column.N_CLASSIF: {"title": "Ñ classif."},
+        Column.CLASSIFIC: {"title": "Classif."},
+        Column.REMOVER: {"title": "Remover"},
+        Column.LANCAMENTOS: {"title": "Lanç."},
+        Column.VISAO_MENSAL: {"title": "Vis. Mensal"},
     }
 
     def __init__(self, parent: QMainWindow):
         super(ContasView, self).__init__()
 
         layout = QVBoxLayout()
+        self.setLayout(layout)
 
+        components = ContasViewComponents(self)
         self.main_window = parent
         self.toolbar = QToolBar()
         self.table = QTableView()
@@ -74,19 +90,9 @@ class ContasView(QWidget):
         self.lanc_windows_open: Tuple[view.lanc_vw.LancamentosView] = {}
         self.visao_geral_window = None
 
-        layout.addWidget(self.get_toolbar())
-        layout.addWidget(self.get_table())
+        components.add_toolbar()
+        components.add_table()
 
-        self.setLayout(layout)
-
-    def get_toolbar(self) -> QToolBar:
-        add_act = self.toolbar.addAction(icons.add(), TEXTS.ADD_ACCOUNT_BTN_TEXT)
-        add_act.triggered.connect(lambda: self.on_add_conta())
-        self.toolbar.addSeparator()
-        refresh_act = self.toolbar.addAction(icons.atualizar(), TEXTS.REFRESH)
-        refresh_act.triggered.connect(lambda: self.load_table_data())
-
-        return self.toolbar
 
     def on_add_conta(self, show_message=True):
         logging.debug("Adding new conta in the database...")
@@ -172,15 +178,6 @@ class ContasView(QWidget):
         )
         self.load_table_data()
 
-    def get_table(self):
-        model = QStandardItemModel(0, len(self.COLUMNS))
-        model.setHorizontalHeaderLabels([col["title"] for col in self.COLUMNS.values()])
-        self.table.setModel(model)
-        self.table.verticalHeader().setVisible(False)
-        self.load_table_data()
-
-        return self.table
-
     def model_item_changed(self, item: QModelIndex):
         row = item.row()
         col = item.column()
@@ -221,64 +218,87 @@ class ContasView(QWidget):
             new_index = model.rowCount()
             model.insertRow(new_index)
 
-            self.table.setIndexWidget(
-                model.index(new_index, 0), line.get_label_for_id(str(row.id))
-            )
+            # self.table.setIndexWidget(
+            #     model.index(new_index, 0), line.get_label_for_id(str(row.id))
+            # )
 
             model.setItemData(
-                model.index(new_index, 1),
+                model.index(new_index, self.Column.ID),
+                {Qt.DisplayRole: row.id, Qt.UserRole: row.id},
+            )
+            model.setItemData(
+                model.index(new_index, self.Column.DESCRICAO),
                 {Qt.DisplayRole: row.descricao, Qt.UserRole: row.descricao},
             )
             model.setItemData(
-                model.index(new_index, 2),
+                model.index(new_index, self.Column.NUMERO),
                 {Qt.DisplayRole: row.numero, Qt.UserRole: row.numero},
             )
             model.setItemData(
-                model.index(new_index, 3),
+                model.index(new_index, self.Column.MOEDA),
                 {Qt.DisplayRole: row.moeda, Qt.UserRole: row.moeda},
             )
             tipo_conta_descr = next((item.descricao for item in self.model_tps_conta.items if item.id == row.tipo_id), "")
             model.setItemData(
-                model.index(new_index, 4),
+                model.index(new_index, self.Column.TIPO),
                 {Qt.DisplayRole: tipo_conta_descr, Qt.UserRole: row.tipo_id},
             )
+            model.setItemData(
+                model.index(new_index, self.Column.TOTAL),
+                {Qt.DisplayRole: curr.str_curr_to_locale(row.total or 0),
+                 Qt.UserRole: row.total},
+            )
+            model.setItemData(
+                model.index(new_index, self.Column.N_CLASSIF),
+                {Qt.DisplayRole: row.lanc_n_class, Qt.UserRole: row.lanc_n_class * -1},
+            )
+            model.setItemData(
+                model.index(new_index, self.Column.CLASSIFIC),
+                {Qt.DisplayRole: row.lanc_classif, Qt.UserRole: row.lanc_classif},
+            )
+
 
             # Fixed Values
-            self.table.setIndexWidget(
-                model.index(new_index, 5), line.get_label_for_total_curr(row.total)
-            )
-            self.table.setIndexWidget(
-                model.index(new_index, 6), line.get_label_for_n_class(row.lanc_n_class)
-            )
-            self.table.setIndexWidget(
-                model.index(new_index, 7), line.get_label_for_classif(row.lanc_classif)
-            )
+            # self.table.setIndexWidget(
+            #     model.index(new_index, 5), line.get_label_for_total_curr(row.total)
+            # )
+            # self.table.setIndexWidget(
+            #     model.index(new_index, 6), line.get_label_for_n_class(row.lanc_n_class)
+            # )
+            # self.table.setIndexWidget(
+            #     model.index(new_index, 7), line.get_label_for_classif(row.lanc_classif)
+            # )
 
             # Buttons
             self.table.setIndexWidget(
-                model.index(new_index, 8), line.get_del_button(row.id)
+                model.index(new_index, self.Column.REMOVER), line.get_del_button(row.id)
             )
             self.table.setIndexWidget(
-                model.index(new_index, 9), line.get_open_lanc_button(row.id)
+                model.index(new_index, self.Column.LANCAMENTOS), line.get_open_lanc_button(row.id)
             )
             self.table.setIndexWidget(
-                model.index(new_index, 10), line.get_visao_mensal(row.id)
+                model.index(new_index, self.Column.VISAO_MENSAL), line.get_visao_mensal(row.id)
             )
 
-        self.table.setItemDelegateForColumn(1, GenericInputDelegate(self.table))
-        self.table.setItemDelegateForColumn(2, GenericInputDelegate(self.table))
-        self.table.setItemDelegateForColumn(3, GenericInputDelegate(self.table))
+        self.table.setItemDelegateForColumn(self.Column.ID, IDLabelDelegate(self.table))
+        self.table.setItemDelegateForColumn(self.Column.DESCRICAO, GenericInputDelegate(self.table))
+        self.table.setItemDelegateForColumn(self.Column.NUMERO, GenericInputDelegate(self.table))
+        self.table.setItemDelegateForColumn(self.Column.MOEDA, GenericInputDelegate(self.table))
+        self.table.setItemDelegateForColumn(self.Column.TOTAL, CurrencyLabelDelegate(self.table, bold=True))
+        self.table.setItemDelegateForColumn(self.Column.N_CLASSIF, CurrencyLabelDelegate(self.table, bold=True, center=True))
+        self.table.setItemDelegateForColumn(self.Column.CLASSIFIC, CurrencyLabelDelegate(self.table, bold=True, center=True))
 
-        self.table.setColumnWidth(0, 100)
-        self.table.resizeColumnToContents(1)
-        self.table.resizeColumnToContents(2)
-        self.table.resizeColumnToContents(3)
-        self.table.setColumnWidth(4, 260)
-        self.table.setColumnWidth(6, 120)
-        self.table.setColumnWidth(7, 120)
-        self.table.setColumnWidth(8, 100)
-        self.table.setColumnWidth(9, 100)
-        self.table.setColumnWidth(10, 130)
+        self.table.setColumnWidth(self.Column.ID, 100)
+        self.table.resizeColumnToContents(self.Column.DESCRICAO)
+        self.table.resizeColumnToContents(self.Column.NUMERO)
+        self.table.resizeColumnToContents(self.Column.MOEDA)
+        self.table.setColumnWidth(self.Column.TIPO, 230)
+        self.table.setColumnWidth(self.Column.TOTAL, 220)
+        self.table.setColumnWidth(self.Column.N_CLASSIF, 120)
+        self.table.setColumnWidth(self.Column.CLASSIFIC, 120)
+        self.table.setColumnWidth(self.Column.REMOVER, 100)
+        self.table.setColumnWidth(self.Column.LANCAMENTOS, 100)
+        self.table.setColumnWidth(self.Column.VISAO_MENSAL, 100)
 
         model.itemChanged.connect(self.model_item_changed)
         logging.debug("Method itemChanged connected again!")
@@ -385,3 +405,29 @@ class ContaTableLine(TableLine):
             lambda: self.parentOne.on_open_visao_mensal(conta_id)
         )
         return op_lanc_pbutt
+
+
+class ContasViewComponents:
+    def __init__(self, parent: ContasView):
+        super(ContasViewComponents, self).__init__()
+        self.parent = parent
+
+    def add_toolbar(self) -> None:
+        layout = self.parent.layout()
+        add_act = self.parent.toolbar.addAction(icons.add(), TEXTS.ADD_ACCOUNT_BTN_TEXT)
+        add_act.triggered.connect(lambda: self.parent.on_add_conta())
+        self.parent.toolbar.addSeparator()
+        refresh_act = self.parent.toolbar.addAction(icons.atualizar(), TEXTS.REFRESH)
+        refresh_act.triggered.connect(lambda: self.parent.load_table_data())
+        layout.addWidget(self.parent.toolbar)
+
+    def add_table(self):
+        layout = self.parent.layout()
+        model = QStandardItemModel(0, len(self.parent.COLUMNS))
+        model.setHorizontalHeaderLabels([col["title"] for col in self.parent.COLUMNS.values()])
+        self.parent.table.setModel(model)
+        self.parent.table.verticalHeader().setVisible(False)
+        self.parent.load_table_data()
+
+        layout.addWidget(self.parent.table)
+

@@ -445,7 +445,7 @@ class LancamentosView(MyDialog):
         self.table.setItemDelegateForColumn(self.Column.DATA, col3_del)
         self.table.setItemDelegateForColumn(self.Column.CATEGORIA_ID, col4_del)
         self.table.setItemDelegateForColumn(self.Column.VALOR, col5_del)
-        self.table.setItemDelegateForColumn(self.Column.SALDO, CurrencyLabelDelegate(self.table))
+        self.table.setItemDelegateForColumn(self.Column.SALDO, CurrencyLabelDelegate(self.table, bold=True))
         # self.table.setItemDelegateForColumn(self.Column.REMOVER, col8_del)
         # self.table.setItemDelegateForColumn(self.Column.ANEXOS, col7_del)
 

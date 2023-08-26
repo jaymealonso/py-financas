@@ -4,7 +4,7 @@ import logging
 import util.curr_formatter as curr
 from collections.abc import Callable
 from PyQt5.QtCore import Qt, QModelIndex, pyqtSignal, QStringListModel, QPoint
-from PyQt5.QtGui import QColor, QIcon, QRegion
+from PyQt5.QtGui import QColor, QIcon, QRegion, QFont
 from PyQt5.QtWidgets import (
     QWidget,
     QComboBox,
@@ -97,7 +97,8 @@ class IDLabelDelegate(QStyledItemDelegate):
         text = ""
         try:
             item_data = self.parent_table.model().itemData(index)
-            text = item_data.get(Qt.UserRole) # "item_data[Qt.DisplayRole]
+            text = item_data.get(Qt.UserRole)  # "item_data[Qt.DisplayRole]
+            font = (item_data.get(Qt.FontRole) or QFont())
         except Exception as e:
             logging.error(f"Exception {e}")
 
@@ -106,15 +107,18 @@ class IDLabelDelegate(QStyledItemDelegate):
         option.rect.setWidth(option.rect.width() - 3)
         option.rect.center()
 
+        painter.setFont(font)
         painter.drawText(option.rect, Qt.AlignHCenter + Qt.AlignVCenter, str(text))
         painter.restore()
 
 
 class CurrencyLabelDelegate(QStyledItemDelegate):
-    def __init__(self, parent_table: QTableView):
+    def __init__(self, parent_table: QTableView, center: bool = False, bold: bool = False):
         super(CurrencyLabelDelegate, self).__init__(parent_table)
         self.parent_table = parent_table
         logging.debug("Initialize Label")
+        self.center = center
+        self.bold = bold
 
     def createEditor(self, parent, option, index):
         pass
@@ -132,8 +136,9 @@ class CurrencyLabelDelegate(QStyledItemDelegate):
             item_data = self.parent_table.model().itemData(index)
             if not item_data:
                 return
-            value = item_data[Qt.UserRole]
-            text = item_data[Qt.DisplayRole]
+            value = item_data.get(Qt.UserRole)
+            text = item_data.get(Qt.DisplayRole)
+            font = (item_data.get(Qt.FontRole) or QFont())
         except Exception as e:
             logging.error(f"Exception {e}")
 
@@ -144,8 +149,13 @@ class CurrencyLabelDelegate(QStyledItemDelegate):
             painter.setPen(QColor(Qt.darkGreen))
         option.rect.setWidth(option.rect.width() - 3)
         option.rect.center()
+        if self.bold:
+            font.setBold(True)
 
-        painter.drawText(option.rect, Qt.AlignRight + Qt.AlignVCenter, str(text))
+        flags = Qt.AlignVCenter + (Qt.AlignHCenter if self.center else Qt.AlignRight)
+        painter.setFont(font)
+
+        painter.drawText(option.rect, flags, str(text))
         painter.restore()
 
 

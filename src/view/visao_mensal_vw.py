@@ -215,12 +215,13 @@ class VisaoGeralView(MyDialog):
 
         # total last row
         row_index += 1
+        font = QtGui.QFont()
+        font.setBold(True)
         for key, col_label in enumerate(self.header_labels):
             if key < 1:
                 model.setItemData(
                     model.index(row_index, key), {
-                        Qt.DisplayRole: "TOTAL",
-                        Qt.UserRole: "TOTAL"
+                        Qt.DisplayRole: "TOTAL", Qt.UserRole: "TOTAL", Qt.FontRole: font
                     }
                 )
                 continue
@@ -235,7 +236,7 @@ class VisaoGeralView(MyDialog):
             model.setItemData(
                 model.index(row_index, key), {
                     Qt.DisplayRole: str_curr_to_locale(total or 0),
-                    Qt.UserRole: total
+                    Qt.UserRole: total, Qt.FontRole: font
                 }
             )
 
