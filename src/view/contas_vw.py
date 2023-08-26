@@ -1,3 +1,5 @@
+from enum import StrEnum
+
 import view.icons.icons as icons
 import view.lanc_vw
 import logging
@@ -34,6 +36,16 @@ logging.basicConfig(
 )
 
 
+class TEXTS(StrEnum):
+    ADD_ACCOUNT_BTN_TEXT = "Adicionar Conta"
+    REFRESH = "Atualizar"
+    REMOVE_ACCOUNT_TITLE = "Remove conta?"
+    REMOVE_ACCOUNT_QUESTION = "Deseja remover a conta {0} ?"
+    REMOVE_ACCOUNT_TOOLTIP = "Eliminar Conta"
+    OPEN_POSTINGS = "Abrir Lançamentos"
+    OPEN_MONTHLY_VIEW = "Abrir Visão Mensal"
+
+
 class ContasView(QWidget):
     COLUMNS = {
         0: {"title": "ID", "sql_colname": "_id"},
@@ -68,10 +80,10 @@ class ContasView(QWidget):
         self.setLayout(layout)
 
     def get_toolbar(self) -> QToolBar:
-        add_act = self.toolbar.addAction(icons.add(), "Adicionar Conta")
+        add_act = self.toolbar.addAction(icons.add(), TEXTS.ADD_ACCOUNT_BTN_TEXT)
         add_act.triggered.connect(lambda: self.on_add_conta())
         self.toolbar.addSeparator()
-        refresh_act = self.toolbar.addAction(icons.atualizar(), "Atualizar")
+        refresh_act = self.toolbar.addAction(icons.atualizar(), TEXTS.REFRESH)
         refresh_act.triggered.connect(lambda: self.load_table_data())
 
         return self.toolbar
@@ -86,8 +98,8 @@ class ContasView(QWidget):
     def on_del_conta(self, conta_id: int):
         button = QMessageBox.question(
             self,
-            "Remove conta?",
-            f"Deseja remover a conta {conta_id} ?",
+            TEXTS.REMOVE_ACCOUNT_TITLE,
+            TEXTS.REMOVE_ACCOUNT_QUESTION.format(conta_id),
             buttons=QMessageBox.Yes | QMessageBox.No,
             defaultButton=QMessageBox.No,
         )
@@ -351,14 +363,14 @@ class ContaTableLine(TableLine):
 
     def get_del_button(self, conta_id: int):
         del_pbutt = QPushButton()
-        del_pbutt.setToolTip("Eliminar Conta")
+        del_pbutt.setToolTip(TEXTS.REMOVE_ACCOUNT_TOOLTIP)
         del_pbutt.setIcon(icons.delete())
         del_pbutt.clicked.connect(lambda: self.parentOne.on_del_conta(conta_id))
         return del_pbutt
 
     def get_open_lanc_button(self, conta_id: int):
         op_lanc_pbutt = QPushButton()
-        op_lanc_pbutt.setToolTip("Abrir Lançamentos")
+        op_lanc_pbutt.setToolTip(TEXTS.OPEN_POSTINGS)
         op_lanc_pbutt.setIcon(icons.open_lancamentos())
         op_lanc_pbutt.clicked.connect(
             lambda: self.parentOne.on_open_lancamentos(conta_id)
@@ -367,7 +379,7 @@ class ContaTableLine(TableLine):
 
     def get_visao_mensal(self, conta_id: int):
         op_lanc_pbutt = QPushButton()
-        op_lanc_pbutt.setToolTip("Abrir Visão Mensal")
+        op_lanc_pbutt.setToolTip(TEXTS.OPEN_MONTHLY_VIEW)
         op_lanc_pbutt.setIcon(icons.visao_mensal())
         op_lanc_pbutt.clicked.connect(
             lambda: self.parentOne.on_open_visao_mensal(conta_id)

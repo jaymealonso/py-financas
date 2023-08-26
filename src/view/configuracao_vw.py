@@ -73,6 +73,7 @@ class ConfiguracaocComponents:
         layout.setContentsMargins(0, 0, 0, 0)
 
         edit = QLineEdit(db_path)
+        edit.setReadOnly(True)
         layout.addWidget(edit)
         button_procurar = QPushButton(TEXTS.SEARCH_FILE)
         button_procurar.setFixedWidth(150)
