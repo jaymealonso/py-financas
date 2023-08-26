@@ -1,5 +1,7 @@
 # Financas Pessoais em Python com Qt
 
+[Como Instalar / Download ](#como-instalar)
+
 ## Descrição
 
 Projeto de finanças pessoais em Python com PyQt5.
@@ -51,6 +53,7 @@ futuramente:
 - [ ] Visão para gerenciamento dos documentos armazenados. 
 
 ### Como instalar
+
 Para baixar uma versão executável vá até [releases](https://github.com/jaymealonso/py-financas/releases) e baixe o .zip e descompacte em um diretório ou clique aqui 👉 [py-financas.zip](https://github.com/jaymealonso/py-financas/releases/download/v0.1.0/py-financas.zip)
 
 Opcionalmente você pode compilar ele usando as instruções para build abaixo.
