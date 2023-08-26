@@ -12,6 +12,7 @@ class MyDialog(QDialog):
 
         self.setWindowFlag(Qt.WindowMinimizeButtonHint, True)
         self.setWindowFlag(Qt.WindowMaximizeButtonHint, True)
+        self.setWindowFlag(Qt.WindowContextHelpButtonHint, False)
 
     def keyPressEvent(self, event):
         """Fecha a janela mas salva a geometria dela quando apertar o ESC"""

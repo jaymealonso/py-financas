@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import (
     QSizePolicy,
 )
 from util.toaster import QToaster
+from view.configuracao_vw import ConfiguracaoView
 from view.contas_vw import ContasView
 from view.agenda_vw import AgendaView
 from view.categorias_vw import CategoriasView
@@ -106,7 +107,8 @@ class MainWindow(QMainWindow):
         pass
 
     def on_configure(self):
-        QToaster.showMessage(self, "On CONFIGURAR clicked")
+        config_vw = ConfiguracaoView(self)
+        config_vw.show()
 
     def on_load(self, s):
         QToaster.showMessage(self, "On LOAD clicked")

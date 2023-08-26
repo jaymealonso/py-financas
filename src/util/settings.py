@@ -163,12 +163,15 @@ class Settings(metaclass=SingletonMeta):
         self.settings.setValue("db_path", path)
         self.settings.endGroup()
 
+    def get_theme_ini_value(self) -> str:
+        return self.settings.value(f"{Settings.PADROES}/theme")
+
     @property
     def theme(self) -> str:
         theme_name = self.settings.value(f"{Settings.PADROES}/theme")
         if theme_name == "" or theme_name is None:
             theme_name = "light" if darkdetect.isLight() else "dark"
-            self.theme = theme_name
+            # self.theme = theme_name
         return theme_name
 
     @theme.setter
