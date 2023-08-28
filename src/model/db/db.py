@@ -1,6 +1,11 @@
 import logging
-from sqlalchemy import create_engine, event
+
+from PyQt5.QtCore import QCoreApplication
+from PyQt5.QtWidgets import QMessageBox
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.engine import Engine
+from sqlalchemy.exc import SQLAlchemyError, OperationalError, ObjectNotExecutableError
+
 from model.db.db_orm import Base
 from model.initial_load.initial_db_data import DataLoader
 from util.settings import Settings
@@ -20,6 +25,17 @@ class Database(metaclass=SingletonMeta):
         database_path: str = self.settings.db_location
         logging.debug(f"Conectando a base de dados: {database_path}")
         self.engine: Engine = create_engine(f"sqlite:///{database_path}", echo=True)
+
+    def exists(self) -> bool:
+        try:
+            self.engine.connect()
+            with self.engine.connect() as conn:
+                conn.execute(text("SELECT * FROM sqlite_master"))
+            logging.info("Database check exists SUCCESS!")
+            return True
+        except:
+            logging.error("Database check exists FAILED!")
+            return False
 
     @event.listens_for(Engine, "connect")
     def set_sqlite_pragma(dbapi_connection, connection_record):

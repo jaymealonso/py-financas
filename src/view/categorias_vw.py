@@ -155,7 +155,7 @@ class CategoriasView(QWidget):
         categoria_descr = model.item(item_found.row(), Column.NM_CATEGORIA).data(Qt.UserRole)
         nr_lancamentos = model.item(item_found.row(), Column.NR_LANCAMENTOS).data(Qt.UserRole)
         if nr_lancamentos != 0:
-            QMessageBox(text="Não é possivel remover uma categoria com lançamentos associados.").exec()
+            QMessageBox.critical(self, "Erro", "Não é possivel remover uma categoria com lançamentos associados.")
             return
 
         button = QMessageBox.question(

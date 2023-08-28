@@ -3,8 +3,8 @@ import view.icons.icons as icons
 from util.settings import Settings
 from pathlib import Path
 from argparse import ArgumentParser
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtCore import QFile, QTextStream, QDir
+from PyQt5.QtWidgets import QApplication, QMessageBox
+from PyQt5.QtCore import QFile, QTextStream, QDir, QCoreApplication
 from view.main_window import MainWindow
 from model.db.db import Database
 
@@ -14,17 +14,23 @@ class MainApp:
         self.settings = Settings()
         self.arg_parser: ArgumentParser = self.configure_arguments_parser()
         self.args = self.arg_parser.parse_args()
+        self.app = self.create_app()
+        self.db: Database = None
+        self.setup_theme(self.args.theme)
 
+    def startup(self):
         self.db = self.prepare_database(
             drop=self.args.drop, populate_sample=self.args.sample
         )
-        self.app = self.create_app()
-        self.setup_theme(self.args.theme)
 
     def prepare_database(
         self, drop: bool = False, populate_sample: bool = False
     ) -> Database:
         db = Database()
+        if not db.exists():
+            QMessageBox.critical(None, 'Erro ao abrir base de dados',
+                'Arquivo escolhido como base de dados não é compativel.')
+            sys.exit(1)
         if drop:
             db.drop_all()
         db.run_initial_load(populate_sample)
@@ -62,10 +68,10 @@ class MainApp:
         return parser
 
     def create_app(self) -> QApplication:
-        app = QApplication([])
-        app.setStyle("Fusion")
-        app.setWindowIcon(icons.app_icon())
-        return app
+        new_app = QApplication([])
+        new_app.setStyle("Fusion")
+        new_app.setWindowIcon(icons.app_icon())
+        return new_app
 
     def show(self):
         self.window = MainWindow(self.app)
@@ -87,6 +93,7 @@ class MainApp:
 
 if __name__ == "__main__":
     app = MainApp()
+    app.startup()
     app.show()
 
     sys.exit(app.app.exec_())

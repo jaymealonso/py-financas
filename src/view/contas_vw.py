@@ -124,7 +124,7 @@ class ContasView(QWidget):
             msg = f"Abertura automática de janela de lançamentos da conta: {conta_id}".join(
                 " não foi possível.\nConta não encontrada!"
             )
-            QMessageBox(text=msg).exec()
+            QMessageBox.critical(self, "Erro", msg)
             return
 
         if conta_id not in self.lanc_windows_open:
