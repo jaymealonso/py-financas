@@ -1,6 +1,6 @@
 
-@REM del dist\py-financas.exe /Q
-@REM rmdir dist\themes /S /Q
+del dist\py-financas.exe /Q
+rmdir dist\themes /S /Q
 
 pyinstaller src\main.py ^
 --name py-financas ^
@@ -16,4 +16,4 @@ pyinstaller src\main.py ^
 
 @REM "src\view\icons\app-icon-32.png"
 
-@REM xcopy themes dist\themes /S /Y /I
+xcopy themes dist\themes /S /Y /I
