@@ -1,7 +1,6 @@
 import locale
 import logging
 import os.path
-from random import randint
 
 import openpyxl
 from PyQt5 import QtGui
@@ -11,7 +10,7 @@ from datetime import date, datetime
 from dataclasses import dataclass
 from model.Conta import Conta
 from PyQt5.QtGui import QCursor, QCloseEvent
-from PyQt5.QtCore import Qt, pyqtSignal, QTimer
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,

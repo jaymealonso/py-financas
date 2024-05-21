@@ -6,7 +6,7 @@
     "configurations": [
         {
             "name": "Python: Main Light",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/src/main.py",
             "console": "integratedTerminal",
@@ -19,7 +19,7 @@
         },
         {
             "name": "Python: Main Dark",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/src/main.py",
             "console": "integratedTerminal",
@@ -32,7 +32,7 @@
         },
         {
             "name": "Python: Main, Abre lançamento 5",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/src/main.py",
             "console": "integratedTerminal",
@@ -47,7 +47,7 @@
         },
         {
             "name": "Python: TableTest",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/tabletest.py",
             "console": "integratedTerminal",

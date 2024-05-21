@@ -40,6 +40,7 @@
  *  ---------------
  */
 
+
 QToolTip
 {
     /* 0.2ex is the smallest value that's not ignored on Windows. */
@@ -54,6 +55,7 @@ QToolTip
 
 QWidget
 {
+    font-size: 9pt;
     color: #eff0f1;
     background-color: #31363b;
     selection-background-color: #3daee9;

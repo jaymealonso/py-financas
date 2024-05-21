@@ -54,6 +54,7 @@ QToolTip
 
 QWidget
 {
+    font-size: 9pt;    
     color: #31363b;
     background-color: #eff0f1;
     selection-background-color: rgba(51, 164, 223, 0.5);

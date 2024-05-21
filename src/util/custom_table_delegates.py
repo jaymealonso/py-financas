@@ -3,9 +3,11 @@ import locale
 import logging
 import util.curr_formatter as curr
 from collections.abc import Callable
-from PyQt5.QtCore import Qt, QModelIndex, pyqtSignal, QStringListModel, QPoint
-from PyQt5.QtGui import QColor, QIcon, QRegion, QFont
+from PyQt5.QtCore import QEvent, QObject, Qt, QModelIndex, pyqtSignal, QStringListModel, QPoint, QTimer
+from PyQt5.QtGui import QColor, QHideEvent, QIcon, QRegion, QFont, QPalette
 from PyQt5.QtWidgets import (
+        QStylePainter, QStyleOptionComboBox,
+    QAbstractItemView,
     QWidget,
     QComboBox,
     QApplication,
@@ -30,6 +32,50 @@ logging.basicConfig(
 
 class EmitterItemDelegade(QStyledItemDelegate):
     changed = pyqtSignal(QModelIndex, QWidget)
+
+
+class ComboBoxWithSearch(QComboBox):
+    def __init__(self, parent: QWidget, items: list[str]):
+        super().__init__(parent)
+        self.items = items
+        self.addItems(self.items)
+
+        self.setEditable(True)
+
+        model = QStringListModel(self.items)
+        self.setModel(model)
+        # self.clearEditText()
+        self.completer = QCompleter(self.model(), self)
+        self.completer.setCaseSensitivity(Qt.CaseInsensitive)
+        # self.completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
+        self.setCompleter(self.completer)
+
+    # def eventFilter(self, obj: QObject | None, event: QEvent | None) -> bool:
+    #     eventType = event.type()
+    #     if eventType in (
+    #         event.Type.KeyPress, event.Type.KeyRelease, 
+    #         event.Type.MouseButtonPress, event.Type.MouseMove, 
+    #         event.Type.MouseButtonRelease, 
+    #         event.Type.Wheel, 
+    #     ):
+    #         logging.debug("event ignored")
+    #         return True
+    #     if eventType == event.Type.Hide:
+    #         logging.debug("show event")
+    #         obj.show()
+    #         return True
+    #     elif eventType == event.Type.FocusOut:
+    #         logging.debug("focus out")
+    #         QTimer.singleShot(0, obj.setFocus)
+    #         return True
+    #     return super().eventFilter(obj, event)
+
+    def hidePopup(self) -> None:
+        logging.debug("BLOCKED *** Hide pop")
+        pass
+        # return super().hidePopup()
+
+
 
 
 # TODO: fazer um delegate para os botoes, este abaixo ainda nao funciona e ainda nao está sendo usado
@@ -235,16 +281,19 @@ class ComboBoxDelegate(EmitterItemDelegade):
         self.parent_table = parent_table
         self.key_values = values
 
-    def createEditor(self, widget, option, index):
+    # def paint(self, painter, option, index):
+    #     if isinstance(self.parent(), QAbstractItemView):
+    #         self.parent().openPersistentEditor(index)
+    #     super(ComboBoxDelegate, self).paint(painter, option, index)
+
+    # def updateEditorGeometry(self, editor, option, index):
+    #     editor.setGeometry(option.rect)
+
+    def createEditor(self, parent, option, index):
         """Cria editor widget e retorna ele"""
         logging.debug(f"Create editor, row: {index.row()}, col: {index.column()}")
-        # editor = ComboBoxWithSearch(
-        #     self.parent_table, [x for x in self.key_values.values()]
-        # )
-        editor = ComboBoxWithSearch(widget, self.key_values.values())
+        editor = ComboBoxWithSearch(parent, self.key_values.values())
         editor.activated.connect(self.commitAndCloseEditor)
-        # for key in self.key_values:
-        #     editor.addItem(self.key_values[key], key)
         return editor
 
     def commitAndCloseEditor(self):
@@ -254,41 +303,22 @@ class ComboBoxDelegate(EmitterItemDelegade):
 
     def setEditorData(self, editor: QComboBox, index):
         """Envia dados para o widget quando aberto"""
-        # model = self.parent_table.model()
-        # tipo_id = model.itemData(index)[Qt.UserRole]
-        # value = editor.findData(tipo_id)
-        # logging.debug(f"Definindo dados do Editor tipo_id: {tipo_id}, value: {value}")
-        # if value:
-        #     editor.setCurrentIndex(int(value))
-        editor.setEditText("")
+        logging.debug(f"Combobox Clear")
+        editor.clearEditText()
+        logging.debug(f"Show popup")
         editor.showPopup()
 
-    def setModelData(self, editor, model, index):
+    def setModelData(self, editor: ComboBoxWithSearch, model, index):
         """Na finalização envia os dados de volta para o modelo"""
         tipo_id_combo_index = editor.findText(editor.lineEdit().text())
-        if tipo_id_combo_index is None or tipo_id_combo_index == -1:
-            logging.debug("tipo_id vazio!")
+        if tipo_id_combo_index is None or tipo_id_combo_index == -1 or tipo_id_combo_index >= len( editor.items ):
+            logging.debug(f"tipo_id vazio! index: { tipo_id_combo_index }")
             return
         tipo_id = list(self.key_values.keys())[tipo_id_combo_index]
         model.setData(index, tipo_id, Qt.UserRole)
         model.setData(index, self.key_values.get(tipo_id), Qt.DisplayRole)
         logging.debug("setModelData")
         self.changed.emit(index, editor)
-
-
-class ComboBoxWithSearch(QComboBox):
-    def __init__(self, parent: QWidget, items: list[str]):
-        super().__init__(parent)
-        self.items = items
-        self.addItems(self.items)
-
-        self.setEditable(True)
-
-        model = QStringListModel(self.items)
-        self.setModel(model)
-        self.completer = QCompleter(self.model(), self)
-        self.completer.setCaseSensitivity(Qt.CaseInsensitive)
-        self.setCompleter(self.completer)
 
 
 class DateEditDelegate(EmitterItemDelegade):
