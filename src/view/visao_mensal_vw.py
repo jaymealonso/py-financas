@@ -1,7 +1,7 @@
 import moment
 from openpyxl import Workbook
 import PyQt5.QtGui as QtGui
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QModelIndex
 from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -149,7 +149,15 @@ class VisaoGeralView(MyDialog):
         """Tabela de visão mensal"""
         if self.table is None:
             self.table = QTableView()
+            self.table.currentChanged = self.on_cell_clicked
         return self.table
+    
+    def on_cell_clicked(self, current: QModelIndex, previous: QModelIndex):
+        # logging.debug(f"clicked, col:{current.column()}, row:{current.row()}")
+        month_year = self.header_labels[current.column()]
+        categoria_nm = self.categorias_labels[current.row()] 
+        logging.debug(f"month_year :{month_year}, categoria:{categoria_nm}")
+        # self.on_cell_click.emit()
 
     def get_lancamentos(self):
         """Janela de descricao de lancamentos"""

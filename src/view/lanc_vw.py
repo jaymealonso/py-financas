@@ -19,7 +19,8 @@ from PyQt5.QtGui import (
     QCursor,
     QStandardItem,
 )
-from PyQt5.QtCore import Qt, QObject, QModelIndex, pyqtSignal, QItemSelectionModel
+from PyQt5.QtCore import Qt, QObject, QModelIndex, pyqtSignal, QItemSelectionModel, QSortFilterProxyModel
+
 from PyQt5.QtWidgets import (
     QWidget,
     QHBoxLayout,
@@ -172,9 +173,16 @@ class LancamentosView(MyDialog):
         Retorna tabela com o seu layout
         """
         self.table = QTableView()
+
         model = QStandardItemModel(0, len(self.COLUMNS))
         model.setHorizontalHeaderLabels([col["title"] for col in self.COLUMNS.values()])
+
+        # sortModel = QSortFilterProxyModel(self)
+        # sortModel.setSourceModel(model)
+        # self.table.setModel(sortModel)
         self.table.setModel(model)
+        self.table.setSortingEnabled(True)
+
         self.table.verticalHeader().setVisible(False)
         # Enable context menu on the column header
         hheader = self.table.horizontalHeader()
