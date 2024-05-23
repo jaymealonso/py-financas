@@ -177,10 +177,10 @@ class LancamentosView(MyDialog):
         model = QStandardItemModel(0, len(self.COLUMNS))
         model.setHorizontalHeaderLabels([col["title"] for col in self.COLUMNS.values()])
 
-        # sortModel = QSortFilterProxyModel(self)
-        # sortModel.setSourceModel(model)
-        # self.table.setModel(sortModel)
-        self.table.setModel(model)
+        sortModel = QSortFilterProxyModel(self)
+        sortModel.setSourceModel(model)
+        self.table.setModel(sortModel)
+        # self.table.setModel(model)
         self.table.setSortingEnabled(True)
 
         self.table.verticalHeader().setVisible(False)
@@ -345,7 +345,7 @@ class LancamentosView(MyDialog):
     def load_model_only(self, rerender_buttons: bool = True):
         self.model_lancamentos.load()
 
-        model = self.table.model()
+        model = self.table.model().sourceModel()
         model.setRowCount(len(self.model_lancamentos.items))
         saldo = 0
         for (new_index, row) in enumerate(self.model_lancamentos.items):
@@ -410,7 +410,12 @@ class LancamentosView(MyDialog):
                     self.tableline.get_attach_button(self, row.nr_anexos, row.id),
                 )
 
-        self.table.setModel(model)
+        # self.table.setModel(model)
+        # self.table.model().setSourceModel(model)
+        filter_model = self.table.model()
+        filter_model.setSourceModel(model)
+        self.table.setModel(filter_model)
+
         # Define valor do TOTAL que aparece no rodapé da janela
         self.total_label.set_int_value(self.model_lancamentos.total)
 

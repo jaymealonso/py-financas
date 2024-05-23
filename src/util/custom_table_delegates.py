@@ -3,7 +3,7 @@ import locale
 import logging
 import util.curr_formatter as curr
 from collections.abc import Callable
-from PyQt5.QtCore import QEvent, QObject, Qt, QModelIndex, pyqtSignal, QStringListModel, QPoint, QTimer
+from PyQt5.QtCore import QEvent, QObject, Qt, QModelIndex, pyqtSignal, QStringListModel, QPoint, QTimer, QSortFilterProxyModel
 from PyQt5.QtGui import QColor, QHideEvent, QIcon, QRegion, QFont, QPalette
 from PyQt5.QtWidgets import (
         QStylePainter, QStyleOptionComboBox,
@@ -146,7 +146,7 @@ class IDLabelDelegate(QStyledItemDelegate):
             text = item_data.get(Qt.UserRole)  # "item_data[Qt.DisplayRole]
             font = (item_data.get(Qt.FontRole) or QFont())
         except Exception as e:
-            logging.error(f"Exception {e}")
+            logging.error(f"IDLabelDelegate Exception {e}")
 
         painter.save()
         painter.setPen(QColor(63, 136, 192))
@@ -179,14 +179,18 @@ class CurrencyLabelDelegate(QStyledItemDelegate):
         text = ""
         value = 0
         try:
-            item_data = self.parent_table.model().itemData(index)
-            if not item_data:
-                return
-            value = item_data.get(Qt.UserRole)
-            text = item_data.get(Qt.DisplayRole)
-            font = (item_data.get(Qt.FontRole) or QFont())
+            # if isinstance(self.parent_table.model(), QSortFilterProxyModel):
+            #     item_data = self.parent_table.model().sourceModel().itemData(index)
+            # else:
+            #     item_data = self.parent_table.model().itemData(index)
+            # if not item_data:
+            #     return
+            value = index.data(Qt.UserRole) # item_data.get(Qt.UserRole)
+            text  = index.data(Qt.DisplayRole) # item_data.get(Qt.DisplayRole)
+            font  = index.data(Qt.FontRole) or QFont() # (item_data.get(Qt.FontRole) or QFont())
+            # font = (item_data.get(Qt.FontRole) or QFont())
         except Exception as e:
-            logging.error(f"Exception {e}")
+            logging.error(f"CurrencyLabelDelegate Exception {e}")
 
         painter.save()
         if value < 0:
@@ -220,18 +224,18 @@ class CurrencyEditDelegate(EmitterItemDelegade):
         self.parent_table = parent_table
         logging.debug("Initialize Currency Edit")
 
-    def createEditor(self, widget, option, index):
+    def createEditor(self, widget, option, index: QModelIndex):
         logging.debug(
             f"Create Currency Editor, row: {index.row()}, col: {index.column()}"
         )
         model = self.parent_table.model()
-        value = model.itemData(index)[Qt.UserRole]
+        value = index.data(Qt.UserRole) # model.itemData(index)[Qt.UserRole]
         curr_edit = QCurrencyLineEdit(widget, value)
         return curr_edit
 
     def setEditorData(self, editor: QCurrencyLineEdit, index):
         model = self.parent_table.model()
-        value: float = model.itemData(index)[Qt.UserRole] / 100
+        value: float = index.data(Qt.UserRole) / 100 # model.itemData(index)[Qt.UserRole] / 100
         editor.setText(locale.currency(val=value, symbol=False, grouping=False))
         logging.debug(f"setEditorData {index.row()}/{index.column()} = ???")
 
@@ -255,12 +259,24 @@ class CurrencyEditDelegate(EmitterItemDelegade):
     def paint(self, painter, option: QStyleOptionViewItem, index: QModelIndex):
         text = ""
         value = 0
+
         try:
-            item_data = self.parent_table.model().itemData(index)
-            value = item_data[Qt.UserRole]
-            text = item_data[Qt.DisplayRole]
+            value = index.data(Qt.UserRole) 
+            text = index.data(Qt.DisplayRole)
+        #     if isinstance(self.parent_table.model(), QSortFilterProxyModel):
+        #         item_data = self.parent_table.model().sourceModel().itemData(index)
+        #         if not item_data:
+        #             item_data = self.parent_table.model().itemData(index)
+        #     else:
+        #         item_data = self.parent_table.model().itemData(index)                
+        #     # item_data = self.parent_table.model().itemData(index)
+        #     try:
+        #         value = item_data[Qt.UserRole] # if Qt.UserRole in item_data else 0
+        #     except Exception as e1:
+        #         value = item_data[Qt.EditRole] # if Qt.EditRole in item_data else 0
+        #     text = item_data[Qt.DisplayRole] # if Qt.DisplayRole in item_data else 0
         except Exception as e:
-            logging.error(f"Exception {e}")
+            logging.error(f"CurrencyEditDelegate Exception {e}")
 
         painter.save()
         if value < 0:
@@ -361,7 +377,7 @@ class DateEditDelegate(EmitterItemDelegade):
         try:
             text = self.model.itemData(index)[Qt.DisplayRole]
         except Exception as e:
-            logging.error(f"Exception {e}")
+            logging.error(f"DateEditDelegate Exception {e}")
 
         if isinstance(text, datetime.date):
             text = text.strftime("%x")
