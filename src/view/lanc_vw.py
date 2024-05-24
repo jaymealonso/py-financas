@@ -19,7 +19,11 @@ from PyQt5.QtGui import (
     QCursor,
     QStandardItem,
 )
-from PyQt5.QtCore import Qt, QObject, QModelIndex, pyqtSignal, QItemSelectionModel, QSortFilterProxyModel
+from lib.Lancamentos.SortFilterProxy import LancamentoSortFilterProxyModel
+from PyQt5.QtCore import (
+    Qt, QObject, QModelIndex, pyqtSignal,
+    QItemSelectionModel
+    )
 
 from PyQt5.QtWidgets import (
     QWidget,
@@ -116,6 +120,7 @@ class LancamentosView(MyDialog):
         self.settings: JanelaLancamentosSettings = (
             self.global_settings.load_lanc_settings(self.conta_dc.id)
         )
+
         self.setWindowTitle(
             f"Lançamentos - (Conta {self.conta_dc.id} | {self.conta_dc.descricao})"
         )
@@ -163,6 +168,9 @@ class LancamentosView(MyDialog):
         self.check_del_not_ask = QCheckBox("Eliminar sem perguntar")
         toolbar.addWidget(self.check_del_not_ask)
 
+        clear_filter_act = toolbar.addAction(icons.add(), "Limpar filtro")
+        clear_filter_act.triggered.connect(lambda: self.clear_filter())
+
         add_act = toolbar.addAction(icons.add(), "Novo Lançamento")
         add_act.triggered.connect(lambda: self.on_add_lancamento())
 
@@ -177,7 +185,7 @@ class LancamentosView(MyDialog):
         model = QStandardItemModel(0, len(self.COLUMNS))
         model.setHorizontalHeaderLabels([col["title"] for col in self.COLUMNS.values()])
 
-        sortModel = QSortFilterProxyModel(self)
+        sortModel = LancamentoSortFilterProxyModel(self)
         sortModel.setSourceModel(model)
         self.table.setModel(sortModel)
         # self.table.setModel(model)
@@ -483,6 +491,20 @@ class LancamentosView(MyDialog):
         self.table.setColumnWidth(self.Column.SALDO, 160)
         self.table.setColumnWidth(self.Column.REMOVER, 100)
         self.table.setColumnWidth(self.Column.ANEXOS, 100)
+
+    def set_filter_mes_categ(self, mes_ano: str, categoria: str):
+        filter_model: LancamentoSortFilterProxyModel = self.table.model()
+
+        filter_model.add_filter(mes_ano, categoria)
+        # filter_model.set_filter_categoria(categoria)
+        # filter_model.set_filter_mes_ano(mes_ano)
+        filter_model.invalidateFilter()
+
+    def clear_filter(self):
+        filter_model: LancamentoSortFilterProxyModel = self.table.model()
+       
+        filter_model.setFilterRegExp(".*")
+
 
 
 class TotalCurrLabel(QLabel):

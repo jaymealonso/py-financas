@@ -61,7 +61,8 @@ class VisaoGeralView(MyDialog):
 
         self.splitter = QSplitter(self)
         self.splitter.addWidget(self.get_table())
-        self.splitter.addWidget(self.get_lancamentos())
+        self.lancamentos_vw = self.get_lancamentos()
+        self.splitter.addWidget(self.lancamentos_vw)
 
         try:
             splisizes: list[int] = self.settings.divisoes
@@ -149,14 +150,21 @@ class VisaoGeralView(MyDialog):
         """Tabela de visão mensal"""
         if self.table is None:
             self.table = QTableView()
+            self.table.setSortingEnabled(True)
             self.table.currentChanged = self.on_cell_clicked
         return self.table
     
     def on_cell_clicked(self, current: QModelIndex, previous: QModelIndex):
-        # logging.debug(f"clicked, col:{current.column()}, row:{current.row()}")
-        month_year = self.header_labels[current.column()]
-        categoria_nm = self.categorias_labels[current.row()] 
-        logging.debug(f"month_year :{month_year}, categoria:{categoria_nm}")
+        try:
+            mes_ano = self.header_labels[current.column()]
+            categoria_nm = self.categorias_labels[current.row()] 
+        except Exception as e:
+            logging.error(f"Mes/Categoria não encontrado")
+            return
+        logging.debug(f"month_year :{mes_ano}, categoria:{categoria_nm}")
+
+        self.lancamentos_vw.set_filter_mes_categ(mes_ano, categoria_nm)
+
         # self.on_cell_click.emit()
 
     def get_lancamentos(self):
@@ -249,50 +257,6 @@ class VisaoGeralView(MyDialog):
             )
 
         self.table.setModel(model)
-
-    # def load_table_data_old(self):
-    #     self.model_visao_mensal.load()
-    #
-    #     self.table.setRowCount(0)
-    #     self.table.setColumnCount(0)
-    #
-    #     # unique row_labels
-    #     self.categorias_labels = self.model_visao_mensal.get_unique_row_labels()
-    #     self.table.setRowCount(len(self.categorias_labels) + 1)
-    #     self.table.setColumnCount(len(self.model_visao_mensal.columns) + 1)
-    #
-    #     for key, row_label in enumerate(self.categorias_labels):
-    #         self.table.setItem(key, 0, QTableWidgetItem(row_label or "(vazio)"))
-    #     self.header_labels = [col.ano_mes for col in self.model_visao_mensal.columns]
-    #     self.header_labels.insert(0, "Categoria")
-    #     self.table.setHorizontalHeaderLabels(self.header_labels)
-    #
-    #     row_index = 0
-    #     for cell in self.model_visao_mensal.values:
-    #         col_index = self.header_labels.index(cell.ano_mes)
-    #         row_index = self.categorias_labels.index(cell.nm_categoria)
-    #         self.table.setCellWidget(
-    #             row_index, col_index, self.line.get_label_for_currency(cell.valor)
-    #         )
-    #
-    #     # TOTAL
-    #     row_index += 1
-    #     for key, col_label in enumerate(self.header_labels):
-    #         if key < 1:
-    #             self.table.setCellWidget(
-    #                 row_index, key, self.line.get_label_for_total_text("TOTAL")
-    #             )
-    #             continue
-    #         total = sum(
-    #             [
-    #                 cell.valor
-    #                 for cell in self.model_visao_mensal.values
-    #                 if cell.ano_mes == col_label
-    #             ]
-    #         )
-    #         self.table.setCellWidget(
-    #             row_index, key, self.line.get_label_for_total(total)
-    #         )
 
 
 class VisaoGeralViewLine(TableLine):
