@@ -25,6 +25,10 @@ Instalar as libs acima com o comando
 ```
 pip install PyQt5 SQLALchemy pyinstaller moment openpyxl darkdetect
 ```
+ou alternativamente usar 
+```
+pip install -r requirements.txt
+```
 
 ## Localização dos icones:
 
