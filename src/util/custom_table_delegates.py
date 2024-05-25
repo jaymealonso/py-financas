@@ -1,6 +1,7 @@
+from lib.Genericos.log import logging
+
 import datetime
 import locale
-import logging
 import util.curr_formatter as curr
 from collections.abc import Callable
 from PyQt5.QtCore import Qt, QModelIndex, pyqtSignal, QStringListModel, QPoint
@@ -20,12 +21,6 @@ from util.currency_editor import QCurrencyLineEdit
 from view.icons import icons
 
 locale.setlocale(locale.LC_ALL, "pt_BR.utf8")
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.StreamHandler()],
-)
 
 
 class EmitterItemDelegade(QStyledItemDelegate):

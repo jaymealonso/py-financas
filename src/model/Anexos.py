@@ -1,19 +1,13 @@
 from datetime import date
 from pathlib import Path
 import shutil
-import logging
+from lib.Genericos.log import logging
 from typing import List
 from model.db.db import Database
 from model.db.db_orm import Anexos as ORMAnexos, Lancamentos as ORMLancamentos
 from sqlalchemy import insert
 from sqlalchemy.orm import Session
 from util.settings import get_root_path
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.StreamHandler()],
-)
 
 
 class Anexos:

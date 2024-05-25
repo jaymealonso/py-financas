@@ -1,16 +1,10 @@
 import sys
-import logging
+from lib.Genericos.log import logging
 import darkdetect
 from pathlib import Path
 from PyQt5.QtCore import QSettings, QRect
 from abc import ABC
 from util.singleton_meta import SingletonMeta
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.StreamHandler()],
-)
 
 
 class JanelaSettings(ABC):

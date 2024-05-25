@@ -1,16 +1,10 @@
 import locale
-import logging
+from lib.Genericos.log import logging
 import typing
 import util.curr_formatter as curr
 from PyQt5.QtCore import Qt, QLocale, QRegExp, QObject, QEvent
 from PyQt5.QtGui import QValidator, QKeyEvent
 from PyQt5.QtWidgets import QLineEdit, QTableView
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s [%(levelname)s] >>> %(message)s",
-    handlers=[logging.StreamHandler()],
-)
 
 
 class QCurrencyLineEdit(QLineEdit):

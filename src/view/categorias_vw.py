@@ -1,4 +1,4 @@
-import logging
+from lib.Genericos.log import logging
 import view.icons.icons as icons
 from enum import IntEnum, auto
 
@@ -10,17 +10,10 @@ from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QToolBar,
-    QTableWidgetItem,
     QApplication, QTableView, QPushButton, QMessageBox,
 )
 from model.Categoria import Categorias
 import operator
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.StreamHandler()],
-)
 
 
 class Column(IntEnum):

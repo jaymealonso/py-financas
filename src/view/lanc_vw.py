@@ -1,7 +1,7 @@
 from model.Anexos import Anexos
 import view.icons.icons as icons
 import view.contas_vw as cv
-import logging
+from lib.Genericos.log import logging
 
 from util.my_dialog import MyDialog
 from view.imp_lanc_vw import ImportarLancamentosView
@@ -14,17 +14,9 @@ from model.db.db_orm import (
     Lancamentos as ORMLancamentos,
     Anexos as ORMAnexos,
 )
-from PyQt5.QtGui import (
-    QStandardItemModel,
-    QCursor,
-    QStandardItem,
-)
+from PyQt5.QtGui import QStandardItemModel, QCursor, QStandardItem
 from lib.Lancamentos.SortFilterProxy import LancamentoSortFilterProxyModel
-from PyQt5.QtCore import (
-    Qt, QObject, QModelIndex, pyqtSignal,
-    QItemSelectionModel
-    )
-
+from PyQt5.QtCore import Qt, QObject, QModelIndex, pyqtSignal, QItemSelectionModel
 from PyQt5.QtWidgets import (
     QWidget,
     QHBoxLayout,
@@ -52,12 +44,6 @@ from util.custom_table_delegates import (
 from enum import auto, IntEnum
 
 from view.inputsearch_vw import ColumnSearchView
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.StreamHandler()],
-)
 
 
 class LancamentosView(MyDialog):
@@ -102,7 +88,6 @@ class LancamentosView(MyDialog):
     }
 
     def __init__(self, parent: QWidget, conta_dc: Conta):
-
         super(LancamentosView, self).__init__(parent)
 
         self.toolbar = self.get_toolbar()

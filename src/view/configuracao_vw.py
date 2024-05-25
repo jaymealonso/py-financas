@@ -1,4 +1,4 @@
-import logging
+from lib.Genericos.log import logging
 from enum import StrEnum
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, \

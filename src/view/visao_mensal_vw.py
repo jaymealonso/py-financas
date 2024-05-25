@@ -16,7 +16,7 @@ from lib.VisaoMensal.Table import VisaoGeralTableView
 from util.custom_table_delegates import CurrencyLabelDelegate, IDLabelDelegate
 from util.my_dialog import MyDialog
 from util.settings import JanelaVisaoMensalSettings, Settings
-import logging
+from lib.Genericos.log import logging
 import view.contas_vw as cv
 import view.icons.icons as icons
 from lib.VisaoMensal.TableLine import VisaoGeralViewLine
@@ -24,12 +24,6 @@ from model.Conta import Conta
 from model.VisaoMensal import VisaoMensal
 from util.curr_formatter import str_curr_to_int, str_curr_to_locale
 from view.lanc_vw import LancamentosView
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.StreamHandler()],
-)
 
 
 class VisaoGeralView(MyDialog):

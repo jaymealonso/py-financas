@@ -1,4 +1,4 @@
-import logging
+from lib.Genericos.log import logging
 
 from PyQt5.QtCore import QCoreApplication
 from PyQt5.QtWidgets import QMessageBox
@@ -10,12 +10,6 @@ from model.db.db_orm import Base
 from model.initial_load.initial_db_data import DataLoader
 from util.settings import Settings
 from util.singleton_meta import SingletonMeta
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.StreamHandler()],
-)
 
 
 class Database(metaclass=SingletonMeta):

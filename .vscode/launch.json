@@ -31,14 +31,14 @@
             ],
         },
         {
-            "name": "Python: Main, Abre lançamento 5",
+            "name": "Python: Main, Abre lançamento 6",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/src/main.py",
             "console": "integratedTerminal",
             "args": [
                 "-o",
-                "5",
+                "6",
                 // "-T",
                 // "dark",
                 // "light",

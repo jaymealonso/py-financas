@@ -1,17 +1,8 @@
-import logging
+from lib.Genericos.log import logging
 
 from PyQt5 import QtGui
 from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import (
-    QTableView,
-    QWidget
-)
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.StreamHandler()],
-)
+from PyQt5.QtWidgets import QTableView, QWidget
 
 class VisaoGeralTableView(QTableView):
     on_selection_released = pyqtSignal(list)

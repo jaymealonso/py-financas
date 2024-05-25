@@ -2,7 +2,7 @@ from enum import StrEnum, IntEnum, auto
 
 import view.icons.icons as icons
 import view.lanc_vw
-import logging
+from lib.Genericos.log import logging
 import util.curr_formatter as curr
 from view.TableLine import TableLine
 from view.visao_mensal_vw import VisaoGeralView
@@ -29,12 +29,6 @@ from PyQt5.QtWidgets import (
 from model.Conta import ContasTipo, Contas, Conta
 from util.custom_table_delegates import GenericInputDelegate, ComboBoxDelegate, IDLabelDelegate, CurrencyLabelDelegate
 from model.db.db_orm import Lancamentos as ORMLancamentos
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.StreamHandler()],
-)
 
 
 class TEXTS(StrEnum):

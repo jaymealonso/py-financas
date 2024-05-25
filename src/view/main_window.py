@@ -1,4 +1,4 @@
-import logging
+from lib.Genericos.log import logging
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtWidgets import (
     QMainWindow,
@@ -16,12 +16,6 @@ from view.agenda_vw import AgendaView
 from view.categorias_vw import CategoriasView
 import view.icons.icons as icons
 from util.settings import Settings
-
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.StreamHandler()],
-)
 
 
 class MainWindow(QMainWindow):
