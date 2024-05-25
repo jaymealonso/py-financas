@@ -19,7 +19,12 @@ from PyQt5.QtGui import (
     QCursor,
     QStandardItem,
 )
-from PyQt5.QtCore import Qt, QObject, QModelIndex, pyqtSignal, QItemSelectionModel
+from lib.Lancamentos.SortFilterProxy import LancamentoSortFilterProxyModel
+from PyQt5.QtCore import (
+    Qt, QObject, QModelIndex, pyqtSignal,
+    QItemSelectionModel
+    )
+
 from PyQt5.QtWidgets import (
     QWidget,
     QHBoxLayout,
@@ -115,6 +120,7 @@ class LancamentosView(MyDialog):
         self.settings: JanelaLancamentosSettings = (
             self.global_settings.load_lanc_settings(self.conta_dc.id)
         )
+
         self.setWindowTitle(
             f"Lançamentos - (Conta {self.conta_dc.id} | {self.conta_dc.descricao})"
         )
@@ -172,9 +178,16 @@ class LancamentosView(MyDialog):
         Retorna tabela com o seu layout
         """
         self.table = QTableView()
+
         model = QStandardItemModel(0, len(self.COLUMNS))
         model.setHorizontalHeaderLabels([col["title"] for col in self.COLUMNS.values()])
-        self.table.setModel(model)
+
+        sortModel = LancamentoSortFilterProxyModel(self)
+        sortModel.setSourceModel(model)
+        self.table.setModel(sortModel)
+        # self.table.setModel(model)
+        self.table.setSortingEnabled(True)
+
         self.table.verticalHeader().setVisible(False)
         # Enable context menu on the column header
         hheader = self.table.horizontalHeader()
@@ -337,7 +350,8 @@ class LancamentosView(MyDialog):
     def load_model_only(self, rerender_buttons: bool = True):
         self.model_lancamentos.load()
 
-        model = self.table.model()
+        filter_model = self.table.model()
+        model = filter_model.sourceModel()
         model.setRowCount(len(self.model_lancamentos.items))
         saldo = 0
         for (new_index, row) in enumerate(self.model_lancamentos.items):
@@ -393,16 +407,20 @@ class LancamentosView(MyDialog):
             )
             if rerender_buttons:
                 self.table.setIndexWidget(
-                    model.index(new_index, self.Column.REMOVER),
+                    filter_model.index(new_index, self.Column.REMOVER),
+                    # model.index(new_index, self.Column.REMOVER),
                     self.tableline.get_del_button(self, row.id),
                 )
 
                 self.table.setIndexWidget(
-                    model.index(new_index, self.Column.ANEXOS),
+                    filter_model.index(new_index, self.Column.ANEXOS),
+                    # model.index(new_index, self.Column.ANEXOS),
                     self.tableline.get_attach_button(self, row.nr_anexos, row.id),
                 )
 
-        self.table.setModel(model)
+        filter_model.setSourceModel(model)
+        self.table.setModel(filter_model)
+
         # Define valor do TOTAL que aparece no rodapé da janela
         self.total_label.set_int_value(self.model_lancamentos.total)
 
@@ -410,6 +428,9 @@ class LancamentosView(MyDialog):
         """
         Popula tabela com os dados do modelo, redimensiona colunas
         """
+        # reset sort order
+        self.table.sortByColumn(-1, Qt.AscendingOrder)
+
         QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
         vert_scr_position = self.table.verticalScrollBar().value()
         model = self.table.model()
@@ -470,6 +491,22 @@ class LancamentosView(MyDialog):
         self.table.setColumnWidth(self.Column.SALDO, 160)
         self.table.setColumnWidth(self.Column.REMOVER, 100)
         self.table.setColumnWidth(self.Column.ANEXOS, 100)
+
+    def set_filter_mes_categ(self, filters: dict[str, str]):
+        filter_model: LancamentoSortFilterProxyModel = self.table.model()
+
+        filter_model.clear_filters()
+        if len(filters) == 0:
+            self.show_all()
+        for mes_ano, categoria in filters:
+            filter_model.add_filter(mes_ano, categoria)
+        filter_model.invalidateFilter()
+
+    def show_all(self):
+        filter_model: LancamentoSortFilterProxyModel = self.table.model()
+       
+        filter_model.setFilterRegExp(".*")
+
 
 
 class TotalCurrLabel(QLabel):

@@ -25,6 +25,10 @@ Instalar as libs acima com o comando
 ```
 pip install PyQt5 SQLALchemy pyinstaller moment openpyxl darkdetect
 ```
+ou alternativamente usar 
+```
+pip install -r requirements.txt
+```
 
 ## Localização dos icones:
 
@@ -33,6 +37,9 @@ Os icones foram pegos desta coleção, provavelmente irão mudar no futuro.
 https://iconarchive.com/show/farm-fresh-icons-by-fatcow.html
 
 Download aqui 👇
+
+https://github.com/gammasoft/fatcow
+
 https://fatcow.com/free-icons 
 
 
@@ -41,6 +48,17 @@ https://fatcow.com/free-icons
 ```
 python src/main.py
 ```
+
+Opções de linhas de comando:
+
+| Comando            | Opt1    | Opt2   |   Descrição                                                                           |
+|--------------------|---------|--------|----------------------------------------------------------------------------|
+| python src/main.py | -h | --help   | mostra opções de chamada de linha de comando                                        |
+| python src/main.py | -d | --drop   | Elimina dados da base de dados                                                      |
+| python src/main.py | -s | --sample | Adiciona dados de exemplo na base de dados.                                         |
+| python src/main.py | -o CONTA_ID | --conta CONTA_ID | Ao iniciar abre a conta com o ID indicado, se ela existir.  |
+| python src/main.py | -T THEME | --theme THEME | Nome do diretório do tema dentro de ./themes/\<THEME\>.   |
+
 
 ## Como gerar o executavel
 

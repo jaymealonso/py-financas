@@ -107,32 +107,21 @@ class Contas:
         session.commit()
 
     def delete(self, conta_id: str):
+
+        sql = text("SELECT id FROM lancamentos WHERE conta_id = :conta_id")
+        sql_delete_lc = text("DELETE FROM lancamentos_categorias WHERE lancamento_id = :lancamento_id")
+        sql_delete = text("DELETE FROM lancamentos WHERE conta_id = :conta_id")
+        sql_delete_acc = text("DELETE FROM contas WHERE id = :conta_id")
+
         with Session(self.__db.engine) as session:
-            conta = session.query(ORMContas).filter(ORMContas.id == conta_id).first()
-            # TODO: apagar conta nào está funcionando corretamente, corrigir
-            lancamentos = session.query(ORMLancamentos).filter(ORMLancamentos.conta_id == conta_id).all()
-            categorias = []
-            anexos = []
-            for lancamento in lancamentos:
-                for categoria in lancamento.Categorias:
-                    categorias.append(categoria)
-                for anexo in lancamento.Anexos:
-                    anexos.append(anexo)
+            result = session.execute(sql, {"conta_id": conta_id}).all()
+            for (lancamento_id, ) in result:
+                session.execute(sql_delete_lc, {"lancamento_id": lancamento_id})
 
-            for anexo in anexos:
-                session.delete(anexo)
-            for categoria in categorias:
-                session.delete(categoria)
-            for lancamento in lancamentos:
-                session.delete(lancamento)
-            session.delete(conta)
+            session.execute(sql_delete, {"conta_id": conta_id})
 
-            # lancamentos = session.query(ORMLancamentos).filter(ORMLancamentos.conta_id == conta_id)
-            # categorias = lancamentos.join(ORMLancamentos.Categorias, isouter=True).all()
-            #
-            # session.delete(categorias)
-            # lancamentos.delete()
-            # session.query(ORMContas).filter(ORMContas.id == conta_id).delete()
+            session.execute(sql_delete_acc, {"conta_id": conta_id})
+
             session.commit()
 
     def update(self, conta_id: str, fieldname: str, value):

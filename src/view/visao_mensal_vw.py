@@ -3,14 +3,15 @@ from openpyxl import Workbook
 import PyQt5.QtGui as QtGui
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
+    QAction,
     QWidget,
     QVBoxLayout,
     QToolBar,
     QFileDialog,
     QSizePolicy,
-    QLineEdit,
-    QSplitter, QTableView,
+    QSplitter
 )
+from lib.VisaoMensal.Table import VisaoGeralTableView
 
 from util.custom_table_delegates import CurrencyLabelDelegate, IDLabelDelegate
 from util.my_dialog import MyDialog
@@ -18,7 +19,7 @@ from util.settings import JanelaVisaoMensalSettings, Settings
 import logging
 import view.contas_vw as cv
 import view.icons.icons as icons
-from view.TableLine import TableLine
+from lib.VisaoMensal.TableLine import VisaoGeralViewLine
 from model.Conta import Conta
 from model.VisaoMensal import VisaoMensal
 from util.curr_formatter import str_curr_to_int, str_curr_to_locale
@@ -34,7 +35,8 @@ logging.basicConfig(
 class VisaoGeralView(MyDialog):
     def __init__(self, parent: QWidget, conta_dc: Conta):
         self.toolbar: QToolBar = None
-        self.table: QTableView = None
+        self.toolbar_vis_geral: QToolBar = None
+        self.table: VisaoGeralTableView = None
         self.line = VisaoGeralViewLine()
         self.conta_dc = conta_dc
         self.model_visao_mensal = VisaoMensal(self.conta_dc)
@@ -60,8 +62,9 @@ class VisaoGeralView(MyDialog):
         layout.addWidget(self.get_toolbar())
 
         self.splitter = QSplitter(self)
-        self.splitter.addWidget(self.get_table())
-        self.splitter.addWidget(self.get_lancamentos())
+        self.splitter.addWidget(self.get_visao_geral())
+        self.lancamentos_vw = self.get_lancamentos()
+        self.splitter.addWidget(self.lancamentos_vw)
 
         try:
             splisizes: list[int] = self.settings.divisoes
@@ -148,10 +151,51 @@ class VisaoGeralView(MyDialog):
     def get_table(self):
         """Tabela de visão mensal"""
         if self.table is None:
-            self.table = QTableView()
+            self.table = VisaoGeralTableView(self)
+            self.table.on_selection_released.connect(self.on_selection_released)
         return self.table
 
-    def get_lancamentos(self):
+    def on_selection_released(self, filters: list):
+        self.lancamentos_vw.set_filter_mes_categ(filters)
+        self.get_limpar_filtro_button().setVisible(len(filters) > 0)
+
+    def get_visao_geral(self) -> QWidget:
+        panel = QWidget(self)
+        layout = QVBoxLayout()
+        layout.addWidget(self.get_toolbar_vis_geral())
+        layout.addWidget(self.get_table())
+        panel.setLayout(layout)
+
+        return panel
+    
+    def get_toolbar_vis_geral(self) -> QToolBar:
+        if self.toolbar_vis_geral is None:
+            self.toolbar_vis_geral = QToolBar()
+
+            self.toolbar_vis_geral.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+
+            spacer = QWidget()
+            spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+            self.toolbar_vis_geral.addWidget(spacer)
+
+            btn_clear_filter = self.toolbar_vis_geral.addAction(
+                icons.filter_clear(), "Limpar filtro"
+            )
+            btn_clear_filter.setVisible(False)
+            btn_clear_filter.triggered.connect(self.on_limpar_filtro)
+
+        return self.toolbar_vis_geral
+    
+    def on_limpar_filtro(self):
+        self.table.selectionModel().clear()
+        self.lancamentos_vw.set_filter_mes_categ([])
+        self.get_limpar_filtro_button().setVisible(False)
+
+    def get_limpar_filtro_button(self) -> QAction:
+        actions = self.toolbar_vis_geral.actions()
+        return next(act for act in actions if act.iconText() == 'Limpar filtro')
+
+    def get_lancamentos(self) -> LancamentosView:
         """Janela de descricao de lancamentos"""
         lancamentos = LancamentosView(self, self.conta_dc)
         lancamentos.changed.connect(self.handle_lancamento_changed)
@@ -173,6 +217,8 @@ class VisaoGeralView(MyDialog):
         self.load_model_only()
 
     def load_table_data(self):
+        # reset sort order
+        self.table.sortByColumn(-1, Qt.AscendingOrder)
         self.load_model_only()
 
         for index, label in enumerate(self.header_labels):
@@ -191,6 +237,9 @@ class VisaoGeralView(MyDialog):
         self.header_labels = [col.ano_mes for col in self.model_visao_mensal.columns]
         self.header_labels.insert(0, "Categoria")
         model.setHorizontalHeaderLabels(self.header_labels)
+
+        # set labels in the table
+        self.table.set_labels(self.header_labels, self.categorias_labels)
 
         # first col
         for key, row_label in enumerate(self.categorias_labels):
@@ -241,65 +290,3 @@ class VisaoGeralView(MyDialog):
             )
 
         self.table.setModel(model)
-
-    # def load_table_data_old(self):
-    #     self.model_visao_mensal.load()
-    #
-    #     self.table.setRowCount(0)
-    #     self.table.setColumnCount(0)
-    #
-    #     # unique row_labels
-    #     self.categorias_labels = self.model_visao_mensal.get_unique_row_labels()
-    #     self.table.setRowCount(len(self.categorias_labels) + 1)
-    #     self.table.setColumnCount(len(self.model_visao_mensal.columns) + 1)
-    #
-    #     for key, row_label in enumerate(self.categorias_labels):
-    #         self.table.setItem(key, 0, QTableWidgetItem(row_label or "(vazio)"))
-    #     self.header_labels = [col.ano_mes for col in self.model_visao_mensal.columns]
-    #     self.header_labels.insert(0, "Categoria")
-    #     self.table.setHorizontalHeaderLabels(self.header_labels)
-    #
-    #     row_index = 0
-    #     for cell in self.model_visao_mensal.values:
-    #         col_index = self.header_labels.index(cell.ano_mes)
-    #         row_index = self.categorias_labels.index(cell.nm_categoria)
-    #         self.table.setCellWidget(
-    #             row_index, col_index, self.line.get_label_for_currency(cell.valor)
-    #         )
-    #
-    #     # TOTAL
-    #     row_index += 1
-    #     for key, col_label in enumerate(self.header_labels):
-    #         if key < 1:
-    #             self.table.setCellWidget(
-    #                 row_index, key, self.line.get_label_for_total_text("TOTAL")
-    #             )
-    #             continue
-    #         total = sum(
-    #             [
-    #                 cell.valor
-    #                 for cell in self.model_visao_mensal.values
-    #                 if cell.ano_mes == col_label
-    #             ]
-    #         )
-    #         self.table.setCellWidget(
-    #             row_index, key, self.line.get_label_for_total(total)
-    #         )
-
-
-class VisaoGeralViewLine(TableLine):
-    def get_label_for_currency(self, value: int):
-        label = super().get_label_for_currency(value)
-        return label
-
-    def get_label_for_total(self, value: int):
-        label = super().get_label_for_currency(value)
-        label.setStyleSheet(f"{label.styleSheet()}; font-weight: bold")
-        return label
-
-    def get_label_for_total_text(self, value: str):
-        label = QLineEdit(value)
-        label.setReadOnly(True)
-        label.setFocusPolicy(Qt.NoFocus)
-        label.setStyleSheet("font-weight: bold")
-        return label

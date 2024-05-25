@@ -89,3 +89,7 @@ def results_next() -> QIcon:
 
 def results_prev() -> QIcon:
     return QIcon(QPixmap(path + r"/resultset_previous.png"))
+
+
+def filter_clear() -> QIcon:
+    return QIcon(QPixmap(path + r"/filter_clear.png"))
