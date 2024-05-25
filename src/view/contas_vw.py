@@ -257,7 +257,6 @@ class ContasView(QWidget):
                 {Qt.DisplayRole: row.lanc_classif, Qt.UserRole: row.lanc_classif},
             )
 
-
             # Fixed Values
             # self.table.setIndexWidget(
             #     model.index(new_index, 5), line.get_label_for_total_curr(row.total)

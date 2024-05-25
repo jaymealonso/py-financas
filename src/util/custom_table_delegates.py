@@ -154,7 +154,7 @@ class CurrencyLabelDelegate(QStyledItemDelegate):
             value = index.data(Qt.UserRole)
             text  = index.data(Qt.DisplayRole)
             font  = index.data(Qt.FontRole) or QFont()
-            if not value or not text or not font:
+            if value is None or text is None or font is None:
                 return
         except Exception as e:
             logging.error(f"CurrencyLabelDelegate Exception {e}")

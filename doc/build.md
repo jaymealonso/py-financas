@@ -33,6 +33,9 @@ Os icones foram pegos desta coleção, provavelmente irão mudar no futuro.
 https://iconarchive.com/show/farm-fresh-icons-by-fatcow.html
 
 Download aqui 👇
+
+https://github.com/gammasoft/fatcow
+
 https://fatcow.com/free-icons 
 
 

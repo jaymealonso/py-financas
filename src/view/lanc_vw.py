@@ -168,9 +168,6 @@ class LancamentosView(MyDialog):
         self.check_del_not_ask = QCheckBox("Eliminar sem perguntar")
         toolbar.addWidget(self.check_del_not_ask)
 
-        clear_filter_act = toolbar.addAction(icons.add(), "Limpar filtro")
-        clear_filter_act.triggered.connect(lambda: self.clear_filter())
-
         add_act = toolbar.addAction(icons.add(), "Novo Lançamento")
         add_act.triggered.connect(lambda: self.on_add_lancamento())
 
@@ -353,7 +350,8 @@ class LancamentosView(MyDialog):
     def load_model_only(self, rerender_buttons: bool = True):
         self.model_lancamentos.load()
 
-        model = self.table.model().sourceModel()
+        filter_model = self.table.model()
+        model = filter_model.sourceModel()
         model.setRowCount(len(self.model_lancamentos.items))
         saldo = 0
         for (new_index, row) in enumerate(self.model_lancamentos.items):
@@ -409,18 +407,17 @@ class LancamentosView(MyDialog):
             )
             if rerender_buttons:
                 self.table.setIndexWidget(
-                    model.index(new_index, self.Column.REMOVER),
+                    filter_model.index(new_index, self.Column.REMOVER),
+                    # model.index(new_index, self.Column.REMOVER),
                     self.tableline.get_del_button(self, row.id),
                 )
 
                 self.table.setIndexWidget(
-                    model.index(new_index, self.Column.ANEXOS),
+                    filter_model.index(new_index, self.Column.ANEXOS),
+                    # model.index(new_index, self.Column.ANEXOS),
                     self.tableline.get_attach_button(self, row.nr_anexos, row.id),
                 )
 
-        # self.table.setModel(model)
-        # self.table.model().setSourceModel(model)
-        filter_model = self.table.model()
         filter_model.setSourceModel(model)
         self.table.setModel(filter_model)
 
@@ -431,6 +428,9 @@ class LancamentosView(MyDialog):
         """
         Popula tabela com os dados do modelo, redimensiona colunas
         """
+        # reset sort order
+        self.table.sortByColumn(-1, Qt.AscendingOrder)
+
         QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
         vert_scr_position = self.table.verticalScrollBar().value()
         model = self.table.model()
@@ -492,15 +492,17 @@ class LancamentosView(MyDialog):
         self.table.setColumnWidth(self.Column.REMOVER, 100)
         self.table.setColumnWidth(self.Column.ANEXOS, 100)
 
-    def set_filter_mes_categ(self, mes_ano: str, categoria: str):
+    def set_filter_mes_categ(self, filters: dict[str, str]):
         filter_model: LancamentoSortFilterProxyModel = self.table.model()
 
-        filter_model.add_filter(mes_ano, categoria)
-        # filter_model.set_filter_categoria(categoria)
-        # filter_model.set_filter_mes_ano(mes_ano)
+        filter_model.clear_filters()
+        if len(filters) == 0:
+            self.show_all()
+        for mes_ano, categoria in filters:
+            filter_model.add_filter(mes_ano, categoria)
         filter_model.invalidateFilter()
 
-    def clear_filter(self):
+    def show_all(self):
         filter_model: LancamentoSortFilterProxyModel = self.table.model()
        
         filter_model.setFilterRegExp(".*")
