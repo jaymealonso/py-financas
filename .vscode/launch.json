@@ -31,6 +31,18 @@
             ],
         },
         {
+            "name": "Python: Main, Abre lançamento 7",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/main.py",
+            "console": "integratedTerminal",
+            "args": [
+                "-o",
+                "7",
+            ],
+            "justMyCode": true
+        },
+        {
             "name": "Python: Main, Abre lançamento 8",
             "type": "debugpy",
             "request": "launch",
@@ -39,9 +51,6 @@
             "args": [
                 "-o",
                 "8",
-                // "-T",
-                // "dark",
-                // "light",
             ],
             "justMyCode": true
         },

@@ -8,7 +8,7 @@ from lib.Genericos.log import logging
 
 
 class VisaoGeralTableView(QTableView):
-    on_selection_released = pyqtSignal(list)
+    selection_released = pyqtSignal(list)
 
     def __init__(self, parent: QWidget | None = ...) -> None:
         super().__init__(parent)
@@ -47,4 +47,4 @@ class VisaoGeralTableView(QTableView):
 
             filters.append([mes_ano, categoria_nm])
 
-        self.on_selection_released.emit(filters)
+        self.selection_released.emit(filters)

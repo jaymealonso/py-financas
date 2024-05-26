@@ -1,7 +1,7 @@
 from enum import IntEnum, auto
 
-from PyQt5.QtCore import QItemSelectionModel, QModelIndex, Qt, pyqtSignal
-from PyQt5.QtGui import QCursor, QStandardItem, QStandardItemModel
+from PyQt5.QtCore import QEvent, QItemSelectionModel, QModelIndex, Qt, pyqtSignal
+from PyQt5.QtGui import QCursor, QKeySequence, QStandardItem, QStandardItemModel
 from PyQt5.QtWidgets import (
     QAction,
     QApplication,
@@ -18,6 +18,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+from unidecode import unidecode
 
 import util.curr_formatter as curr
 from lib.Genericos.log import logging
@@ -44,7 +45,7 @@ import view.contas_vw as cv
 import view.icons.icons as icons
 from view.anexos_vw import AnexosView
 from view.imp_lanc_vw import ImportarLancamentosView
-from view.inputsearch_vw import ColumnSearchView
+from lib.Lancamentos.InputSearchTable import ColumnSearchView
 from view.TableLine import TableLine
 
 
@@ -247,7 +248,9 @@ class LancamentosView(MyDialog):
             return
 
         menu = QMenu(self)
-        menu.addAction(QAction(icons.tab_search(), 'Procurar', menu, triggered=lambda: self.open_search(column_id)))
+        menu.addAction( QAction(icons.tab_search(), 'Procurar', menu, 
+            shortcut=QKeySequence("Ctrl+f") , 
+            triggered=lambda: self.open_search(column_id)))
         menu.popup(hheader.mapToGlobal(point))
 
     def table_cell_changed(self, item: QModelIndex):
@@ -392,15 +395,15 @@ class LancamentosView(MyDialog):
             )
             model.setItemData(
                 model.index(new_index, self.Column.DESCRICAO),
-                {Qt.DisplayRole: row.descricao, Qt.UserRole: row.descricao},
+                {Qt.DisplayRole: row.descricao, Qt.UserRole: row.descricao, Qt.AccessibleTextRole: unidecode(row.descricao)},
             )
             model.setItemData(
                 model.index(new_index, self.Column.DESCRICAO_USER),
-                {Qt.DisplayRole: row.descricao_user, Qt.UserRole: row.descricao_user},
+                {Qt.DisplayRole: row.descricao_user, Qt.UserRole: row.descricao_user, Qt.AccessibleTextRole: unidecode(row.descricao_user)},
             )
             model.setItemData(
                 model.index(new_index, self.Column.DATA),
-                {Qt.DisplayRole: row.data.strftime("%x"), Qt.UserRole: row.data},
+                {Qt.DisplayRole: row.data.strftime("%x"), Qt.UserRole: row.data, Qt.AccessibleTextRole: row.data},
             )
             if len(row.Categorias) > 0:
                 categoria = row.Categorias[0]
@@ -411,6 +414,7 @@ class LancamentosView(MyDialog):
                 {
                     Qt.DisplayRole: categoria.nm_categoria,
                     Qt.UserRole: categoria.id or -1,
+                    Qt.AccessibleTextRole: unidecode(categoria.nm_categoria)
                 },
             )
             model.setItemData(
@@ -418,6 +422,7 @@ class LancamentosView(MyDialog):
                 {
                     Qt.DisplayRole: curr.str_curr_to_locale(row.valor or 0),
                     Qt.UserRole: row.valor or 0,
+                    Qt.AccessibleTextRole: row.valor or 0,
                 },
             )
             saldo += row.valor
@@ -426,6 +431,7 @@ class LancamentosView(MyDialog):
                 {
                     Qt.DisplayRole: curr.str_curr_to_locale(saldo or 0),
                     Qt.UserRole: saldo,
+                    Qt.AccessibleTextRole: saldo,
                 },
             )
             if rerender_buttons:
@@ -490,8 +496,6 @@ class LancamentosView(MyDialog):
         self.table.setItemDelegateForColumn(self.Column.CATEGORIA_ID, col4_del)
         self.table.setItemDelegateForColumn(self.Column.VALOR, col5_del)
         self.table.setItemDelegateForColumn(self.Column.SALDO, CurrencyLabelDelegate(self.table, bold=True))
-        # self.table.setItemDelegateForColumn(self.Column.REMOVER, col8_del)
-        # self.table.setItemDelegateForColumn(self.Column.ANEXOS, col7_del)
 
         logging.debug("> itemChanged connected again!")
         self.table.verticalScrollBar().setValue(vert_scr_position)
@@ -521,6 +525,29 @@ class LancamentosView(MyDialog):
         filter_model: LancamentoSortFilterProxyModel = self.table.model()
        
         filter_model.setFilterRegExp(".*")
+
+    def keyPressEvent(self, e:QEvent) -> None:
+        """Evento Ctrl + F para chamar a busca na coluna"""
+        if e.key() == (Qt.Key_Control and Qt.Key_F):
+            index = next((sel_ind for sel_ind in self.table.selectedIndexes()), None)
+            if not index:
+                return
+
+            if index.column() not in (
+                self.Column.ID,
+                self.Column.SEQ_ORDEM_LINHA,
+                self.Column.NR_REFERENCIA,
+                self.Column.DESCRICAO,
+                self.Column.DESCRICAO_USER,
+                self.Column.DATA, 
+                self.Column.CATEGORIA_ID, 
+                self.Column.VALOR, 
+                self.Column.SALDO, 
+            ):
+                return
+
+            self.open_search(index.column())
+            logging.debug(e)
 
 
 

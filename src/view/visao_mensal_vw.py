@@ -142,11 +142,11 @@ class VisaoGeralView(MyDialog):
 
         wb.save(filename)
 
-    def get_table(self):
+    def get_table(self) -> VisaoGeralTableView:
         """Tabela de visão mensal"""
         if self.table is None:
             self.table = VisaoGeralTableView(self)
-            self.table.on_selection_released.connect(self.on_selection_released)
+            self.table.selection_released.connect(self.on_selection_released)
         return self.table
 
     def on_selection_released(self, filters: list):

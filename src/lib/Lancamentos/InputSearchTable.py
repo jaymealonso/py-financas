@@ -1,8 +1,9 @@
 from enum import StrEnum
-from PyQt5.QtGui import QKeyEvent
+from PyQt5.QtGui import QColor, QKeyEvent
 from PyQt5.QtCore import Qt, QModelIndex, pyqtSignal
 from PyQt5.QtWidgets import QDialog, QLineEdit, QPushButton, QWidget, QHBoxLayout, QTableView, QLabel
 from view.icons import icons
+
 
 
 class TEXTS(StrEnum):
@@ -19,15 +20,19 @@ class TEXTS(StrEnum):
 class ColumnSearchView(QWidget):
     # sender: QDialog
     on_close_signal = pyqtSignal(QDialog)
-
-    def __init__(self, parent: QWidget):
+    
+    def __init__(self, parent):
         super(ColumnSearchView, self).__init__(parent)
 
+        # local vars
         self.column_index: int = -1
         self.last_found_string: str = None
         self.found_matches: list[QModelIndex] = []
         self.found_matches_index: int = -1
+        self.table:QTableView = parent.table
+        self.model = self.table.model()
 
+        # layout
         layout = QHBoxLayout()
         components = ColumnSearchViewComponents(self)
         self.search_field = components.get_search_field()
@@ -49,9 +54,7 @@ class ColumnSearchView(QWidget):
         if event.key() == Qt.Key_Return:
             self.search_button.click()
         elif event.key() == Qt.Key_Escape:
-            self.on_close_signal.emit(self)
-            self.parent().layout().removeWidget(self)
-            self.deleteLater()
+            self.on_fechar_popup()
 
     def show2(self, column_name: str, column_index: int) -> None:
         if self.column_index != column_index:
@@ -66,10 +69,7 @@ class ColumnSearchView(QWidget):
         self.search_field.setFocus()
 
     def on_click_search(self, go_prev=False):
-        table: QTableView = self.parent().table
-        model = table.model()
-
-        select_indexes = table.selectedIndexes()
+        select_indexes = self.table.selectedIndexes()
         from_line = select_indexes[0].row() if len(select_indexes) > 0 else 1
 
         if self.last_found_string == self.search_field.text() and len(self.found_matches) > 0:
@@ -80,31 +80,47 @@ class ColumnSearchView(QWidget):
                 self.found_matches_index = len(self.found_matches) - 1
             set_index = self.found_matches[self.found_matches_index]
         else:
+            self.modif_backgroud_encontrados(False)
             self.found_matches = []
             if self.search_field.text() != "":
-                self.found_matches = model.match(
-                    model.index(from_line, self.column_index),
+                self.found_matches = self.model.match(
+                    self.model.index(from_line, self.column_index),
                     Qt.DisplayRole,
                     self.search_field.text(),
                     -1,
                     Qt.MatchContains | Qt.MatchWrap
                 )
+                self.modif_backgroud_encontrados()
             if len(self.found_matches) == 0:
                 self.found_matches_label.setText(TEXTS.NADA_ENCONTRADO)
                 return
             set_index = self.found_matches[0]
             self.found_matches_index = 0
 
-        table.setCurrentIndex(set_index)
+        self.table.setCurrentIndex(set_index)
         self.found_matches_label.setText(
             TEXTS.FOUND_MATCHES.format(self.found_matches_index + 1, len(self.found_matches))
         )
         self.last_found_string = self.search_field.text()
 
-    def on_cancel(self):
+    def modif_backgroud_encontrados(self, highlight: bool = True):
+        if not highlight:
+            for match in self.found_matches:
+                match.model().setData(match, None, Qt.BackgroundRole)
+        else:
+            match:QModelIndex = None
+            highlight: QColor = QColor()
+            highlight.setRgb(255,102,102,50)
+            for match in self.found_matches:
+                match.model().setData(match, highlight, Qt.BackgroundRole)
+
+    def on_fechar_popup(self):
+        """Fecha o bloco de procura de valores"""
+        self.modif_backgroud_encontrados(False)
         self.on_close_signal.emit(self)
         self.parent().layout().removeWidget(self)
         self.deleteLater()
+        self.table.setFocus()
 
 
 class ColumnSearchViewComponents:
@@ -116,14 +132,14 @@ class ColumnSearchViewComponents:
         search_button = QPushButton(TEXTS.PROCURAR)
         search_button.setIcon(icons.tab_search())
         search_button.setToolTip(TEXTS.SEARCH_BUTTON_TOOLTIP)
-        search_button.clicked.connect(lambda: self.parent.on_click_search())
+        search_button.clicked.connect(self.parent.on_click_search)
         return search_button
 
     def get_cancel_button(self) -> QPushButton:
         cancel = QPushButton()
         cancel.setIcon(icons.cancel())
         cancel.setToolTip(TEXTS.CANCEL_BUTTON_TOOLTIP)
-        cancel.clicked.connect(lambda: self.parent.on_cancel())
+        cancel.clicked.connect(self.parent.on_fechar_popup)
         return cancel
 
     def get_search_field(self) -> QLineEdit:

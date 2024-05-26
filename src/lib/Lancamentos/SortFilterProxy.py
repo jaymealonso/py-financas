@@ -46,6 +46,7 @@ class LancamentoSortFilterProxyModel(QSortFilterProxyModel):
         super(LancamentoSortFilterProxyModel, self).__init__(parent)
 
         self.filters = []
+        self.setSortRole(Qt.UserRole)
 
     def clear_filters(self):
         self.filters.clear()
@@ -57,7 +58,7 @@ class LancamentoSortFilterProxyModel(QSortFilterProxyModel):
         if len(self.filters) == 0:
             return True
 
-        categoria = self.sourceModel().index(source_row, 6, source_parent).data()
+        categoria = self.sourceModel().index(source_row,  6, source_parent).data()
 
         date_date: datetime = (
             self.sourceModel().index(source_row, 5, source_parent).data(Qt.UserRole)
@@ -79,3 +80,14 @@ class LancamentoSortFilterProxyModel(QSortFilterProxyModel):
             ):
                 return True
         return False
+
+    def lessThan(self, left: QModelIndex, right: QModelIndex) -> bool:
+        # se existir texto acessivel (que ja foi tratado para ser usado como ordenacao)
+        # usa ele para ordenação
+        if left.data(Qt.AccessibleTextRole):
+            return left.data(Qt.AccessibleTextRole) < right.data(Qt.AccessibleTextRole)
+
+        return super().lessThan(left, right)
+
+    
+
