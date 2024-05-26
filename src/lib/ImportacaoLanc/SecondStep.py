@@ -4,7 +4,7 @@ from enum import IntEnum, auto
 
 from PyQt5.QtGui import QStandardItemModel
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import QAbstractItemView, QMessageBox, QTableView, QToolBar, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QAbstractItemView, QMessageBox, QSizePolicy, QTableView, QToolBar, QVBoxLayout, QWidget
 
 from lib.ImportacaoLanc.AddCategoriaPopup import AddCategoriasPopup
 import util.curr_formatter as curr
@@ -26,7 +26,7 @@ class SecondStepFrame(QWidget):
         CATEGORIA_ID = auto()
         VALOR = auto()
         NEW_ID = auto()
-        STATUS_IMPORT = auto()
+        MESSAGE = auto()
 
     COLUMNS = {
         Column.NR_REFERENCIA: { "title": "Número Ref.", "sql_colname": "nr_referencia", "col_width": 100 },
@@ -36,7 +36,7 @@ class SecondStepFrame(QWidget):
         Column.CATEGORIA_ID: {"title": "Categorias", "sql_colname": "categoria_id", "col_width": 260},
         Column.VALOR: {"title": "Valor", "sql_colname": "valor", "col_width": 160},
         Column.NEW_ID: {"title": "Novo ID", "sql_colname": "id", "col_width": 90 },
-        Column.STATUS_IMPORT: {"title": "Mensagem de importação", "sql_colname": "valor", "col_width": 600},
+        Column.MESSAGE: {"title": "Mensagem de importação", "sql_colname": "valor", "col_width": 600},
     }
 
     def __init__(self, parent: QWidget) -> None:
@@ -66,13 +66,15 @@ class SecondStepFrame(QWidget):
         btn_previous = self.toolbar.addAction(icons.results_prev(), "Passo anterior")
         btn_previous.triggered.connect( self.passo_anterior.emit )
 
-        btn_import_lanc = self.toolbar.addAction(icons.excel_imports(), "Importar linhas")
-        btn_import_lanc.triggered.connect( self.on_import_linhas )
-
-        self.toolbar.addSeparator()
-
         btn_criar_categ = self.toolbar.addAction(icons.add(), "Criar categorias")
         btn_criar_categ.triggered.connect( self.on_criar_categorias )
+
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.toolbar.addWidget(spacer)
+
+        btn_import_lanc = self.toolbar.addAction(icons.excel_imports(), "Importar linhas")
+        btn_import_lanc.triggered.connect( self.on_import_linhas )
 
         return self.toolbar
 
@@ -143,8 +145,10 @@ class SecondStepFrame(QWidget):
                 { Qt.DisplayRole: row.id },
             )
             model.setItemData(
-                model.index(new_index, self.Column.STATUS_IMPORT),
-                { Qt.DisplayRole: row.status_import },
+                model.index(new_index, self.Column.MESSAGE), { 
+                    Qt.DisplayRole: row.message,
+                    Qt.DecorationRole: row.icon
+                },
             )
 
         model.setVerticalHeaderLabels(vertical_col_indexes)

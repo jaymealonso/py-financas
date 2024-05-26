@@ -109,3 +109,23 @@ def deselect_all() -> QIcon:
 
 def find_file_dialog() -> QIcon:
     return QIcon(QPixmap(path + r"/open_folder.png"))
+
+
+def status_info() -> QIcon:
+    return QIcon(QPixmap(path + r"/information.png"))
+
+
+def status_warning() -> QIcon:
+    return QIcon(QPixmap(path + r"/warning.png"))
+
+
+def status_error() -> QIcon:
+    return QIcon(QPixmap(path + r"/error.png"))
+
+
+def status_ok() -> QIcon:
+    return QIcon(QPixmap(path + r"/ok.png"))
+
+
+def status_not_exec() -> QIcon:
+    return QIcon(QPixmap(path + r"/ok_gray.png"))

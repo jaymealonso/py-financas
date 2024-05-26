@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
 )
 
 from lib.Genericos.log import logging
-from lib.ImportacaoLanc.FirstStep import AbrirExcelErro, ConfigImportacaoBlock, FirstStepFrame, NewLancamento
+from lib.ImportacaoLanc.FirstStep import AbrirExcelErro, ConfigImportacaoBlock, FirstStepFrame, NewLancamento, NewLancamentoStatus
 from lib.ImportacaoLanc.SecondStep import SecondStepFrame
 from model.Conta import Conta
 from model.Lancamento import Lancamentos as ORMLancamentos
@@ -129,6 +129,10 @@ class ImportarLancamentosView(MyDialog):
     def on_importar_clicked(self, linhas:list[NewLancamento]) -> None:
         created_lines = 0
         for new_lancamento in linhas:
+            if not new_lancamento.pode_inserir:
+                new_lancamento.message = "Não inserido"
+                continue
+
             new_lancamento.conta_id = int(self.conta_dc.id)
             # criar novo lancamento
             new_lancamento_id = self.model_lancamentos.add_new(
@@ -141,10 +145,15 @@ class ImportarLancamentosView(MyDialog):
             )
             if new_lancamento_id > 0:
                 new_lancamento.id = new_lancamento_id
-                new_lancamento.status_import = "Importação executada com sucesso."
+                new_lancamento.message = "Importação executada com sucesso."
+                new_lancamento.message_status = NewLancamentoStatus.Sucesso
+                new_lancamento.pode_inserir = False
                 created_lines += 1
             else:
-                new_lancamento.status_import = "Erro ao importar linha."
+                new_lancamento.message = "Erro ao importar linha."
+                new_lancamento.message_status = NewLancamentoStatus.Erro
+                new_lancamento.pode_inserir = False
+                                
             # atualiza relação entre o lancamento e categoria
             if new_lancamento.categoria_id:
                 self.model_lancamentos.update(new_lancamento_id, 'categoria_id', new_lancamento.categoria_id)

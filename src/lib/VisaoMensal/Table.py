@@ -42,7 +42,7 @@ class VisaoGeralTableView(QTableView):
                 mes_ano = self.header_labels[item.column()]   
                 categoria_nm = self.categorias_labels[item.row()]
             except Exception:
-                logging.error(f"Mes/Categoria não encontrado, ind: { index }.")
+                logging.debug(f"Mes/Categoria não encontrado, ind: { index }.")
                 continue
 
             filters.append([mes_ano, categoria_nm])

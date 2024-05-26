@@ -1,9 +1,10 @@
 #!
 
+from enum import IntEnum, auto
 import io
 import locale
 
-from PyQt5.QtGui import QCursor
+from PyQt5.QtGui import QCursor, QIcon
 import openpyxl
 from lib.Genericos.log import logging
 from util.curr_formatter import str_curr_to_int
@@ -26,9 +27,18 @@ class AbrirExcelErro(Exception):
         self.message = f'Arquivo "{self.filepath}" não parece estar no formato excel.'
         super().__init__(self.message)
 
+
+class NewLancamentoStatus(IntEnum):
+    Nenhum = 0
+    Erro = auto() # impede registro de ser adicionado
+    Aviso = auto() # não impede registro de ser adicionado
+    Info = auto() # não impede registro de ser adicionado
+    Sucesso = auto() # depois de inserido apresenta este
+
 @dataclass
 class NewLancamento:
     """Classe local para organizar os valores e poder usar os __setattr__ mais a frente"""
+
     conta_id: int
     nr_referencia: str
     descricao: str
@@ -38,12 +48,29 @@ class NewLancamento:
     categoria_id: int
     
     row_index: int = field(default=0)
-    status_import: str = field(default="")
+    message_status: NewLancamentoStatus = field(default=NewLancamentoStatus.Nenhum)
+    message: str = field(default="")
     id: int = field(default=0)
     new_categoria: str = field(default="")
+    pode_inserir: bool = field(default=True)
 
     def valid(self) -> bool:
         return self.descricao and self.data and self.valor
+
+    @property
+    def icon(self) -> QIcon:
+        if self.message_status == NewLancamentoStatus.Sucesso:
+            return icons.status_ok()
+        elif self.message_status == NewLancamentoStatus.Nenhum:
+            return icons.status_not_exec()
+        elif self.message_status == NewLancamentoStatus.Erro :
+            return icons.status_error()
+        elif self.message_status == NewLancamentoStatus.Info :
+            return icons.status_info()
+        elif self.message_status == NewLancamentoStatus.Aviso :
+            return icons.status_warning()
+        else:
+            return None
 
 
 class FirstStepFrame(QWidget):
@@ -122,7 +149,6 @@ class FirstStepFrame(QWidget):
                 valor=0,
                 categoria_id=None,
                 row_index=row_index + 1,
-                status_import="",
             )
             for col in mapping_cols:
                 cell = self.table.item(row_index, mapping_cols[col])
@@ -140,17 +166,22 @@ class FirstStepFrame(QWidget):
                         (item.id for item in self.model_categoria.items if item.nm_categoria == cell_value), None)
                     if not categ_value:
                         if cell_value != "":
-                            new_lancamento.status_import=f'Categoria com o nome "{cell_value}" não encontrada.'
+                            new_lancamento.message=f'Categoria com o nome "{cell_value}" não encontrada.'
+                            new_lancamento.message_status = NewLancamentoStatus.Aviso
                             new_lancamento.new_categoria = cell_value
                         else:
-                            new_lancamento.status_import="Categoria vazia."
+                            new_lancamento.message="Categoria vazia."
+                            new_lancamento.message_status = NewLancamentoStatus.Aviso
+
                     new_lancamento.categoria_id = categ_value
                 else:
                     new_lancamento.__setattr__(col, cell_value)
             if not new_lancamento.valid():
                 text = f"Erro ao adicionar linha {row_index + 1}. Devem ao menos existir atributos: data, valor e descricao"
-                new_lancamento.status_import=text
-                logging.error(text)
+                new_lancamento.message=text
+                new_lancamento.pode_inserir = False
+                new_lancamento.message_status = NewLancamentoStatus.Erro
+                logging.debug(text)
 
             new_lancamentos.append(new_lancamento)
 
@@ -257,7 +288,7 @@ class FirstStepFrame(QWidget):
             )
             curr_int = str_curr_to_int(curr_str)
         except Exception as e:
-            logging.error(f"Erro importando valor em currency!, {e}")
+            logging.debug(f"Erro importando valor em currency!, {e}")
             curr_int = 0
 
         return curr_int
@@ -267,7 +298,7 @@ class FirstStepFrame(QWidget):
         try:
             date = datetime.strptime(date_str, date_format)
         except Exception as e:
-            logging.error("Erro importando valor em formato data!", e)
+            logging.debug("Erro importando valor em formato data!", e)
             date = None
 
         return date        
