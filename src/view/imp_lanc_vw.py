@@ -1,7 +1,4 @@
-from argparse import Action
 import os.path
-from re import L
-from turtle import position
 
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import (
@@ -17,7 +14,7 @@ from PyQt5.QtWidgets import (
 )
 
 from lib.Genericos.log import logging
-from lib.ImportacaoLanc.FirstStep import AbrirExcelErro, FirstStepFrame, NewLancamento
+from lib.ImportacaoLanc.FirstStep import AbrirExcelErro, ConfigImportacaoBlock, FirstStepFrame, NewLancamento
 from lib.ImportacaoLanc.SecondStep import SecondStepFrame
 from model.Conta import Conta
 from model.Lancamento import Lancamentos as ORMLancamentos
@@ -28,8 +25,7 @@ import view.icons.icons as icons
 
 class ImportarLancamentosView(MyDialog):
     """ Janela principal de importacao de lancamentos"""
-
-    # list[NewLa]
+    # list[NewLancamento]
     importacao_finalizada = pyqtSignal(list)
 
     def __init__(self, parent: QWidget, conta_dc: Conta) -> None:
@@ -50,21 +46,6 @@ class ImportarLancamentosView(MyDialog):
 
         self.toolbar = QToolBar()
         self.file_path = QLineEdit()
-        self.decimal_separator = QLineEdit(self.settings.separador_decimal)
-        self.decimal_separator.setObjectName("separador_decimal")
-        self.decimal_separator.editingFinished.connect(
-            lambda: self._on_change_params(self.decimal_separator)
-        )
-        self.mil_separator = QLineEdit(self.settings.separador_milhar)
-        self.mil_separator.setObjectName("separador_milhar")
-        self.mil_separator.editingFinished.connect(
-            lambda: self._on_change_params(self.mil_separator)
-        )
-        self.date_format = QLineEdit(self.settings.formato_data)
-        self.date_format.setObjectName("formato_data")
-        self.date_format.editingFinished.connect(
-            lambda: self._on_change_params(self.date_format)
-        )
 
         self.setWindowModality(Qt.ApplicationModal)
         self.setWindowTitle(
@@ -75,8 +56,8 @@ class ImportarLancamentosView(MyDialog):
 
         # layout
         layout = QVBoxLayout()
-        layout.addLayout(self.get_import_file_line())
-        layout.addLayout(self.get_config_line())
+        layout.addWidget(self.get_import_file_line())
+        layout.addWidget(ConfigImportacaoBlock(self, self.settings))
         layout.addWidget(self.first_table_frame)
         layout.addWidget(self.second_table_frame)
         self.second_table_frame.setVisible(False)
@@ -106,17 +87,7 @@ class ImportarLancamentosView(MyDialog):
             logging.error(str(e))
             self.resize(1600, 900)
 
-    def _on_change_params(self, source: QLineEdit):
-        """Grava configuracoes de importação diretamente nos settings"""
-        logging.debug("Entrou no on change")
-        if source.objectName() == "separador_decimal":
-            self.settings.separador_decimal = source.text()
-        elif source.objectName() == "separador_milhar":
-            self.settings.separador_milhar = source.text()
-        elif source.objectName() == "formato_data":
-            self.settings.formato_data = source.text()
-
-    def get_import_file_line(self) -> QHBoxLayout:
+    def get_import_file_line(self) -> QWidget:
         layout = QHBoxLayout()
         layout.addWidget(QLabel("Importar arquivo:"))
         layout.addWidget(self.file_path)
@@ -124,18 +95,10 @@ class ImportarLancamentosView(MyDialog):
         btn_choose_file.triggered.connect(self.on_procurar_clicked)
         layout.addWidget(self.btn_procurar)
         self.btn_procurar.clicked.connect(self.processar_arquivo)
-        return layout
 
-    def get_config_line(self) -> QHBoxLayout:
-        layout = QHBoxLayout()
-        layout.addWidget(QLabel("Separador Milhar:"))
-        layout.addWidget(self.mil_separator)
-        layout.addWidget(QLabel("Separador Decimal:"))
-        layout.addWidget(self.decimal_separator)
-        layout.addWidget(QLabel("Formato Data:"))
-        layout.addWidget(self.date_format)
-
-        return layout
+        container =  QWidget()
+        container.setLayout(layout)
+        return container
 
     def on_procurar_clicked(self):
         """

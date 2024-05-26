@@ -1,12 +1,13 @@
 #!
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import QCheckBox, QDialog, QGridLayout, QHBoxLayout, QPushButton, QScrollArea, QSizePolicy, QToolBar, QVBoxLayout, QWidget
+from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtWidgets import QCheckBox, QDialog, QGridLayout, QHBoxLayout, QMessageBox, QPushButton, QScrollArea, QSizePolicy, QToolBar, QVBoxLayout, QWidget
 import view.icons.icons as icons
 from model.Categoria import Categorias
 from model.db.db_orm import Categorias as ORMCategorias
 
 class AddCategoriasPopup(QDialog):
+    categ_created = pyqtSignal()
 
     def __init__(self, parent: QWidget, new_categorias: list[str]) -> None:
         super().__init__(parent)
@@ -83,6 +84,14 @@ class AddCategoriasPopup(QDialog):
     
     def on_criar(self):
         check: QCheckBox = None
+        created_count = 0
         for check in self.checkboxes:
             if check.isChecked():
                 self.model_categoria.add_new(ORMCategorias(id=None, nm_categoria=check.text().strip()))
+                created_count += 1
+
+        if created_count > 0:
+            QMessageBox.information(self, "Sucesso", f"{ created_count } categorias criadas.")
+            self.categ_created.emit()
+            self.close()
+

@@ -127,6 +127,7 @@ class ContasView(QWidget):
             lancamentos_window.add_lancamento.connect(self.handle_lancamento_created)
             lancamentos_window.on_close_signal.connect(self.handle_close_lancamento)
             lancamentos_window.on_delete.connect(self.handle_delete_lancamento)
+            lancamentos_window.records_added.connect(self.load_table_data)
             self.lanc_windows_open[conta_id] = lancamentos_window
         else:
             lancamentos_window = self.lanc_windows_open[conta_id]

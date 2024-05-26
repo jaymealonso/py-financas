@@ -13,7 +13,7 @@ import view.icons.icons as icons
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import ( QApplication, QComboBox, QMessageBox, QProgressBar, 
+from PyQt5.QtWidgets import ( QApplication, QComboBox, QHBoxLayout, QLabel, QLineEdit, QMessageBox, QProgressBar, 
     QTableWidget, QTableWidgetItem, QToolBar, QVBoxLayout, QWidget )
 from model.Categoria import Categorias as ORMCategorias
 
@@ -280,4 +280,80 @@ class TableWidgetFirst(QTableWidget):
         super(TableWidgetFirst, self).__init__(parent)
         
         self.setColumnCount(0)
+
+class ConfigImportacaoBlock(QWidget):
+    def __init__(self, parent: QWidget, settings: JanelaImportLancamentosSettings) -> None:
+        super().__init__(parent)
+        
+        # local vars
+        self.settings = settings
+        self.decimal_separator:QLineEdit = None
+        self.mil_separator: QLineEdit = None
+        self.date_format: QLineEdit = None
+
+        # startup
+        self.config_inputs()
+
+        self.config_layout()
+
+    def config_inputs(self):
+        self.decimal_separator = QLineEdit(self.settings.separador_decimal)
+        self.decimal_separator.setObjectName("separador_decimal")
+        self.decimal_separator.editingFinished.connect(
+            lambda: self._on_change_params(self.decimal_separator)
+        )
+        self.mil_separator = QLineEdit(self.settings.separador_milhar)
+        self.mil_separator.setObjectName("separador_milhar")
+        self.mil_separator.editingFinished.connect(
+            lambda: self._on_change_params(self.mil_separator)
+        )
+        self.date_format = QLineEdit(self.settings.formato_data)
+        self.date_format.setObjectName("formato_data")
+        self.date_format.editingFinished.connect(
+            lambda: self._on_change_params(self.date_format)
+        )
+
+    def config_layout(self) -> QHBoxLayout:
+        layout = QHBoxLayout()
+        layout.addWidget(QLabel("Separador Milhar:"))
+        layout.addWidget(self.mil_separator)
+        layout.addWidget(QLabel("Separador Decimal:"))
+        layout.addWidget(self.decimal_separator)
+        layout.addWidget(QLabel("Formato Data:"))
+        layout.addWidget(self.date_format)
+
+        self.setLayout(layout)
+
+    def _on_change_params(self, source: QLineEdit):
+        """Grava configuracoes de importação diretamente nos settings"""
+        logging.debug("Entrou no on change")
+        if source.objectName() == "separador_decimal":
+            self.settings.separador_decimal = source.text()
+        elif source.objectName() == "separador_milhar":
+            self.settings.separador_milhar = source.text()
+        elif source.objectName() == "formato_data":
+            self.settings.formato_data = source.text()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

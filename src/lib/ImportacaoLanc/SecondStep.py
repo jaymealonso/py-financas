@@ -175,5 +175,5 @@ class SecondStepFrame(QWidget):
             return
         
         popup = AddCategoriasPopup(self, values)
+        popup.categ_created.connect(self.passo_anterior.emit)
         popup.open()
-

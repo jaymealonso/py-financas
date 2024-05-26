@@ -1,7 +1,7 @@
 #!
 
 from PyQt5 import QtGui
-from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import QTableView, QWidget
 
 from lib.Genericos.log import logging
@@ -18,16 +18,22 @@ class VisaoGeralTableView(QTableView):
 
         self.setSortingEnabled(True)
 
+    def keyPressEvent(self, e: QtGui.QKeyEvent | None) -> None:
+        super().keyPressEvent(e)
+        if e.key() in (Qt.Key.Key_Down, Qt.Key.Key_Up, Qt.Key.Key_Left,Qt.Key.Key_Right):
+            self.on_selection_ended()
+
+
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
         super(VisaoGeralTableView, self).mouseReleaseEvent(event)
         logging.debug("mouse release")
-        self.on_mouse_release()
+        self.on_selection_ended()
 
     def set_labels(self, header, categorias):
         self.header_labels = header
         self.categorias_labels = categorias
 
-    def on_mouse_release(self):
+    def on_selection_ended(self):
         selected = self.selectedIndexes()
         logging.debug(f"{ len(selected) } cells selected.")
         filters = []
