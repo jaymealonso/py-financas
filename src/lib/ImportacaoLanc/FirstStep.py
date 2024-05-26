@@ -1,6 +1,7 @@
 #!
 
 import locale
+import stat
 
 from PyQt5.QtGui import QCursor
 import openpyxl
@@ -9,10 +10,10 @@ from util.curr_formatter import str_curr_to_int
 from util.settings import JanelaImportLancamentosSettings
 import view.icons.icons as icons
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import ( QApplication, QComboBox, QProgressBar, 
+from PyQt5.QtWidgets import ( QApplication, QComboBox, QMessageBox, QProgressBar, 
     QTableWidget, QTableWidgetItem, QToolBar, QVBoxLayout, QWidget )
 from model.Categoria import Categorias as ORMCategorias
 
@@ -28,7 +29,6 @@ class AbrirExcelErro(Exception):
 @dataclass
 class NewLancamento:
     """Classe local para organizar os valores e poder usar os __setattr__ mais a frente"""
-
     conta_id: int
     nr_referencia: str
     descricao: str
@@ -36,14 +36,18 @@ class NewLancamento:
     data: date
     valor: int
     categoria_id: int
+    
+    row_index: int = field(default=0)
+    status_import: str = field(default="")
+    id: int = field(default=0)
 
     def valid(self) -> bool:
         return self.descricao and self.data and self.valor
 
 
 class FirstStepFrame(QWidget):
-    # lines selected
-    importar_linhas_clicked = pyqtSignal(list)
+    # next button clicked send list of lancamentos
+    passo_proximo = pyqtSignal(list)
 
     def __init__(self, parent: QWidget, settings: JanelaImportLancamentosSettings) -> None:
         super(FirstStepFrame, self).__init__(parent)
@@ -67,30 +71,30 @@ class FirstStepFrame(QWidget):
     def get_toolbar(self) -> QToolBar:
         self.toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
 
+        btn_next = self.toolbar.addAction(icons.results_next(), "Próximo passo")
+        btn_next.triggered.connect( self.on_proximo_passo )
+
         btn_remove_line = self.toolbar.addAction(icons.delete(), "Remover linha(s)")
         btn_remove_line.triggered.connect(self.on_remove_lines)
-
-        btn_import_lanc = self.toolbar.addAction(icons.add(), "Importar linha(s)")
-        btn_import_lanc.triggered.connect(
-            lambda: self.on_import_linhas()
-        )
 
         return self.toolbar
 
     def on_remove_lines(self) -> None:
         unique_rows = list(
             dict.fromkeys(
-                [x.row() for x in self.selectedIndexes() if x.row() > 0]
+                [x.row() for x in self.table.selectedIndexes() if x.row() > 0]
             )
         )
         unique_rows.sort(reverse=True)
         for sel in unique_rows:
-            self.removeRow(sel)    
+            self.table.removeRow(sel)
 
-    def on_import_linhas(self) -> None:
-        """
-        Gera lançamentos a partir das linhas selecionadas
-        """
+    def on_proximo_passo(self):
+        """ Envia linhas selecionadas para a proxima tabela de preview """
+        if len( self.table.selectedIndexes() ) == 0:
+            QMessageBox.critical(self, "Erro", "Favor selecionar ao menos uma linha.")
+            return
+        
         mapping_cols = {}
         for col_index in range(self.table.columnCount()):
             column_combo: QComboBox = self.table.cellWidget(0, col_index)
@@ -103,7 +107,6 @@ class FirstStepFrame(QWidget):
             )
         )
 
-        line = ImportarLancamentosTableLine(self)
         new_lancamentos = []
         for row_index in selected_row_indexes:
             new_lancamento = NewLancamento(
@@ -114,6 +117,8 @@ class FirstStepFrame(QWidget):
                 data=datetime.now(),
                 valor=0,
                 categoria_id=None,
+                row_index=row_index + 1,
+                status_import="",
             )
             for col in mapping_cols:
                 cell = self.table.item(row_index, mapping_cols[col])
@@ -140,7 +145,7 @@ class FirstStepFrame(QWidget):
             new_lancamentos.append(new_lancamento)
 
         ###
-        self.importar_linhas_clicked.emit(new_lancamentos)
+        self.passo_proximo.emit(new_lancamentos)
 
         # salva mapeamento das colunas
         self.settings.import_col_position = mapping_cols
@@ -156,7 +161,7 @@ class FirstStepFrame(QWidget):
         self.table.clear()
         try:
             wb = openpyxl.load_workbook(path)
-        except Exception as e:
+        except Exception:
             raise AbrirExcelErro(file_name_fullpath)
         ws = wb.active
 
@@ -207,7 +212,7 @@ class FirstStepFrame(QWidget):
             QApplication.processEvents()
 
             for cell in row:
-                if hasattr(cell, "is_date") and cell.is_date and not cell.value is None:
+                if hasattr(cell, "is_date") and cell.is_date and cell.value is not None:
                     cell_widget = QTableWidgetItem(cell.value.isoformat()[:10])
                 elif isinstance(cell.value, float) or isinstance(cell.value, int):
                     cell_widget = QTableWidgetItem(str(cell.value))

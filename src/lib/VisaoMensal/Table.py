@@ -1,14 +1,21 @@
-from lib.Genericos.log import logging
+#!
 
 from PyQt5 import QtGui
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtWidgets import QTableView, QWidget
+
+from lib.Genericos.log import logging
+
 
 class VisaoGeralTableView(QTableView):
     on_selection_released = pyqtSignal(list)
 
     def __init__(self, parent: QWidget | None = ...) -> None:
         super().__init__(parent)
+        # vars
+        self.header_labels = None
+        self.categorias_labels = None
+
         self.setSortingEnabled(True)
 
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
@@ -26,9 +33,9 @@ class VisaoGeralTableView(QTableView):
         filters = []
         for index, item in enumerate(selected):
             try:
-                mes_ano = self.header_labels[item.column()]
-                categoria_nm = self.categorias_labels[item.row()] 
-            except Exception as e:
+                mes_ano = self.header_labels[item.column()]   
+                categoria_nm = self.categorias_labels[item.row()]
+            except Exception:
                 logging.error(f"Mes/Categoria não encontrado, ind: { index }.")
                 continue
 

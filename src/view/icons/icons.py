@@ -93,3 +93,7 @@ def results_prev() -> QIcon:
 
 def filter_clear() -> QIcon:
     return QIcon(QPixmap(path + r"/filter_clear.png"))
+
+def excel_imports() -> QIcon:
+    return QIcon(QPixmap(path + r"/excel_imports.png"))
+

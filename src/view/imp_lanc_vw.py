@@ -1,28 +1,36 @@
-from lib.Genericos.log import logging
 import os.path
+from re import L
 
-from lib.ImportacaoLanc.FirstStep import AbrirExcelErro, FirstStepFrame, NewLancamento
-from model.Conta import Conta
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QHBoxLayout,
-    QLineEdit,
-    QPushButton,
     QFileDialog,
-    QToolBar,
+    QHBoxLayout,
     QLabel,
+    QLineEdit,
     QMessageBox,
+    QPushButton,
+    QToolBar,
+    QVBoxLayout,
+    QWidget,
 )
+
+from lib.Genericos.log import logging
+from lib.ImportacaoLanc.FirstStep import AbrirExcelErro, FirstStepFrame, NewLancamento
+from lib.ImportacaoLanc.SecondStep import SecondStepFrame
+from model.Conta import Conta
 from model.Lancamento import Lancamentos as ORMLancamentos
 from util.my_dialog import MyDialog
-from util.settings import Settings, JanelaImportLancamentosSettings
+from util.settings import JanelaImportLancamentosSettings, Settings
 from util.toaster import QToaster
 
 
 class ImportarLancamentosView(MyDialog):
-    def __init__(self, parent: QWidget, conta_dc: Conta):
+    """ Janela principal de importacao de lancamentos"""
+
+    # list[NewLa]
+    importacao_finalizada = pyqtSignal(list)
+
+    def __init__(self, parent: QWidget, conta_dc: Conta) -> None:
         super(ImportarLancamentosView, self).__init__(parent)
 
         self.conta_dc = conta_dc
@@ -31,10 +39,13 @@ class ImportarLancamentosView(MyDialog):
             self.global_settings.load_impo_lanc_settings(self.conta_dc.id)
 
         self.btn_procurar = QPushButton("Procurar...")
-        self.table_frame = FirstStepFrame(self, self.settings)
-        self.table_frame.importar_linhas_clicked.connect(self.on_importar_clicked)
+        self.first_table_frame = FirstStepFrame(self, self.settings)
+        self.first_table_frame.passo_proximo.connect(self.on_proximo)
 
-        self.table = self.table_frame.table
+        self.second_table_frame = SecondStepFrame(self)
+        self.second_table_frame.passo_anterior.connect(self.on_anterior)
+        self.second_table_frame.import_linhas.connect(self.on_importar_clicked)
+
         self.toolbar = QToolBar()
         self.file_path = QLineEdit()
         self.decimal_separator = QLineEdit(self.settings.separador_decimal)
@@ -53,8 +64,6 @@ class ImportarLancamentosView(MyDialog):
             lambda: self._on_change_params(self.date_format)
         )
 
-        self.model_lancamentos = ORMLancamentos(conta_dc)
-
         self.setWindowModality(Qt.ApplicationModal)
         self.setWindowTitle(
             f"Importar Lançamentos - (Conta {conta_dc.id} | {conta_dc.descricao})"
@@ -62,12 +71,27 @@ class ImportarLancamentosView(MyDialog):
         self.restore_geometry()
         self.on_close_signal.connect(self.on_close)
 
+        # layout
         layout = QVBoxLayout()
         layout.addLayout(self.get_import_file_line())
         layout.addLayout(self.get_config_line())
-        layout.addWidget(self.table_frame)
+        layout.addWidget(self.first_table_frame)
+        layout.addWidget(self.second_table_frame)
+        self.second_table_frame.setVisible(False)
 
         self.setLayout(layout)
+
+        # model
+        self.model_lancamentos = ORMLancamentos(conta_dc)
+
+    def on_anterior(self) -> None:
+        self.first_table_frame.setVisible(True)
+        self.second_table_frame.setVisible(False)
+
+    def on_proximo(self, linhas: list) -> None:
+        self.first_table_frame.setVisible(False)
+        self.second_table_frame.setVisible(True)
+        self.second_table_frame.set_linhas(linhas)
 
     def on_close(self):
         self.settings.dimensoes = self.saveGeometry()
@@ -120,7 +144,7 @@ class ImportarLancamentosView(MyDialog):
         if os.path.isfile(file_name_fullpath):
             self.file_path.setText(file_name_fullpath)
             try:
-                self.table_frame.csv_to_table(file_name_fullpath)
+                self.first_table_frame.csv_to_table(file_name_fullpath)
             except AbrirExcelErro as e:
                 QMessageBox(
                     QMessageBox.Warning,
@@ -144,7 +168,11 @@ class ImportarLancamentosView(MyDialog):
                 valor=new_lancamento.valor,
             )
             if new_lancamento_id > 0:
+                new_lancamento.id = new_lancamento_id
+                new_lancamento.status_import = "Importação executada com sucesso."
                 created_lines += 1
+            else:
+                new_lancamento.status_import = "Erro ao importar linha."
             # atualiza relação entre o lancamento e categoria
             if new_lancamento.categoria_id:
                 self.model_lancamentos.update(new_lancamento_id, 'categoria_id', new_lancamento.categoria_id)
@@ -157,5 +185,6 @@ class ImportarLancamentosView(MyDialog):
             timeout=2000,
             corner=Qt.BottomRightCorner,
         )                
+        self.importacao_finalizada.emit(linhas)
 
 

@@ -192,23 +192,12 @@ class VisaoGeralView(MyDialog):
     def get_lancamentos(self) -> LancamentosView:
         """Janela de descricao de lancamentos"""
         lancamentos = LancamentosView(self, self.conta_dc)
-        lancamentos.changed.connect(self.handle_lancamento_changed)
-        lancamentos.add_lancamento.connect(self.handle_lancamento_created)
-        lancamentos.on_close_signal.connect(self.handle_close_lancamento)
-        lancamentos.on_delete.connect(self.handle_delete_lancamento)
+        lancamentos.changed.connect(self.load_table_data)
+        lancamentos.add_lancamento.connect(self.load_table_data)
+        lancamentos.on_close_signal.connect(self.load_table_data)
+        lancamentos.on_delete.connect(self.load_table_data)
+        lancamentos.records_added.connect(self.load_table_data)
         return lancamentos
-
-    def handle_lancamento_changed(self):
-        self.load_model_only()
-
-    def handle_lancamento_created(self):
-        self.load_model_only()
-
-    def handle_close_lancamento(self):
-        self.load_model_only()
-
-    def handle_delete_lancamento(self):
-        self.load_model_only()
 
     def load_table_data(self):
         # reset sort order

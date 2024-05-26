@@ -1,49 +1,51 @@
-from model.Anexos import Anexos
-import view.icons.icons as icons
-import view.contas_vw as cv
-from lib.Genericos.log import logging
+from enum import IntEnum, auto
 
-from util.my_dialog import MyDialog
-from view.imp_lanc_vw import ImportarLancamentosView
-from view.anexos_vw import AnexosView
-from view.TableLine import TableLine
-from model.Conta import Conta
-from model.Categoria import Categorias
-from model.Lancamento import Lancamentos
-from model.db.db_orm import (
-    Lancamentos as ORMLancamentos,
-    Anexos as ORMAnexos,
-)
-from PyQt5.QtGui import QStandardItemModel, QCursor, QStandardItem
-from lib.Lancamentos.SortFilterProxy import LancamentoSortFilterProxyModel
-from PyQt5.QtCore import Qt, QObject, QModelIndex, pyqtSignal, QItemSelectionModel
+from PyQt5.QtCore import QItemSelectionModel, QModelIndex, Qt, pyqtSignal
+from PyQt5.QtGui import QCursor, QStandardItem, QStandardItemModel
 from PyQt5.QtWidgets import (
-    QWidget,
-    QHBoxLayout,
-    QVBoxLayout,
-    QTableView,
-    QPushButton,
-    QToolBar,
-    QSizePolicy,
-    QMessageBox,
-    QLabel,
-    QCheckBox,
+    QAction,
     QApplication,
-    QAction, QMenu,
+    QCheckBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMenu,
+    QMessageBox,
+    QPushButton,
+    QSizePolicy,
+    QTableView,
+    QToolBar,
+    QVBoxLayout,
+    QWidget,
 )
-from util.toaster import QToaster
-from util.currency_editor import QCurrencyLineEdit
-import util.curr_formatter as curr
-from util.settings import Settings, JanelaLancamentosSettings
-from util.custom_table_delegates import (
-    GenericInputDelegate,
-    ComboBoxDelegate,
-    DateEditDelegate,
-    CurrencyEditDelegate, CurrencyLabelDelegate, IDLabelDelegate,
-)
-from enum import auto, IntEnum
 
+import util.curr_formatter as curr
+from lib.Genericos.log import logging
+from lib.Lancamentos.SortFilterProxy import LancamentoSortFilterProxyModel
+from model.Anexos import Anexos
+from model.Categoria import Categorias
+from model.Conta import Conta
+from model.Lancamento import Lancamentos
+from model.db.db_orm import Anexos as ORMAnexos, Lancamentos as ORMLancamentos
+from util.currency_editor import QCurrencyLineEdit
+from util.custom_table_delegates import (
+    ComboBoxDelegate,
+    CurrencyEditDelegate,
+    CurrencyLabelDelegate,
+    DateEditDelegate,
+    GenericInputDelegate,
+    IDLabelDelegate,
+)
+from util.my_dialog import MyDialog
+from util.settings import JanelaLancamentosSettings, Settings
+from util.toaster import QToaster
+
+import view.contas_vw as cv
+import view.icons.icons as icons
+from view.anexos_vw import AnexosView
+from view.imp_lanc_vw import ImportarLancamentosView
 from view.inputsearch_vw import ColumnSearchView
+from view.TableLine import TableLine
 
 
 class LancamentosView(MyDialog):
@@ -53,6 +55,8 @@ class LancamentosView(MyDialog):
     add_lancamento = pyqtSignal(int)
     # lancamento_id: int
     on_delete = pyqtSignal(int)
+
+    records_added = pyqtSignal()
 
     class Column(IntEnum):
         ID = 0
@@ -68,23 +72,17 @@ class LancamentosView(MyDialog):
         ANEXOS = auto()
 
     COLUMNS = {
-        Column.ID: {"title": "ID", "sql_colname": "id"},
-        Column.SEQ_ORDEM_LINHA: {
-            "title": "Seq Linha",
-            "sql_colname": "seq_ordem_linha",
-        },
-        Column.NR_REFERENCIA: {
-            "title": "Número Ref.",
-            "sql_colname": "nr_referencia",
-        },
-        Column.DESCRICAO: {"title": "Descrição", "sql_colname": "descricao"},
-        Column.DESCRICAO_USER: {"title": "Descrição Usuário", "sql_colname": "descricao_user"},
-        Column.DATA: {"title": "Data", "sql_colname": "data"},
-        Column.CATEGORIA_ID: {"title": "Categorias", "sql_colname": "categoria_id"},
-        Column.VALOR: {"title": "Valor", "sql_colname": "valor"},
-        Column.SALDO: {"title": "Saldo"},
-        Column.REMOVER: {"title": "Remover"},
-        Column.ANEXOS: {"title": "Anexos"},
+        Column.ID: {"title": "ID", "sql_colname": "id", "col_width": 90 },
+        Column.SEQ_ORDEM_LINHA: { "title": "Seq Linha", "sql_colname": "seq_ordem_linha", "col_width": 100 },
+        Column.NR_REFERENCIA: { "title": "Número Ref.", "sql_colname": "nr_referencia", "col_width": 100 },
+        Column.DESCRICAO: {"title": "Descrição", "sql_colname": "descricao", "col_width": 500},
+        Column.DESCRICAO_USER: {"title": "Descrição Usuário", "sql_colname": "descricao_user", "col_width": 100},
+        Column.DATA: {"title": "Data", "sql_colname": "data", "col_width": 160},
+        Column.CATEGORIA_ID: {"title": "Categorias", "sql_colname": "categoria_id", "col_width": 260},
+        Column.VALOR: {"title": "Valor", "sql_colname": "valor", "col_width": 160},
+        Column.SALDO: {"title": "Saldo", "col_width": 160},
+        Column.REMOVER: {"title": "Remover", "col_width": 100},
+        Column.ANEXOS: {"title": "Anexos", "col_width": 100},
     }
 
     def __init__(self, parent: QWidget, conta_dc: Conta):
@@ -170,7 +168,6 @@ class LancamentosView(MyDialog):
         sortModel = LancamentoSortFilterProxyModel(self)
         sortModel.setSourceModel(model)
         self.table.setModel(sortModel)
-        # self.table.setModel(model)
         self.table.setSortingEnabled(True)
 
         self.table.verticalHeader().setVisible(False)
@@ -221,7 +218,12 @@ class LancamentosView(MyDialog):
         Exibe a janela de importação de lançamentos
         """
         self.import_lanc_view = ImportarLancamentosView(self, self.conta_dc)
+        self.import_lanc_view.importacao_finalizada.connect(self.on_import_finalizada)
         self.import_lanc_view.show()
+
+    def on_import_finalizada(self):
+        self.load_model_only()
+        self.records_added.emit()
 
     def open_search(self, logical_index):
         col = self.COLUMNS.get(logical_index)
@@ -465,17 +467,9 @@ class LancamentosView(MyDialog):
         """
         self.table_cell_changed(item)
 
-    def set_column_default_sizes(self):
-        self.table.setColumnWidth(self.Column.ID, 90)
-        self.table.setColumnWidth(self.Column.SEQ_ORDEM_LINHA, 100)
-        self.table.setColumnWidth(self.Column.NR_REFERENCIA, 100)
-        self.table.setColumnWidth(self.Column.DESCRICAO, 500)
-        self.table.setColumnWidth(self.Column.DATA, 160)
-        self.table.setColumnWidth(self.Column.CATEGORIA_ID, 260)
-        self.table.setColumnWidth(self.Column.VALOR, 160)
-        self.table.setColumnWidth(self.Column.SALDO, 160)
-        self.table.setColumnWidth(self.Column.REMOVER, 100)
-        self.table.setColumnWidth(self.Column.ANEXOS, 100)
+    def set_column_default_sizes(self):        
+        for index, col in self.COLUMNS.items():
+            self.table.setColumnWidth(index, col.get("col_width"))
 
     def set_filter_mes_categ(self, filters: dict[str, str]):
         filter_model: LancamentoSortFilterProxyModel = self.table.model()
@@ -507,7 +501,7 @@ class TotalCurrLabel(QLabel):
 
 class LancamentoTableLine(TableLine):
     def __init__(self, parent: LancamentosView):
-        super(QObject, self).__init__()
+        super(LancamentoTableLine, self).__init__()
         self.parentOne: LancamentosView = parent
 
     def get_currency_value_delegate(self) -> CurrencyEditDelegate:
@@ -526,15 +520,15 @@ class LancamentoTableLine(TableLine):
         date = DateEditDelegate(self.parentOne.table)
         return date
 
-    def get_currency_input(self, valor: int, row: int, col: int):
-        line_edit = QCurrencyLineEdit()
+    def get_currency_input(self, valor: int, row: int, col: int) -> QCurrencyLineEdit:
+        line_edit = QCurrencyLineEdit(self)
         line_edit.setTextInt(valor)
         return line_edit
 
-    def on_curr_input_text_changed(self, *args, **kwargs):
+    def on_curr_input_text_changed(self, *args, **kwargs) -> None:
         self.sender().setTextFormat()
 
-    def get_label_for_saldo(self, value: int):
+    def get_label_for_saldo(self, value: int) -> QLineEdit:
         label = super().get_label_for_currency(value)
         return label
 
