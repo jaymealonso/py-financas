@@ -1,7 +1,7 @@
 #!
 
+import io
 import locale
-import stat
 
 from PyQt5.QtGui import QCursor
 import openpyxl
@@ -40,6 +40,7 @@ class NewLancamento:
     row_index: int = field(default=0)
     status_import: str = field(default="")
     id: int = field(default=0)
+    new_categoria: str = field(default="")
 
     def valid(self) -> bool:
         return self.descricao and self.data and self.valor
@@ -66,7 +67,6 @@ class FirstStepFrame(QWidget):
 
         # model
         self.model_categoria = ORMCategorias()
-        self.model_categoria.load()
 
     def get_toolbar(self) -> QToolBar:
         self.toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
@@ -107,6 +107,10 @@ class FirstStepFrame(QWidget):
             )
         )
 
+        # carrega categorias todas as vezes pois alguma pode ter sido 
+        # adicionada por outro processo
+        self.model_categoria.load()
+
         new_lancamentos = []
         for row_index in selected_row_indexes:
             new_lancamento = NewLancamento(
@@ -124,7 +128,7 @@ class FirstStepFrame(QWidget):
                 cell = self.table.item(row_index, mapping_cols[col])
                 if not cell:
                     continue
-                cell_value = cell.text()
+                cell_value = cell.text().strip()
                 if col == "data":
                     data_value = self.parse_date(cell_value)
                     new_lancamento.__setattr__(col, data_value)
@@ -134,13 +138,19 @@ class FirstStepFrame(QWidget):
                 elif col == "categoria_id":
                     categ_value = next(
                         (item.id for item in self.model_categoria.items if item.nm_categoria == cell_value), None)
+                    if not categ_value:
+                        if cell_value != "":
+                            new_lancamento.status_import=f'Categoria com o nome "{cell_value}" não encontrada.'
+                            new_lancamento.new_categoria = cell_value
+                        else:
+                            new_lancamento.status_import="Categoria vazia."
                     new_lancamento.categoria_id = categ_value
                 else:
                     new_lancamento.__setattr__(col, cell_value)
             if not new_lancamento.valid():
-                logging.error(
-                    f"Erro ao adicionar linha {row_index}. Devem ao menos existir atributos: data, valor e descricao")
-                continue
+                text = f"Erro ao adicionar linha {row_index + 1}. Devem ao menos existir atributos: data, valor e descricao"
+                new_lancamento.status_import=text
+                logging.error(text)
 
             new_lancamentos.append(new_lancamento)
 
@@ -160,7 +170,12 @@ class FirstStepFrame(QWidget):
         # Limpa toda a tabela
         self.table.clear()
         try:
-            wb = openpyxl.load_workbook(path)
+            in_mem_file = None
+            # Abrir somente para leitura para não bloquear o arquivo
+            with open(path, "rb") as file:
+                in_mem_file = io.BytesIO(file.read())
+
+            wb = openpyxl.load_workbook(in_mem_file)
         except Exception:
             raise AbrirExcelErro(file_name_fullpath)
         ws = wb.active
@@ -204,10 +219,7 @@ class FirstStepFrame(QWidget):
                 skipcount += 1
                 continue
 
-            # self.table.insertRow(row_no)
             column_no = 0
-
-            logging.info(f"Adding row {row_no} ...")
             prog_bar.setValue(row_no)
             QApplication.processEvents()
 
@@ -224,7 +236,9 @@ class FirstStepFrame(QWidget):
 
             row_no += 1
 
-        logging.info(f"SkipCount: {skipcount}")
+        logging.info(f"Adicionado {row_no} linhas. Descartadas: {skipcount}")
+
+        wb.close()
 
         self.table.resizeColumnsToContents()
 

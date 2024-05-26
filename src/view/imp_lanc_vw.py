@@ -1,5 +1,7 @@
+from argparse import Action
 import os.path
 from re import L
+from turtle import position
 
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import (
@@ -22,7 +24,7 @@ from model.Lancamento import Lancamentos as ORMLancamentos
 from util.my_dialog import MyDialog
 from util.settings import JanelaImportLancamentosSettings, Settings
 from util.toaster import QToaster
-
+import view.icons.icons as icons
 
 class ImportarLancamentosView(MyDialog):
     """ Janela principal de importacao de lancamentos"""
@@ -38,7 +40,7 @@ class ImportarLancamentosView(MyDialog):
         self.settings: JanelaImportLancamentosSettings = \
             self.global_settings.load_impo_lanc_settings(self.conta_dc.id)
 
-        self.btn_procurar = QPushButton("Procurar...")
+        self.btn_procurar = QPushButton("Importar")
         self.first_table_frame = FirstStepFrame(self, self.settings)
         self.first_table_frame.passo_proximo.connect(self.on_proximo)
 
@@ -118,9 +120,10 @@ class ImportarLancamentosView(MyDialog):
         layout = QHBoxLayout()
         layout.addWidget(QLabel("Importar arquivo:"))
         layout.addWidget(self.file_path)
-        self.file_path.setEnabled(False)
+        btn_choose_file = self.file_path.addAction(icons.find_file_dialog(), QLineEdit.TrailingPosition)
+        btn_choose_file.triggered.connect(self.on_procurar_clicked)
         layout.addWidget(self.btn_procurar)
-        self.btn_procurar.clicked.connect(self.on_procurar_clicked)
+        self.btn_procurar.clicked.connect(self.processar_arquivo)
         return layout
 
     def get_config_line(self) -> QHBoxLayout:
@@ -141,18 +144,24 @@ class ImportarLancamentosView(MyDialog):
         dialog = QFileDialog()
         dialog.setFileMode(QFileDialog.ExistingFile)
         (file_name_fullpath, selectedFilter) = dialog.getOpenFileName()
-        if os.path.isfile(file_name_fullpath):
-            self.file_path.setText(file_name_fullpath)
-            try:
-                self.first_table_frame.csv_to_table(file_name_fullpath)
-            except AbrirExcelErro as e:
-                QMessageBox(
-                    QMessageBox.Warning,
-                    f"Erro no formato {e}",
-                    str(e),
-                    QMessageBox.Ok,
-                ).exec_()
-                self.file_path.setText("")
+        self.file_path.setText(file_name_fullpath)
+        self.processar_arquivo()
+
+    def processar_arquivo(self):
+        try:
+            file_name_fullpath = self.file_path.text()
+            if not os.path.isfile(file_name_fullpath):
+                QMessageBox.critical(self, "Erro", f"Arquivo: {file_name_fullpath} não encontrado.")
+                return
+
+            self.first_table_frame.csv_to_table(file_name_fullpath)
+        except AbrirExcelErro as e:
+            QMessageBox(
+                QMessageBox.Warning,
+                f"Erro no formato {e}",
+                str(e),
+                QMessageBox.Ok,
+            ).exec_()
 
     def on_importar_clicked(self, linhas:list[NewLancamento]) -> None:
         created_lines = 0

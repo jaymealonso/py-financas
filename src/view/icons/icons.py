@@ -94,6 +94,18 @@ def results_prev() -> QIcon:
 def filter_clear() -> QIcon:
     return QIcon(QPixmap(path + r"/filter_clear.png"))
 
+
 def excel_imports() -> QIcon:
     return QIcon(QPixmap(path + r"/excel_imports.png"))
 
+
+def select_all() -> QIcon:
+    return QIcon(QPixmap(path + r"/to_do_list_checked_all.png"))
+
+
+def deselect_all() -> QIcon:
+    return QIcon(QPixmap(path + r"/to_do_list.png"))
+
+
+def find_file_dialog() -> QIcon:
+    return QIcon(QPixmap(path + r"/open_folder.png"))

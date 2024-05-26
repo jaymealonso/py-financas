@@ -4,15 +4,18 @@ from enum import IntEnum, auto
 
 from PyQt5.QtGui import QStandardItemModel
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import QTableView, QToolBar, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QAbstractItemView, QMessageBox, QTableView, QToolBar, QVBoxLayout, QWidget
 
+from lib.ImportacaoLanc.AddCategoriaPopup import AddCategoriasPopup
 import util.curr_formatter as curr
 from lib.ImportacaoLanc.FirstStep import NewLancamento
 import view.icons.icons as icons
 from model.Categoria import Categorias
 
 class SecondStepFrame(QWidget):
+    # list[NewLancamento]
     import_linhas = pyqtSignal(list)
+
     passo_anterior = pyqtSignal()
 
     class Column(IntEnum):
@@ -33,7 +36,7 @@ class SecondStepFrame(QWidget):
         Column.CATEGORIA_ID: {"title": "Categorias", "sql_colname": "categoria_id", "col_width": 260},
         Column.VALOR: {"title": "Valor", "sql_colname": "valor", "col_width": 160},
         Column.NEW_ID: {"title": "Novo ID", "sql_colname": "id", "col_width": 90 },
-        Column.STATUS_IMPORT: {"title": "Estado da Importação", "sql_colname": "valor", "col_width": 400},
+        Column.STATUS_IMPORT: {"title": "Mensagem de importação", "sql_colname": "valor", "col_width": 600},
     }
 
     def __init__(self, parent: QWidget) -> None:
@@ -66,6 +69,11 @@ class SecondStepFrame(QWidget):
         btn_import_lanc = self.toolbar.addAction(icons.excel_imports(), "Importar linhas")
         btn_import_lanc.triggered.connect( self.on_import_linhas )
 
+        self.toolbar.addSeparator()
+
+        btn_criar_categ = self.toolbar.addAction(icons.add(), "Criar categorias")
+        btn_criar_categ.triggered.connect( self.on_criar_categorias )
+
         return self.toolbar
 
     def get_table(self) -> QTableView:
@@ -79,6 +87,7 @@ class SecondStepFrame(QWidget):
 
         self.table.setModel(model)
         self.table.setSortingEnabled(True)
+        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
 
         return self.table
     
@@ -95,14 +104,6 @@ class SecondStepFrame(QWidget):
         vertical_col_indexes = []
         for (new_index, row) in enumerate(self.linhas):
             vertical_col_indexes.append(str(row.row_index))
-            # model.setItemData(
-            #     model.index(new_index, self.Column.ID),
-            #     {Qt.DisplayRole: new_index},
-            # )
-            # model.setItemData(
-            #     model.index(new_index, self.Column.SEQ_ORDEM_LINHA),
-            #     {Qt.UserRole: row.seq_ordem_linha},
-            # )
             model.setItemData(
                 model.index(new_index, self.Column.NR_REFERENCIA),
                 {Qt.DisplayRole: row.nr_referencia, Qt.UserRole: row.nr_referencia},
@@ -115,18 +116,19 @@ class SecondStepFrame(QWidget):
                 model.index(new_index, self.Column.DESCRICAO_USER),
                 {Qt.DisplayRole: row.descricao_user, Qt.UserRole: row.descricao_user},
             )
+            try:
+                data = row.data.strftime("%x")                
+            except:  # noqa: E722
+                data = "Inválida"
             model.setItemData(
                 model.index(new_index, self.Column.DATA),
-                {Qt.DisplayRole: row.data.strftime("%x"), Qt.UserRole: row.data},
+                {Qt.DisplayRole: data, Qt.UserRole: row.data},
             )
             nm_categoria = next((x.nm_categoria for x in self.model_categorias.items 
-                if x.id == row.categoria_id), "<<Categoria não encontrada>>")
+                if x.id == row.categoria_id), "Erro: Categoria não encontrada")
             model.setItemData(
                 model.index(new_index, self.Column.CATEGORIA_ID),
-                {
-                    Qt.DisplayRole: nm_categoria,
-                    # Qt.UserRole: categoria.id or -1,
-                },
+                { Qt.DisplayRole: nm_categoria },
             )
             model.setItemData(
                 model.index(new_index, self.Column.VALOR),
@@ -160,6 +162,18 @@ class SecondStepFrame(QWidget):
         """Gera lançamentos a partir das linhas selecionadas"""
         self.import_linhas.emit(self.linhas)
 
-    def load_lines(): 
-        pass
+    def on_criar_categorias(self):
+        """Chama popup de criação de categorias"""
+        
+        values = set()
+        linha: NewLancamento = None
+        for linha in self.linhas:
+            if linha.new_categoria.strip() != "":
+                values.add(linha.new_categoria)
+        if len(values) == 0:
+            QMessageBox.critical(self, "Erro", "Nenhuma categoria nova detectada.")
+            return
+        
+        popup = AddCategoriasPopup(self, values)
+        popup.open()
 
