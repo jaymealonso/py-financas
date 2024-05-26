@@ -154,6 +154,9 @@ class LancamentosView(MyDialog):
         add_act = toolbar.addAction(icons.add(), "Novo Lançamento")
         add_act.triggered.connect(lambda: self.on_add_lancamento())
 
+        rem_act = toolbar.addAction(icons.delete(), "Eliminar selecionados")
+        rem_act.triggered.connect(lambda: self.on_rem_lancamentos())
+
         return toolbar
 
     def get_table(self) -> QTableView:
@@ -333,6 +336,39 @@ class LancamentosView(MyDialog):
 
         if show_message:
             QToaster.showMessage(self, "Novo lançamento adicionado.")
+
+    def on_rem_lancamentos(self):
+        item: QModelIndex = None
+        list_of_indx = []
+        for item in self.table.selectedIndexes():
+            lanc_id = item.model().index(item.row(), 0).data(Qt.UserRole)
+            list_of_indx.append({"index": item.row(), "id": str(lanc_id)})
+
+        selected_count = len(list_of_indx)
+
+        if selected_count == 0:
+            QMessageBox.critical(self, "Erro", "Selecionar ao menos uma linha.")
+            return
+
+        pop_answer = QMessageBox.question(
+            self,
+            "Remove Lancamentos?",
+            f"Deseja remover { selected_count } lançamentos ?",
+            buttons=QMessageBox.Yes | QMessageBox.No,
+            defaultButton=QMessageBox.No,
+        )
+        if pop_answer == QMessageBox.No:
+            return
+
+        logging.debug(f"Inicia a eliminação de {selected_count} registros.")
+        for item in list_of_indx:
+            self.model_lancamentos.delete(item["id"])
+
+            self.table.model().removeRow(item["index"])
+            self.load_model_only()
+
+        logging.debug("Finalizada a eliminação !!!")
+        self.on_delete.emit(-1)
 
     def load_model_only(self, rerender_buttons: bool = True):
         self.model_lancamentos.load()
