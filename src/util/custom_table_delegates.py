@@ -4,8 +4,8 @@ import datetime
 import locale
 import util.curr_formatter as curr
 from collections.abc import Callable
-from PyQt5.QtCore import Qt, QModelIndex, pyqtSignal, QStringListModel, QPoint
-from PyQt5.QtGui import QColor, QRegion, QFont, QPalette
+from PyQt5.QtCore import Qt, QModelIndex, pyqtSignal, QStringListModel
+from PyQt5.QtGui import QColor, QFont
 from PyQt5.QtWidgets import (
     QWidget,
     QComboBox,
@@ -46,7 +46,8 @@ class ComboBoxWithSearch(QComboBox):
         pass
 
 
-# TODO: fazer um delegate para os botoes, este abaixo ainda nao funciona e ainda nao está sendo usado
+# TODO: funciona mas aparentemente ainda tem bugs no caso de scroll acontecer.
+#       verificar o paint quando dá openpersistent
 class ButtonDelegate(QStyledItemDelegate):
     pressed = pyqtSignal(QModelIndex, QWidget)
 
@@ -54,13 +55,14 @@ class ButtonDelegate(QStyledItemDelegate):
         super(ButtonDelegate, self).__init__(parent_table)
         self.function = function
         self.parent_table = parent_table
+        self.button:QPushButton = None
+        # self.button.clicked.connect(function)
+
         logging.debug("Initialize Button")
 
     def createEditor(self, widget, option, index):
         button = self.get_del_button(widget)
-        model = self.parent_table.model()
-        lancamento_id = model.itemData(model.index(0, 0)).get(Qt.UserRole)
-        button.clicked.connect(lambda: self.function(lancamento_id))
+        button.clicked.connect(lambda: self.function(self.parent_table, index))
         return button
 
     def setEditorData(self, editor, index):
@@ -69,27 +71,15 @@ class ButtonDelegate(QStyledItemDelegate):
     def setModelData(self, editor, model, index):
         pass
 
-    def get_del_button(self, widget):
-        del_pbutt = QPushButton(widget)
+    def paint(self, painter, option: QStyleOptionViewItem, index: QModelIndex):
+        self.parent_table.openPersistentEditor(index)
+
+    @staticmethod
+    def get_del_button(widget) -> QPushButton:
+        del_pbutt = QPushButton(widget) 
         del_pbutt.setToolTip("Eliminar Lançamento")
         del_pbutt.setIcon(icons.delete())
-        # del_pbutt.clicked.connect(lambda: parent.on_del_lancamento(lancamento_id))
         return del_pbutt
-
-    # @staticmethod
-    # def get_button(self, tooltip: str, icon: QIcon, function:callable()) -> QPushButton:
-    #     del_pbutt = QPushButton()
-    #     del_pbutt.setToolTip(tooltip)
-    #     del_pbutt.setIcon(icon)
-    #     del_pbutt.clicked.connect(lambda: function)
-    #     return del_pbutt
-
-    def paint(self, painter, option: QStyleOptionViewItem, index: QModelIndex):
-        painter.save()
-        painter.translate(option.rect.topLeft())
-        self.button.setGeometry(option.rect)
-        self.button.render(painter, QPoint(), QRegion(self.button.rect()), QWidget.DrawChildren)
-        painter.restore()
 
 
 class IDLabelDelegate(QStyledItemDelegate):
@@ -256,9 +246,9 @@ class ComboBoxDelegate(EmitterItemDelegade):
 
     def setEditorData(self, editor: QComboBox, index):
         """Envia dados para o widget quando aberto"""
-        logging.debug(f"Combobox Clear")
+        logging.debug("Combobox Clear")
         editor.clearEditText()
-        logging.debug(f"Show popup")
+        logging.debug("Show popup")
         editor.showPopup()
 
     def setModelData(self, editor: ComboBoxWithSearch, model, index: QModelIndex):

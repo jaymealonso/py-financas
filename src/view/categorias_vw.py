@@ -1,19 +1,20 @@
+from unidecode import unidecode
+from lib.Categoria.Table import CategoriaTableView
+from lib.Genericos.MySortFilterProxyModel import MySortFilterProxyModel
 from lib.Genericos.log import logging
 import view.icons.icons as icons
 from enum import IntEnum, auto
 
-from util.custom_table_delegates import GenericInputDelegate, IDLabelDelegate
-from view.TableLine import TableLine
+from util.custom_table_delegates import ButtonDelegate, GenericInputDelegate, IDLabelDelegate
 from PyQt5.QtCore import Qt, QModelIndex
 from PyQt5.QtGui import QCursor, QStandardItem, QStandardItemModel
 from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QToolBar,
-    QApplication, QTableView, QPushButton, QMessageBox,
+    QApplication, QTableView, QMessageBox,
 )
 from model.Categoria import Categorias
-import operator
 
 
 class Column(IntEnum):
@@ -40,7 +41,7 @@ class CategoriasView(QWidget):
         layout = QVBoxLayout()
 
         self.toolbar: QToolBar = None
-        self.table: QTableView = None
+        self.table: CategoriaTableView = None
         self.model_categ = Categorias()
 
         layout.addWidget(self.get_toolbar())
@@ -61,40 +62,45 @@ class CategoriasView(QWidget):
         return self.toolbar
 
     def get_table(self) -> QTableView:
-        self.table = QTableView()
+        self.table = CategoriaTableView(self)
         model = QStandardItemModel(0, len(self.COLUMNS))
         model.setHorizontalHeaderLabels([col["title"] for col in self.COLUMNS.values()])
 
-        self.table.setModel(model)
-        self.table.verticalHeader().setVisible(False)
+        filter_model = MySortFilterProxyModel(self)
+        filter_model.setSourceModel(model)
+        self.table.setModel(filter_model)
 
         return self.table
 
     def load_model_only(self):
         self.model_categ.load()
 
-        model = self.table.model()
+        filter_model:MySortFilterProxyModel = self.table.model()
+        model:QStandardItemModel = filter_model.sourceModel()
         model.setRowCount(len(self.model_categ.items))
 
-        line = CategoriasLine()
-        sorted_items = sorted(self.model_categ.items, key=operator.attrgetter("nm_categoria"))
+        # line = CategoriasLine()
+        # sorted_items = sorted(self.model_categ.items, key=operator.attrgetter("nm_categoria"))
 
-        for (new_index, row) in enumerate(sorted_items):
+        for (new_index, row) in enumerate(self.model_categ.items):
 
             model.setItemData( model.index(new_index, Column.ID), {Qt.UserRole: row.id}, )
             model.setItemData( model.index(new_index, Column.NM_CATEGORIA),
-                {Qt.DisplayRole: row.nm_categoria, Qt.UserRole: row.nm_categoria},
+                {Qt.DisplayRole: row.nm_categoria, Qt.UserRole: row.nm_categoria, 
+                 Qt.AccessibleTextRole: unidecode(row.nm_categoria)},
             )
             model.setItemData( model.index(new_index, Column.NR_LANCAMENTOS),
                 {Qt.DisplayRole: row.tot_lancamentos, Qt.UserRole: row.tot_lancamentos},
             )
+            self.table.openPersistentEditor(model.index(new_index, Column.REMOVER))
 
-            self.table.setIndexWidget(
-                model.index(new_index, Column.REMOVER),
-                line.get_del_button(self, row.id),
-            )
+            # self.table.setIndexWidget(
+            #     filter_model.index(new_index, Column.REMOVER),
+            #     line.get_del_button(self, row.id),
+            # )
 
-        self.table.setModel(model)
+        filter_model.setSourceModel(model)
+        self.table.setModel(filter_model)
 
     def load_table_data(self):
         QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
@@ -116,9 +122,11 @@ class CategoriasView(QWidget):
         self.table.setItemDelegateForColumn(Column.ID, IDLabelDelegate(self.table))
         self.table.setItemDelegateForColumn(Column.NM_CATEGORIA, col2_del)
         self.table.setItemDelegateForColumn(Column.NR_LANCAMENTOS, IDLabelDelegate(self.table))
+        self.table.setItemDelegateForColumn(Column.REMOVER, 
+            ButtonDelegate(self.table, self.on_del_categoria) )
 
         self.table.resizeColumnToContents(0)
-        self.table.setColumnWidth(1, 300)
+        self.table.setColumnWidth(Column.NM_CATEGORIA, 300)
 
         # self.table.cellChanged.connect(self.table_cell_changed)
         # logging.info("> Cellchanged connected again!")
@@ -139,22 +147,25 @@ class CategoriasView(QWidget):
         self.table.scrollTo(items_found[0])
         self.table.selectRow(items_found[0].row())
 
-    def on_del_categoria(self, categoria_id: int):
-        model = self.table.model()
-        items_found = model.match(model.index(0, 0), Qt.UserRole, categoria_id, 1)
-        if len(items_found) == 0:
+    def on_del_categoria(self, table:CategoriaTableView, index:QModelIndex):
+        model = table.model().sourceModel()
+        categoria_id = model.index(index.row(), Column.ID).data(Qt.UserRole)
+        categoria_descr = model.index(index.row(), Column.NM_CATEGORIA).data(Qt.UserRole)
+        lancamentos_count = model.index(index.row(), Column.NR_LANCAMENTOS).data(Qt.UserRole)
+
+        # Impede categoria 0 de ser eliminada
+        if categoria_id == 0:
+            QMessageBox.critical(self, "Erro", f"Não é possivel remover a categoria fixa \"{categoria_descr}\" id: \"{categoria_id}\".")
             return
-        item_found = items_found[0]
-        categoria_descr = model.item(item_found.row(), Column.NM_CATEGORIA).data(Qt.UserRole)
-        nr_lancamentos = model.item(item_found.row(), Column.NR_LANCAMENTOS).data(Qt.UserRole)
-        if nr_lancamentos != 0:
-            QMessageBox.critical(self, "Erro", "Não é possivel remover uma categoria com lançamentos associados.")
+
+        if lancamentos_count > 0:
+            QMessageBox.critical(self, "Erro", f"Não é possivel remover a categoria \"{categoria_descr}\" com {lancamentos_count} lançamentos associados.")
             return
 
         button = QMessageBox.question(
             self,
             "Remove Lancamento?",
-            f"Deseja remover a categoria {categoria_descr}({categoria_id}) ?",
+            f"Deseja remover a categoria \"{categoria_descr}\" id:\"{categoria_id}\" ?",
             buttons=QMessageBox.Yes | QMessageBox.No,
             defaultButton=QMessageBox.No,
         )
@@ -186,15 +197,15 @@ class CategoriasView(QWidget):
         self.load_table_data()
 
 
-class CategoriasLine(TableLine):
-    @staticmethod
-    def get_del_button(parent: CategoriasView, categoria_id: int):
-        del_pbutt = QPushButton()
-        del_pbutt.setEnabled(categoria_id != 0)
-        del_pbutt.setToolTip("Eliminar categoria")
-        del_pbutt.setIcon(icons.delete())
-        del_pbutt.clicked.connect(lambda: parent.on_del_categoria(categoria_id))
-        return del_pbutt
+# class CategoriasLine(TableLine):
+#     @staticmethod
+#     def get_del_button(parent: CategoriasView, categoria_id: int):
+#         del_pbutt = QPushButton()
+#         del_pbutt.setEnabled(categoria_id != 0)
+#         del_pbutt.setToolTip("Eliminar categoria")
+#         del_pbutt.setIcon(icons.delete())
+#         del_pbutt.clicked.connect(lambda: parent.on_del_categoria(categoria_id))
+#         return del_pbutt
 
 
 class NmCategoriaInputDelegate(GenericInputDelegate):

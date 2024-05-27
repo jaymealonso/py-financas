@@ -1,7 +1,9 @@
 import moment
 from datetime import datetime
-from PyQt5.QtCore import QModelIndex, QObject, QSortFilterProxyModel, QRegExp, Qt
+from PyQt5.QtCore import QModelIndex, QObject, QRegExp, Qt
 import moment.utils
+
+from lib.Genericos.MySortFilterProxyModel import MySortFilterProxyModel
 
 
 class FilterCategoria:
@@ -24,7 +26,7 @@ class FilterAnoMes:
         try:
             ano = int(ano_mes[0:4])
             mes = int(ano_mes[5:7])
-        except Exception as e:
+        except Exception as e:  # noqa: F841
             return
 
         prox_ano = ano + 1 if mes == 12 else ano
@@ -40,13 +42,12 @@ class FilterAnoMes:
         )
 
 
-class LancamentoSortFilterProxyModel(QSortFilterProxyModel):
+class LancamentoSortFilterProxyModel(MySortFilterProxyModel):
 
     def __init__(self, parent: QObject | None = ...) -> None:
         super(LancamentoSortFilterProxyModel, self).__init__(parent)
 
         self.filters = []
-        self.setSortRole(Qt.UserRole)
 
     def clear_filters(self):
         self.filters.clear()
@@ -80,14 +81,3 @@ class LancamentoSortFilterProxyModel(QSortFilterProxyModel):
             ):
                 return True
         return False
-
-    def lessThan(self, left: QModelIndex, right: QModelIndex) -> bool:
-        # se existir texto acessivel (que ja foi tratado para ser usado como ordenacao)
-        # usa ele para ordenação
-        if left.data(Qt.AccessibleTextRole):
-            return left.data(Qt.AccessibleTextRole) < right.data(Qt.AccessibleTextRole)
-
-        return super().lessThan(left, right)
-
-    
-

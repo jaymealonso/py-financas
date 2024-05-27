@@ -376,8 +376,8 @@ class LancamentosView(MyDialog):
     def load_model_only(self, rerender_buttons: bool = True):
         self.model_lancamentos.load()
 
-        filter_model = self.table.model()
-        model = filter_model.sourceModel()
+        filter_model:LancamentoSortFilterProxyModel = self.table.model()
+        model:QStandardItemModel = filter_model.sourceModel()
         model.setRowCount(len(self.model_lancamentos.items))
         saldo = 0
         for (new_index, row) in enumerate(self.model_lancamentos.items):
@@ -454,9 +454,7 @@ class LancamentosView(MyDialog):
         self.total_label.set_int_value(self.model_lancamentos.total)
 
     def load_table_data(self):
-        """
-        Popula tabela com os dados do modelo, redimensiona colunas
-        """
+        """ Popula tabela com os dados do modelo, redimensiona colunas """
         # reset sort order
         self.table.sortByColumn(-1, Qt.AscendingOrder)
 
@@ -548,6 +546,9 @@ class LancamentosView(MyDialog):
 
             self.open_search(index.column())
             logging.debug(e)
+            return
+        
+        return super(LancamentosView, self).keyPressEvent(e)
 
 
 
