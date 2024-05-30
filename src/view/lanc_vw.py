@@ -397,9 +397,12 @@ class LancamentosView(MyDialog):
                 model.index(new_index, self.Column.DESCRICAO),
                 {Qt.DisplayRole: row.descricao, Qt.UserRole: row.descricao, Qt.AccessibleTextRole: unidecode(row.descricao)},
             )
+            descricao_user = row.descricao_user or ""
             model.setItemData(
                 model.index(new_index, self.Column.DESCRICAO_USER),
-                {Qt.DisplayRole: row.descricao_user, Qt.UserRole: row.descricao_user, Qt.AccessibleTextRole: unidecode(row.descricao_user)},
+                {Qt.DisplayRole: descricao_user, 
+                 Qt.UserRole: descricao_user, 
+                 Qt.AccessibleTextRole: unidecode(descricao_user)},
             )
             model.setItemData(
                 model.index(new_index, self.Column.DATA),

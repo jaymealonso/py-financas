@@ -1,12 +1,14 @@
+from PyQt5 import QtWidgets
 from lib.Genericos.log import logging
 
 import datetime
 import locale
 import util.curr_formatter as curr
 from collections.abc import Callable
-from PyQt5.QtCore import Qt, QModelIndex, pyqtSignal, QStringListModel
+from PyQt5.QtCore import QEvent, QRect, QRectF, Qt, QModelIndex, pyqtSignal, QStringListModel
 from PyQt5.QtGui import QColor, QFont
 from PyQt5.QtWidgets import (
+    QStyleOptionButton,
     QWidget,
     QComboBox,
     QApplication,
@@ -46,47 +48,90 @@ class ComboBoxWithSearch(QComboBox):
         pass
 
 
-# TODO: funciona mas aparentemente ainda tem bugs no caso de scroll acontecer.
-#       verificar o paint quando dá openpersistent
+# TODO: funciona perfeitamente, falta somente corrigir o mouseover
 class ButtonDelegate(QStyledItemDelegate):
-    pressed = pyqtSignal(QModelIndex, QWidget)
+    pressed = pyqtSignal(QModelIndex)
 
-    def __init__(self, parent_table: QTableView, function: Callable[[int], None]):
+    def __init__(self, parent_table: QTableView):
         super(ButtonDelegate, self).__init__(parent_table)
-        self.function = function
         self.parent_table = parent_table
-        self.button:QPushButton = None
-        # self.button.clicked.connect(function)
+        self.button:QPushButton = self.get_del_button()
 
-        logging.debug("Initialize Button")
-
-    def createEditor(self, widget, option, index):
-        button = self.get_del_button(widget)
-        button.clicked.connect(lambda: self.function(self.parent_table, index))
-        return button
-
-    def setEditorData(self, editor, index):
-        pass
-
-    def setModelData(self, editor, model, index):
-        pass
-
-    def paint(self, painter, option: QStyleOptionViewItem, index: QModelIndex):
-        self.parent_table.openPersistentEditor(index)
-
-    @staticmethod
-    def get_del_button(widget) -> QPushButton:
-        del_pbutt = QPushButton(widget) 
+    def get_del_button(self) -> QPushButton:
+        del_pbutt = QPushButton() 
         del_pbutt.setToolTip("Eliminar Lançamento")
         del_pbutt.setIcon(icons.delete())
         return del_pbutt
+    
+    def updateEditorGeometry(self, editor, option, index):
+        editor.setGeometry(option.rect)
+
+    def editorEvent(self, event, model, option, index):
+        if event.type() == QEvent.MouseButtonRelease:
+            self.pressed.emit(index)
+        if event.type() == QEvent.MouseButtonPress:
+            return False
+        return True
+
+    def sizeHint(self, option, index):
+        size = super(ButtonDelegate, self).sizeHint(option, index)
+        size.setHeight(50)
+        return size
+
+    def paint(self, painter, option: QStyleOptionViewItem, index: QModelIndex):
+
+        # painter.save()
+        # if option.state & QtWidgets.QStyle.State_MouseOver:
+        #     painter.setBrush(QColor('green'))
+        #     painter.drawRect(option.rect)
+        # painter.restore()
+
+        painter.save()
+
+        # if option.state & QStyle.State_Selected:
+            # painter.setBrush(self.button.palette().Background)
+        # else:
+        #     color = item.color
+        #     painter.setBrush(QtGui.QColor(color[0] * 255, color[1] * 255, color[2] * 255))            
+
+
+        spacing = 6
+        self.rect_button = QRect(
+            option.rect.left() + int(spacing / 2),
+            option.rect.top() + int(spacing / 2),
+            option.rect.width() - spacing,
+            option.rect.height() - spacing
+        )
+
+        option = QStyleOptionButton()
+        option.initFrom(self.button)
+        option.rect = self.rect_button
+
+        if self.button.isDown():
+            option.state = QtWidgets.QStyle.State_Sunken
+
+        if self.button.isDefault():
+            option.features = option.features or QStyleOptionButton.DefaultButton
+
+        self.button.style().drawControl(QtWidgets.QStyle.CE_PushButton, 
+            option, painter, self.button)
+        btn_icon = self.button.icon().pixmap(32, 32)
+        
+        target_rect = option.rect
+        target_rect.setX(option.rect.x() + int(option.rect.width() / 2) - int(btn_icon.rect().width() / 2))
+        target_rect.setY(option.rect.y() + int(option.rect.height() / 2) - int(btn_icon.rect().height() / 2))
+
+        target_rect.setWidth(btn_icon.width())
+        target_rect.setHeight(btn_icon.height())
+        
+        painter.drawPixmap(target_rect, btn_icon, QRect(0, 0, 0, 0))
+        painter.restore()
 
 
 class IDLabelDelegate(QStyledItemDelegate):
     def __init__(self, parent_table: QTableView):
         super(IDLabelDelegate, self).__init__(parent_table)
         self.parent_table = parent_table
-        logging.debug("Initialize Label")
 
     def createEditor(self, parent, option, index):
         pass
@@ -119,7 +164,6 @@ class CurrencyLabelDelegate(QStyledItemDelegate):
     def __init__(self, parent_table: QTableView, center: bool = False, bold: bool = False):
         super(CurrencyLabelDelegate, self).__init__(parent_table)
         self.parent_table = parent_table
-        logging.debug("Initialize Label")
         self.center = center
         self.bold = bold
 
@@ -169,12 +213,14 @@ class GenericInputDelegate(EmitterItemDelegade):
         logging.debug(f"setModelData {index.row()}/{index.column()}")
         self.changed.emit(index, editor)
 
+    def updateEditorGeometry(self, editor, option, index):
+        editor.setGeometry(option.rect)
+
 
 class CurrencyEditDelegate(EmitterItemDelegade):
     def __init__(self, parent_table: QTableView):
         super(CurrencyEditDelegate, self).__init__(parent_table)
         self.parent_table = parent_table
-        logging.debug("Initialize Currency Edit")
 
     def createEditor(self, widget, option, index: QModelIndex):
         logging.debug(
@@ -263,13 +309,15 @@ class ComboBoxDelegate(EmitterItemDelegade):
         logging.debug("setModelData")
         self.changed.emit(index, editor)
 
+    def updateEditorGeometry(self, editor, option, index):
+        editor.setGeometry(option.rect)
+
 
 class DateEditDelegate(EmitterItemDelegade):
     def __init__(self, parent_table: QTableView):
         super(DateEditDelegate, self).__init__(parent_table)
         self.parent_table = parent_table
         self.model = parent_table.model()
-        logging.debug("Initialize Date Edit")
 
     def createEditor(self, widget, option, index: QModelIndex):
         try:

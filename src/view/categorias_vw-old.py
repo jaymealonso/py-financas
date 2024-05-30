@@ -92,10 +92,11 @@ class CategoriasView(QWidget):
             model.setItemData( model.index(new_index, Column.NR_LANCAMENTOS),
                 {Qt.DisplayRole: row.tot_lancamentos, Qt.UserRole: row.tot_lancamentos},
             )
-            # self.table.setIndexWidget(
-            #     filter_model.index(new_index, Column.REMOVER),
-            #     line.get_del_button(self, row.id)
-            # )
+
+            self.table.setIndexWidget(
+                filter_model.index(new_index, Column.REMOVER),
+                line.get_del_button(self, row.id)
+            )
 
         filter_model.setSourceModel(model)
         self.table.setModel(filter_model)
@@ -117,13 +118,11 @@ class CategoriasView(QWidget):
         col2_del = NmCategoriaInputDelegate(self.table)
         col2_del.changed.connect(self.on_model_item_changed)
 
-        col_rem_del = ButtonDelegate(self.table)
-        col_rem_del.pressed.connect(self.on_del_categoria)
-
         self.table.setItemDelegateForColumn(Column.ID, IDLabelDelegate(self.table))
         self.table.setItemDelegateForColumn(Column.NM_CATEGORIA, col2_del)
         self.table.setItemDelegateForColumn(Column.NR_LANCAMENTOS, IDLabelDelegate(self.table))
-        self.table.setItemDelegateForColumn(Column.REMOVER, col_rem_del )
+        # self.table.setItemDelegateForColumn(Column.REMOVER, 
+        #     ButtonDelegate(self.table, self.on_del_categoria) )
 
         self.table.resizeColumnToContents(0)
         self.table.setColumnWidth(Column.NM_CATEGORIA, 300)
@@ -146,11 +145,11 @@ class CategoriasView(QWidget):
         self.table.scrollTo(item)
         self.table.selectRow(item.row())
 
-    def on_del_categoria(self, index:QModelIndex):
-    # def on_del_categoria(self, categoria_id: int):
-        model:QStandardItemModel = index.model()
-        # indexes_found = model.match(model.index(0, 0), Qt.UserRole, categoria_id, 1)
-        # index = next((x for x in indexes_found), None)
+    # def on_del_categoria(self, table:CategoriaTableView, index:QModelIndex):
+    def on_del_categoria(self, categoria_id: int):
+        model:QStandardItemModel = self.table.model().sourceModel()
+        indexes_found = model.match(model.index(0, 0), Qt.UserRole, categoria_id, 1)
+        index = next((x for x in indexes_found), None)
         if not index:
             return
         categoria_id = model.index(index.row(), Column.ID).data(Qt.UserRole)
