@@ -1,12 +1,13 @@
+from typing import Callable
 from PyQt5 import QtWidgets
+from sqlalchemy import Null
 from lib.Genericos.log import logging
 
 import datetime
 import locale
 import util.curr_formatter as curr
-from collections.abc import Callable
-from PyQt5.QtCore import QEvent, QRect, QRectF, Qt, QModelIndex, pyqtSignal, QStringListModel
-from PyQt5.QtGui import QColor, QFont
+from PyQt5.QtCore import QEvent, QRect, QTimer, Qt, QModelIndex, pyqtSignal, QStringListModel
+from PyQt5.QtGui import QColor, QFont, QCursor
 from PyQt5.QtWidgets import (
     QStyleOptionButton,
     QWidget,
@@ -45,32 +46,47 @@ class ComboBoxWithSearch(QComboBox):
 
     def hidePopup(self) -> None:
         logging.debug("BLOCKED *** Hide pop")
-        pass
 
 
 # TODO: funciona perfeitamente, falta somente corrigir o mouseover
 class ButtonDelegate(QStyledItemDelegate):
-    pressed = pyqtSignal(QModelIndex)
-
-    def __init__(self, parent_table: QTableView):
+    def __init__(self, parent_table: QTableView, button: QPushButton, pressed_event: Callable[[QModelIndex], None]):
         super(ButtonDelegate, self).__init__(parent_table)
         self.parent_table = parent_table
-        self.button:QPushButton = self.get_del_button()
-
-    def get_del_button(self) -> QPushButton:
-        del_pbutt = QPushButton() 
-        del_pbutt.setToolTip("Eliminar Lançamento")
-        del_pbutt.setIcon(icons.delete())
-        return del_pbutt
+        self.button:QPushButton = button
+        self.pressed_index: QModelIndex = Null
+        self.pressed_event = pressed_event
     
     def updateEditorGeometry(self, editor, option, index):
         editor.setGeometry(option.rect)
 
     def editorEvent(self, event, model, option, index):
+        # logging.debug(f"Event >> r:{index.row()}c:{index.column()} type: {event.type()}")
         if event.type() == QEvent.MouseButtonRelease:
-            self.pressed.emit(index)
+            self.pressed_index = Null
+            if self.timer:
+                self.timer.stop()
+                self.timer = Null
+            self.pressed_event(index)
+
         if event.type() == QEvent.MouseButtonPress:
-            return False
+            self.timer = ButtonTimer(self)
+            self.timer.start()
+
+            self.pressed_index = index
+
+        if event.type() == QEvent.Leave:
+            logging.debug("Leave")
+            self.pressed_index = Null
+
+        if event.type() == QEvent.HoverEnter:
+            logging.debug("HoverEnter")
+            self.pressed_index = index
+
+        if event.type() == QEvent.HoverLeave:
+            logging.debug("HoverLeave")
+            self.pressed_index = index
+
         return True
 
     def sizeHint(self, option, index):
@@ -80,20 +96,7 @@ class ButtonDelegate(QStyledItemDelegate):
 
     def paint(self, painter, option: QStyleOptionViewItem, index: QModelIndex):
 
-        # painter.save()
-        # if option.state & QtWidgets.QStyle.State_MouseOver:
-        #     painter.setBrush(QColor('green'))
-        #     painter.drawRect(option.rect)
-        # painter.restore()
-
         painter.save()
-
-        # if option.state & QStyle.State_Selected:
-            # painter.setBrush(self.button.palette().Background)
-        # else:
-        #     color = item.color
-        #     painter.setBrush(QtGui.QColor(color[0] * 255, color[1] * 255, color[2] * 255))            
-
 
         spacing = 6
         self.rect_button = QRect(
@@ -107,25 +110,73 @@ class ButtonDelegate(QStyledItemDelegate):
         option.initFrom(self.button)
         option.rect = self.rect_button
 
-        if self.button.isDown():
+        if self.pressed_index == index:
             option.state = QtWidgets.QStyle.State_Sunken
-
-        if self.button.isDefault():
-            option.features = option.features or QStyleOptionButton.DefaultButton
 
         self.button.style().drawControl(QtWidgets.QStyle.CE_PushButton, 
             option, painter, self.button)
         btn_icon = self.button.icon().pixmap(32, 32)
         
         target_rect = option.rect
+
         target_rect.setX(option.rect.x() + int(option.rect.width() / 2) - int(btn_icon.rect().width() / 2))
         target_rect.setY(option.rect.y() + int(option.rect.height() / 2) - int(btn_icon.rect().height() / 2))
+
+        if self.pressed_index == index:
+            target_rect.setY(option.rect.y() + 3)
 
         target_rect.setWidth(btn_icon.width())
         target_rect.setHeight(btn_icon.height())
         
         painter.drawPixmap(target_rect, btn_icon, QRect(0, 0, 0, 0))
         painter.restore()
+
+def rect_intersect_cursor(rect: QRect, table: QTableView): 
+
+    pos = table.viewport().mapFromGlobal(QCursor.pos())
+
+    tl = rect.topLeft()
+    br = rect.bottomRight()
+
+    x0 = tl.x()
+    y0 = tl.y()
+    x1 = br.x()
+    y1 = br.y()
+
+    intersect = \
+        pos.x() > x0 and pos.x() < x1 and \
+        pos.y() > y0 and pos.y() < y1
+    
+    return intersect
+
+class ButtonTimer:
+    def __init__(self, parent: ButtonDelegate) -> None:
+        self.parent_delegate = parent
+        self.brect = self.parent_delegate.rect_button
+        self.timer = QTimer(parent)
+        self.timer.timeout.connect(self.check_status)
+        self.run_counter = 0
+
+    def start(self):
+        self.run_counter = 0
+        self.timer.start(200)
+
+    def stop(self):
+        self.timer.stop()
+
+    def check_status(self):
+        self.run_counter += 1
+
+        intersect = \
+            rect_intersect_cursor(self.brect, self.parent_delegate.parent_table)
+        # print(f"counter: {self.run_counter}, ", end="")
+        # print(f"btn(x:{x0}, {pos.x()}, {x1}; y:{y0}, {pos.y()}, {y1}) is is?: {intersect}")
+        
+        if self.run_counter > 20 or not intersect:
+            self.parent_delegate.pressed_index = Null
+            self.timer.stop()
+
+        self.parent_delegate.parent_table.viewport().repaint()
 
 
 class IDLabelDelegate(QStyledItemDelegate):

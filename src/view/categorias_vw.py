@@ -81,7 +81,6 @@ class CategoriasView(QWidget):
         model:QStandardItemModel = filter_model.sourceModel()
         model.setRowCount(len(self.model_categ.items))
 
-        line = CategoriasLine()
         for (new_index, row) in enumerate(self.model_categ.items):
 
             model.setItemData( model.index(new_index, Column.ID), {Qt.UserRole: row.id}, )
@@ -92,10 +91,6 @@ class CategoriasView(QWidget):
             model.setItemData( model.index(new_index, Column.NR_LANCAMENTOS),
                 {Qt.DisplayRole: row.tot_lancamentos, Qt.UserRole: row.tot_lancamentos},
             )
-            # self.table.setIndexWidget(
-            #     filter_model.index(new_index, Column.REMOVER),
-            #     line.get_del_button(self, row.id)
-            # )
 
         filter_model.setSourceModel(model)
         self.table.setModel(filter_model)
@@ -117,13 +112,11 @@ class CategoriasView(QWidget):
         col2_del = NmCategoriaInputDelegate(self.table)
         col2_del.changed.connect(self.on_model_item_changed)
 
-        col_rem_del = ButtonDelegate(self.table)
-        col_rem_del.pressed.connect(self.on_del_categoria)
-
         self.table.setItemDelegateForColumn(Column.ID, IDLabelDelegate(self.table))
         self.table.setItemDelegateForColumn(Column.NM_CATEGORIA, col2_del)
         self.table.setItemDelegateForColumn(Column.NR_LANCAMENTOS, IDLabelDelegate(self.table))
-        self.table.setItemDelegateForColumn(Column.REMOVER, col_rem_del )
+        self.table.setItemDelegateForColumn(Column.REMOVER, ButtonDelegate(self.table, CategoriasLine.get_del_button(), 
+                                     self.on_del_categoria) )
 
         self.table.resizeColumnToContents(0)
         self.table.setColumnWidth(Column.NM_CATEGORIA, 300)
@@ -200,14 +193,13 @@ class CategoriasView(QWidget):
         self.model_categ.update(categoria_id, sql_colname, value)
         self.load_table_data()
 
+
 class CategoriasLine(TableLine):
     @staticmethod
-    def get_del_button(parent: CategoriasView, categoria_id: int):
+    def get_del_button() -> QPushButton:
         del_pbutt = QPushButton()
-        del_pbutt.setEnabled(categoria_id != 0)
         del_pbutt.setToolTip("Eliminar categoria")
         del_pbutt.setIcon(icons.delete())
-        del_pbutt.clicked.connect(lambda: parent.on_del_categoria(categoria_id))
         return del_pbutt
 
 

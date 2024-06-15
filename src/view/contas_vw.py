@@ -24,10 +24,10 @@ from PyQt5.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QApplication,
-    QTableView, QDialog,
+    QTableView,
 )
 from model.Conta import ContasTipo, Contas, Conta
-from util.custom_table_delegates import GenericInputDelegate, ComboBoxDelegate, IDLabelDelegate, CurrencyLabelDelegate
+from util.custom_table_delegates import ButtonDelegate, GenericInputDelegate, ComboBoxDelegate, IDLabelDelegate, CurrencyLabelDelegate
 from model.db.db_orm import Lancamentos as ORMLancamentos
 
 
@@ -87,7 +87,6 @@ class ContasView(QWidget):
         components.add_toolbar()
         components.add_table()
 
-
     def on_add_conta(self, show_message=True):
         logging.debug("Adding new conta in the database...")
         self.model_contas.add_new(Conta(None, "nova conta", "", "BRL", "1", 0, 0, 0))
@@ -95,7 +94,10 @@ class ContasView(QWidget):
         logging.debug("Reloading data...")
         self.load_table_data()
 
-    def on_del_conta(self, conta_id: int):
+    def on_del_conta(self, index: QModelIndex): #  conta_id: int):
+        model:QStandardItemModel = index.model()
+        conta_id = model.index(index.row(), self.Column.ID).data(Qt.UserRole)
+
         button = QMessageBox.question(
             self,
             TEXTS.REMOVE_ACCOUNT_TITLE,
@@ -112,8 +114,11 @@ class ContasView(QWidget):
         logging.debug("Reloading data...")
         self.load_table_data()
 
-    def on_open_lancamentos(self, conta_id: int):
+    def on_open_lancamentos(self, index: QModelIndex):
+        model:QStandardItemModel = index.model()
+        conta_id = model.index(index.row(), self.Column.ID).data(Qt.UserRole)
         conta_dc = self.model_contas.find_by_id(conta_id)
+
         if not conta_dc:
             msg = f"Abertura automática de janela de lançamentos da conta: {conta_id}".join(
                 " não foi possível.\nConta não encontrada!"
@@ -142,7 +147,9 @@ class ContasView(QWidget):
 
         lancamentos_window.activateWindow()
 
-    def on_open_visao_mensal(self, conta_id: int):
+    def on_open_visao_mensal(self, index: QModelIndex):
+        model:QStandardItemModel = index.model()
+        conta_id = model.index(index.row(), self.Column.ID).data(Qt.UserRole)
         conta = self.model_contas.find_by_id(conta_id)
         if not conta:
             logging.error(f"Conta {conta_id} não encontrada!")
@@ -204,18 +211,12 @@ class ContasView(QWidget):
 
         line = ContaTableLine(self)
 
-        self.table.setItemDelegateForColumn(4, line.get_tipo_conta_dropdown_delegate())
-
         rows = self.model_contas.items
 
         logging.debug("Preenchendo dados na tabela.")
         for row in rows:
             new_index = model.rowCount()
             model.insertRow(new_index)
-
-            # self.table.setIndexWidget(
-            #     model.index(new_index, 0), line.get_label_for_id(str(row.id))
-            # )
 
             model.setItemData(
                 model.index(new_index, self.Column.ID),
@@ -252,35 +253,18 @@ class ContasView(QWidget):
                 {Qt.DisplayRole: row.lanc_classif, Qt.UserRole: row.lanc_classif},
             )
 
-            # Fixed Values
-            # self.table.setIndexWidget(
-            #     model.index(new_index, 5), line.get_label_for_total_curr(row.total)
-            # )
-            # self.table.setIndexWidget(
-            #     model.index(new_index, 6), line.get_label_for_n_class(row.lanc_n_class)
-            # )
-            # self.table.setIndexWidget(
-            #     model.index(new_index, 7), line.get_label_for_classif(row.lanc_classif)
-            # )
-
-            # Buttons
-            self.table.setIndexWidget(
-                model.index(new_index, self.Column.REMOVER), line.get_del_button(row.id)
-            )
-            self.table.setIndexWidget(
-                model.index(new_index, self.Column.LANCAMENTOS), line.get_open_lanc_button(row.id)
-            )
-            self.table.setIndexWidget(
-                model.index(new_index, self.Column.VISAO_MENSAL), line.get_visao_mensal(row.id)
-            )
 
         self.table.setItemDelegateForColumn(self.Column.ID, IDLabelDelegate(self.table))
         self.table.setItemDelegateForColumn(self.Column.DESCRICAO, GenericInputDelegate(self.table))
         self.table.setItemDelegateForColumn(self.Column.NUMERO, GenericInputDelegate(self.table))
         self.table.setItemDelegateForColumn(self.Column.MOEDA, GenericInputDelegate(self.table))
+        self.table.setItemDelegateForColumn(self.Column.TIPO, ContaTableLine.get_tipo_conta_dropdown_delegate(self.table, self.model_tps_conta))
         self.table.setItemDelegateForColumn(self.Column.TOTAL, CurrencyLabelDelegate(self.table, bold=True))
         self.table.setItemDelegateForColumn(self.Column.N_CLASSIF, CurrencyLabelDelegate(self.table, bold=True, center=True))
         self.table.setItemDelegateForColumn(self.Column.CLASSIFIC, CurrencyLabelDelegate(self.table, bold=True, center=True))
+        self.table.setItemDelegateForColumn(self.Column.REMOVER, ButtonDelegate(self.table, ContaTableLine.get_del_button(), self.on_del_conta))
+        self.table.setItemDelegateForColumn(self.Column.LANCAMENTOS, ButtonDelegate(self.table, ContaTableLine.get_open_lanc_button(), self.on_open_lancamentos))
+        self.table.setItemDelegateForColumn(self.Column.VISAO_MENSAL, ButtonDelegate(self.table, ContaTableLine.get_visao_mensal(), self.on_open_visao_mensal))
 
         self.table.setColumnWidth(self.Column.ID, 100)
         self.table.resizeColumnToContents(self.Column.DESCRICAO)
@@ -345,60 +329,82 @@ class ContaTableLine(TableLine):
             color = "#f6989d"  # red
         sender.setStyleSheet("QLineEdit { background-color: %s }" % color)
 
-    def get_tipo_conta_dropdown_delegate(self):
+    @staticmethod
+    def get_tipo_conta_dropdown_delegate(table: QTableView, model_tps_conta: ContasTipo) -> ComboBoxDelegate:
         tipos_conta = {}
-        for item in self.parentOne.model_tps_conta.items:
+        for item in model_tps_conta.items:
             tipos_conta[item.id] = item.descricao
 
-        cmb_delegate = ComboBoxDelegate(tipos_conta, self.parentOne.table)
+        cmb_delegate = ComboBoxDelegate(tipos_conta, table)
 
         return cmb_delegate
 
-    def get_tipo_conta_dropdown(self, conta: Conta):
-        combobox = QComboBox()
-        index: int = 0
-        items = self.parentOne.model_tps_conta.items
-        for key, item_index in enumerate(items):
-            item = items.get(item_index)
-            if item.id == conta.tipo_id:
-                index = key
-            combobox.addItem(item.descricao, item.id)
+    # def get_tipo_conta_dropdown(self, conta: Conta):
+    #     combobox = QComboBox()
+    #     index: int = 0
+    #     items = self.parentOne.model_tps_conta.items
+    #     for key, item_index in enumerate(items):
+    #         item = items.get(item_index)
+    #         if item.id == conta.tipo_id:
+    #             index = key
+    #         combobox.addItem(item.descricao, item.id)
 
-        combobox.setCurrentIndex(index)
-        combobox.currentIndexChanged.connect(
-            lambda: self.tipo_conta_dropdown_change(combobox, conta)
-        )
-        return combobox
+    #     combobox.setCurrentIndex(index)
+    #     combobox.currentIndexChanged.connect(
+    #         lambda: self.tipo_conta_dropdown_change(combobox, conta)
+    #     )
+    #     return combobox
 
     def tipo_conta_dropdown_change(self, combobox: QComboBox, conta: Conta):
         data = combobox.currentData()
         conta.tipo_id = data
         self.parentOne.model_contas.update(conta)
 
-    def get_del_button(self, conta_id: int):
+    @staticmethod
+    def get_del_button() -> QPushButton:
         del_pbutt = QPushButton()
         del_pbutt.setToolTip(TEXTS.REMOVE_ACCOUNT_TOOLTIP)
         del_pbutt.setIcon(icons.delete())
-        del_pbutt.clicked.connect(lambda: self.parentOne.on_del_conta(conta_id))
         return del_pbutt
 
-    def get_open_lanc_button(self, conta_id: int):
+    @staticmethod
+    def get_open_lanc_button() -> QPushButton:
         op_lanc_pbutt = QPushButton()
         op_lanc_pbutt.setToolTip(TEXTS.OPEN_POSTINGS)
         op_lanc_pbutt.setIcon(icons.open_lancamentos())
-        op_lanc_pbutt.clicked.connect(
-            lambda: self.parentOne.on_open_lancamentos(conta_id)
-        )
         return op_lanc_pbutt
 
-    def get_visao_mensal(self, conta_id: int):
+    @staticmethod
+    def get_visao_mensal() -> QPushButton:
         op_lanc_pbutt = QPushButton()
         op_lanc_pbutt.setToolTip(TEXTS.OPEN_MONTHLY_VIEW)
         op_lanc_pbutt.setIcon(icons.visao_mensal())
-        op_lanc_pbutt.clicked.connect(
-            lambda: self.parentOne.on_open_visao_mensal(conta_id)
-        )
         return op_lanc_pbutt
+    
+    # def get_del_button(self, conta_id: int) -> QPushButton:
+    #     del_pbutt = QPushButton()
+    #     del_pbutt.setToolTip(TEXTS.REMOVE_ACCOUNT_TOOLTIP)
+    #     del_pbutt.setIcon(icons.delete())
+    #     del_pbutt.clicked.connect(lambda: self.parentOne.on_del_conta(conta_id))
+    #     return del_pbutt
+
+    # def get_open_lanc_button(self, conta_id: int) -> QPushButton:
+    #     op_lanc_pbutt = QPushButton()
+    #     op_lanc_pbutt.setToolTip(TEXTS.OPEN_POSTINGS)
+    #     op_lanc_pbutt.setIcon(icons.open_lancamentos())
+    #     op_lanc_pbutt.clicked.connect(
+    #         lambda: self.parentOne.on_open_lancamentos(conta_id)
+    #     )
+    #     return op_lanc_pbutt
+
+    # def get_visao_mensal(self, conta_id: int) -> QPushButton:
+    #     op_lanc_pbutt = QPushButton()
+    #     op_lanc_pbutt.setToolTip(TEXTS.OPEN_MONTHLY_VIEW)
+    #     op_lanc_pbutt.setIcon(icons.visao_mensal())
+    #     op_lanc_pbutt.clicked.connect(
+    #         lambda: self.parentOne.on_open_visao_mensal(conta_id)
+    #     )
+    #     return op_lanc_pbutt
 
 
 class ContasViewComponents:
