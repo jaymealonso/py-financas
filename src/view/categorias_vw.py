@@ -140,12 +140,9 @@ class CategoriasView(QWidget):
         self.table.selectRow(item.row())
 
     def on_del_categoria(self, index:QModelIndex):
-    # def on_del_categoria(self, categoria_id: int):
-        model:QStandardItemModel = index.model()
-        # indexes_found = model.match(model.index(0, 0), Qt.UserRole, categoria_id, 1)
-        # index = next((x for x in indexes_found), None)
         if not index:
             return
+        model:QStandardItemModel = index.model()
         categoria_id = model.index(index.row(), Column.ID).data(Qt.UserRole)
         categoria_descr = model.index(index.row(), Column.NM_CATEGORIA).data(Qt.UserRole)
         lancamentos_count = model.index(index.row(), Column.NR_LANCAMENTOS).data(Qt.UserRole)

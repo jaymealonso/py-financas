@@ -30,6 +30,7 @@ from model.Lancamento import Lancamentos
 from model.db.db_orm import Anexos as ORMAnexos, Lancamentos as ORMLancamentos
 from util.currency_editor import QCurrencyLineEdit
 from util.custom_table_delegates import (
+    ButtonDelegate,
     ComboBoxDelegate,
     CurrencyEditDelegate,
     CurrencyLabelDelegate,
@@ -71,6 +72,7 @@ class LancamentosView(MyDialog):
         SALDO = auto()
         REMOVER = auto()
         ANEXOS = auto()
+        NR_ANEXOS = auto()
 
     COLUMNS = {
         Column.ID: {"title": "ID", "sql_colname": "id", "col_width": 90 },
@@ -84,6 +86,7 @@ class LancamentosView(MyDialog):
         Column.SALDO: {"title": "Saldo", "col_width": 160},
         Column.REMOVER: {"title": "Remover", "col_width": 100},
         Column.ANEXOS: {"title": "Anexos", "col_width": 100},
+        # Column.NR_ANEXOS: {"sql_colname": "nr_anexos"},
     }
 
     def __init__(self, parent: QWidget, conta_dc: Conta):
@@ -199,10 +202,12 @@ class LancamentosView(MyDialog):
         footer.setLayout(layout)
         return footer
 
-    def on_open_attachments(self, lancamento_id: int):
+    def on_open_attachments(self, index:QModelIndex):
         """
         Exibe a janela de anexos
         """
+        model:QStandardItemModel = index.model()
+        lancamento_id: int  = model.index(index.row(), self.Column.ID).data(Qt.UserRole)
         lancamento = self.model_lancamentos.get_lancamento(lancamento_id)
         if not lancamento:
             QMessageBox(text="Lanc não encontrado.").exec()
@@ -281,7 +286,8 @@ class LancamentosView(MyDialog):
         self.model_lancamentos.update(lancamento_id, sql_colname, value)
 
         # recalcula total
-        self.load_model_only(sql_colname == 'data')
+        # self.load_model_only(sql_colname == 'data')
+        self.load_model_only()
         if sql_colname == 'data':
             item_new_indexes = model.match(model.index(0, self.Column.ID), Qt.UserRole, lancamento_id, 1)
             if len(item_new_indexes) > 0:
@@ -296,14 +302,17 @@ class LancamentosView(MyDialog):
         self.changed.emit(lancamento, sql_colname)
         self.table.setFocus()
 
-    def on_del_lancamento(self, lancamento_id: int):
-
-        model = self.table.model()
-
-        items_found = model.match(model.index(0, 0), Qt.UserRole, lancamento_id, 1)
-        if len(items_found) == 0:
+    def on_del_lancamento(self, index:QModelIndex):
+        if not index:
             return
-        table_row_index = items_found[0].row()
+
+        model:QStandardItemModel = index.model()
+        lancamento_id = model.index(index.row(), self.Column.ID).data(Qt.UserRole)
+
+        # items_found = model.match(model.index(0, 0), Qt.UserRole, lancamento_id, 1)
+        # if len(items_found) == 0:
+        #     return
+        # table_row_index = items_found[0].row()
 
         if not self.check_del_not_ask.isChecked():
             button = QMessageBox.question(
@@ -319,7 +328,7 @@ class LancamentosView(MyDialog):
         logging.debug(f"Eliminando lancamento {lancamento_id} do banco de dados ...")
         self.model_lancamentos.delete(str(lancamento_id))
 
-        model.removeRow(table_row_index)
+        model.removeRow(index.row())
         self.load_model_only()
 
         logging.debug("Done !!!")
@@ -334,8 +343,9 @@ class LancamentosView(MyDialog):
         self.load_model_only()
         model = self.table.model()
         items_found = model.match(model.index(0, 0), Qt.UserRole, new_lancamento_id, 1)
-        self.table.scrollTo(items_found[0])
-        self.table.selectRow(items_found[0].row())
+        if len(items_found) > 0:
+            self.table.scrollTo(items_found[0])
+            self.table.selectRow(items_found[0].row())
 
         if show_message:
             QToaster.showMessage(self, "Novo lançamento adicionado.")
@@ -373,7 +383,7 @@ class LancamentosView(MyDialog):
         logging.debug("Finalizada a eliminação !!!")
         self.on_delete.emit(-1)
 
-    def load_model_only(self, rerender_buttons: bool = True):
+    def load_model_only(self) -> None:
         self.model_lancamentos.load()
 
         filter_model:LancamentoSortFilterProxyModel = self.table.model()
@@ -437,18 +447,13 @@ class LancamentosView(MyDialog):
                     Qt.AccessibleTextRole: saldo,
                 },
             )
-            if rerender_buttons:
-                self.table.setIndexWidget(
-                    filter_model.index(new_index, self.Column.REMOVER),
-                    # model.index(new_index, self.Column.REMOVER),
-                    self.tableline.get_del_button(self, row.id),
-                )
+            model.setItemData(
+                model.index(new_index, self.Column.NR_ANEXOS),
+                {
+                    Qt.UserRole: row.nr_anexos 
+                },
+            )
 
-                self.table.setIndexWidget(
-                    filter_model.index(new_index, self.Column.ANEXOS),
-                    # model.index(new_index, self.Column.ANEXOS),
-                    self.tableline.get_attach_button(self, row.nr_anexos, row.id),
-                )
 
         filter_model.setSourceModel(model)
         self.table.setModel(filter_model)
@@ -488,6 +493,10 @@ class LancamentosView(MyDialog):
         col6_del = GenericInputDelegate(self.table)
         col6_del.changed.connect(self.on_model_item_changed)
 
+        col7_del = ButtonDelegate(self.table, LancamentoTableLine.get_attach_button(), self.on_open_attachments)
+        # TODO: fix texto do botão com o nro de anexos
+        # col7_del.set_nr_anexo_col_index(self.Column.NR_ANEXOS)
+
         self.table.setItemDelegateForColumn(self.Column.ID, IDLabelDelegate(self.table))
         self.table.setItemDelegateForColumn(self.Column.SEQ_ORDEM_LINHA, IDLabelDelegate(self.table))
         self.table.setItemDelegateForColumn(self.Column.NR_REFERENCIA, col1_del)
@@ -497,6 +506,9 @@ class LancamentosView(MyDialog):
         self.table.setItemDelegateForColumn(self.Column.CATEGORIA_ID, col4_del)
         self.table.setItemDelegateForColumn(self.Column.VALOR, col5_del)
         self.table.setItemDelegateForColumn(self.Column.SALDO, CurrencyLabelDelegate(self.table, bold=True))
+        self.table.setItemDelegateForColumn(self.Column.REMOVER, ButtonDelegate(self.table, LancamentoTableLine.get_del_button(), 
+                                     self.on_del_lancamento) )
+        self.table.setItemDelegateForColumn(self.Column.ANEXOS, col7_del )
 
         logging.debug("> itemChanged connected again!")
         self.table.verticalScrollBar().setValue(vert_scr_position)
@@ -521,6 +533,7 @@ class LancamentosView(MyDialog):
         for mes_ano, categoria in filters:
             filter_model.add_filter(mes_ano, categoria)
         filter_model.invalidateFilter()
+        self.load_model_only()
 
     def show_all(self):
         filter_model: LancamentoSortFilterProxyModel = self.table.model()
@@ -600,21 +613,21 @@ class LancamentoTableLine(TableLine):
         return label
 
     @staticmethod
-    def get_del_button(parent: LancamentosView, lancamento_id: int):
+    def get_del_button() -> QPushButton:
         del_pbutt = QPushButton()
         del_pbutt.setToolTip("Eliminar Lançamento")
         del_pbutt.setIcon(icons.delete())
-        del_pbutt.clicked.connect(lambda: parent.on_del_lancamento(lancamento_id))
         return del_pbutt
 
     @staticmethod
-    def get_attach_button(parent: LancamentosView, count: int, row_id: int):
+    def get_attach_button() -> QPushButton:
         del_pbutt = QPushButton()
         del_pbutt.setToolTip("Anexos")
         del_pbutt.setIcon(icons.attach())
-        text = ""
-        if count > 0:
-            text = str(count)
-        del_pbutt.setText(text)
-        del_pbutt.clicked.connect(lambda: parent.on_open_attachments(row_id))
+        # TODO:consertar contagem de anexos no botao
+        # text = ""
+        # if count > 0:
+        #     text = str(count)
+        # del_pbutt.setText(text)
+        # del_pbutt.clicked.connect(lambda: parent.on_open_attachments(row_id))
         return del_pbutt

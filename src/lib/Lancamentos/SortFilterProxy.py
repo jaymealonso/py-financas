@@ -64,6 +64,8 @@ class LancamentoSortFilterProxyModel(MySortFilterProxyModel):
         date_date: datetime = (
             self.sourceModel().index(source_row, 5, source_parent).data(Qt.UserRole)
         )
+        if not date_date:
+            return True
         date_moment: moment.Moment = moment.date(date_date)
 
         for single_filter in [x for x in self.filters]:

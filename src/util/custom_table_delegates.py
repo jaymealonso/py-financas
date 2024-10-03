@@ -7,7 +7,7 @@ import datetime
 import locale
 import util.curr_formatter as curr
 from PyQt5.QtCore import QEvent, QRect, QTimer, Qt, QModelIndex, pyqtSignal, QStringListModel
-from PyQt5.QtGui import QColor, QFont, QCursor
+from PyQt5.QtGui import QColor, QFont, QCursor, QStandardItemModel
 from PyQt5.QtWidgets import (
     QStyleOptionButton,
     QWidget,
@@ -46,7 +46,6 @@ class ComboBoxWithSearch(QComboBox):
 
     def hidePopup(self) -> None:
         logging.debug("BLOCKED *** Hide pop")
-
 
 # TODO: funciona perfeitamente, falta somente corrigir o mouseover
 class ButtonDelegate(QStyledItemDelegate):
@@ -148,6 +147,21 @@ def rect_intersect_cursor(rect: QRect, table: QTableView):
         pos.y() > y0 and pos.y() < y1
     
     return intersect
+
+
+# class ButtonAttachDelegate(ButtonDelegate):
+#     def __init__(self, parent_table: QTableView, button: QPushButton, pressed_event: Callable[[QModelIndex], None]):
+#         super().__init__(parent_table, button, pressed_event)
+
+#     def set_nr_anexo_col_index(self, index: int):
+#         self.nr_anexo_col_index = index
+
+#     def paint(self, painter, option: QStyleOptionViewItem, index: QModelIndex):
+#         model:QStandardItemModel = index.model()
+#         nr_anexo: int  = model.index(index.row(), self.nr_anexo_col_index).data(Qt.UserRole) or 0
+#         self.button.setText(nr_anexo if nr_anexo > 0 else "")
+#         super().paint(painter, option, index)
+    
 
 class ButtonTimer:
     def __init__(self, parent: ButtonDelegate) -> None:
