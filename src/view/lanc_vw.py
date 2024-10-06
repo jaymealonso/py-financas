@@ -324,8 +324,9 @@ class LancamentosView(MyDialog):
 
         logging.debug(f"Cell changed row/col: {row}/{col}")
 
-        model = self.table.model()
-        lancamento_id = model.data(model.index(row, self.Columns.ID), Qt.UserRole)
+        model:LancamentoSortFilterProxyModel = self.table.model()
+        col_id_index = index.model().index(row, self.Columns.ID)
+        lancamento_id = model.data(model.mapFromSource(col_id_index), Qt.UserRole)
         value = model.data(model.mapFromSource(index), Qt.UserRole)
 
         column_data = self.COLUMNS.get(col)
