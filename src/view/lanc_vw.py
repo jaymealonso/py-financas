@@ -603,11 +603,11 @@ class LancamentosView(MyDialog):
             self.handle_paste()
 
         # Evento Ctrl + L para chamar a filtro na tabela
-        if e.key() == (Qt.Key_Control and Qt.Key_L):
+        if e.key() == Qt.Key_L and (e.modifiers() & Qt.ControlModifier):
             self.open_filter()
 
         # Evento Ctrl + F para chamar a busca na coluna
-        if e.key() == (Qt.Key_Control and Qt.Key_F):
+        if e.key() == Qt.Key_F and (e.modifiers() & Qt.ControlModifier):
             index = next((sel_ind for sel_ind in self.table.selectedIndexes()), None)
             if not index:
                 return
@@ -630,13 +630,13 @@ class LancamentosView(MyDialog):
 
         if self.search_dialog:
             # evento move cursor para o registro anterior na lista encontrada 
-            if e.key() == (Qt.Key_Control and Qt.Key_P):
+            if e.key() == Qt.Key_P and (e.modifiers() & Qt.ControlModifier):
                 self.table.clearSelection()
                 self.search_dialog.on_click_search(go_prev=True)
                 return
 
             # evento move cursor para o registro proximo na lista encontrada 
-            if e.key() == (Qt.Key_Control and Qt.Key_N):
+            if e.key() == Qt.Key_N and (e.modifiers() & Qt.ControlModifier):
                 self.table.clearSelection()
                 self.search_dialog.on_click_search()
                 return
