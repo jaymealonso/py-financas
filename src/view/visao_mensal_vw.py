@@ -150,6 +150,10 @@ class VisaoGeralView(MyDialog):
         return self.table
 
     def on_selection_released(self, filters: list):
+        if self.lancamentos_vw.filter_dialog:
+            self.lancamentos_vw.filter_dialog.on_fechar_popup()
+        if self.lancamentos_vw.search_dialog:
+            self.lancamentos_vw.search_dialog.on_fechar_popup()
         self.lancamentos_vw.set_filter_mes_categ(filters)
         self.get_limpar_filtro_button().setVisible(len(filters) > 0)
 
@@ -181,6 +185,10 @@ class VisaoGeralView(MyDialog):
         return self.toolbar_vis_geral
     
     def on_limpar_filtro(self):
+        if self.lancamentos_vw.filter_dialog:
+            self.lancamentos_vw.filter_dialog.on_fechar_popup()
+        if self.lancamentos_vw.search_dialog:
+            self.lancamentos_vw.search_dialog.on_fechar_popup()
         self.table.selectionModel().clear()
         self.lancamentos_vw.set_filter_mes_categ([])
         self.get_limpar_filtro_button().setVisible(False)

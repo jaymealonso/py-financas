@@ -18,7 +18,7 @@ class FilterAllTable:
 
 class FilterCategoria:
     def __init__(self, categoria: str) -> None:
-        self.categoria = categoria
+        self.categoria = categoria or f'(vazio)'
         self.filter_categoria = None
 
     def validate(self, categoria: str) -> bool:

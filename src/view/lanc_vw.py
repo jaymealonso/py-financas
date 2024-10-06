@@ -53,6 +53,7 @@ from view.TableLine import TableLine
 
 
 class TEXTS(StrEnum):
+    TITLE = "Lançamentos - (Conta {0} | {1})"
     IMPORTAR_LANCAMENTOS = "Importar Lançamentos"
     ATUALIZAR = "Atualizar"
     ELIMINAR_SEM_PERG = "Eliminar sem perguntar"
@@ -133,10 +134,7 @@ class LancamentosView(MyDialog):
             self.global_settings.load_lanc_settings(self.conta_dc.id)
         )
         self.copied_cell: QModelIndex = None
-
-        self.setWindowTitle(
-            f"Lançamentos - (Conta {self.conta_dc.id} | {self.conta_dc.descricao})"
-        )
+        self.setWindowTitle(TEXTS.TITLE.format(self.conta_dc.id,self.conta_dc.descricao))
         self.restore_geometry()
         self.on_close_signal.connect(self.on_close)
 
@@ -572,12 +570,6 @@ class LancamentosView(MyDialog):
 
         self.table.verticalScrollBar().setValue(vert_scr_position)
         QApplication.restoreOverrideCursor()
-
-    # def on_model_item_changed(self, item: QStandardItem):
-    #     """
-    #     Disparado pela modificação de um WIDGET na linha da tabela
-    #     """
-    #     self.table_cell_changed(item)
 
     def set_column_default_sizes(self):        
         for index, col in self.COLUMNS.items():
