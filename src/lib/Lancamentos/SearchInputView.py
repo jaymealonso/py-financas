@@ -5,7 +5,6 @@ from PyQt5.QtWidgets import QDialog, QLineEdit, QPushButton, QWidget, QHBoxLayou
 from view.icons import icons
 
 
-
 class TEXTS(StrEnum):
     NADA_ENCONTRADO = 'Nada encontrado.'
     PROCURAR = 'Procurar'
@@ -17,12 +16,12 @@ class TEXTS(StrEnum):
     PREV_RESULT = 'Resultado anterior.'
 
 
-class ColumnSearchView(QWidget):
+class SearchInputView(QWidget):
     # sender: QDialog
     on_close_signal = pyqtSignal(QDialog)
     
     def __init__(self, parent):
-        super(ColumnSearchView, self).__init__(parent)
+        super(SearchInputView, self).__init__(parent)
 
         # local vars
         self.column_index: int = -1
@@ -55,8 +54,10 @@ class ColumnSearchView(QWidget):
             self.search_button.click()
         elif event.key() == Qt.Key_Escape:
             self.on_fechar_popup()
+        
+        return super(SearchInputView, self).keyPressEvent(event)
 
-    def show2(self, column_name: str, column_index: int) -> None:
+    def show(self, column_name: str, column_index: int) -> None:
         if self.column_index != column_index:
             self.setWindowTitle(TEXTS.SEARCHING_IN_THE_COLUMN.format(column_name))
             self.found_matches_label.setText(TEXTS.NADA_ENCONTRADO)
@@ -64,7 +65,7 @@ class ColumnSearchView(QWidget):
             self.search_field.setPlaceholderText(column_name)
             self.column_index = column_index
 
-        super(ColumnSearchView, self).show()
+        super(SearchInputView, self).show()
         self.activateWindow()
         self.search_field.setFocus()
 
@@ -79,6 +80,7 @@ class ColumnSearchView(QWidget):
             if self.found_matches_index < 0:
                 self.found_matches_index = len(self.found_matches) - 1
             set_index = self.found_matches[self.found_matches_index]
+
         else:
             self.modif_backgroud_encontrados(False)
             self.found_matches = []
@@ -124,7 +126,7 @@ class ColumnSearchView(QWidget):
 
 
 class ColumnSearchViewComponents:
-    def __init__(self, parent: ColumnSearchView):
+    def __init__(self, parent: SearchInputView):
         super(ColumnSearchViewComponents, self).__init__()
         self.parent = parent
 

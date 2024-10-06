@@ -18,7 +18,7 @@ class Database(metaclass=SingletonMeta):
 
         database_path: str = self.settings.db_location
         logging.debug(f"Conectando a base de dados: {database_path}")
-        self.engine: Engine = create_engine(f"sqlite:///{database_path}", echo=True)
+        self.engine: Engine = create_engine(f"sqlite:///{database_path}", echo=False)
 
     def exists(self) -> bool:
         try:

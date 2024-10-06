@@ -94,7 +94,7 @@ class ContasView(QWidget):
         logging.debug("Reloading data...")
         self.load_table_data()
 
-    def on_del_conta(self, index: QModelIndex): #  conta_id: int):
+    def on_del_conta(self, index: QModelIndex): 
         model:QStandardItemModel = index.model()
         conta_id = model.index(index.row(), self.Column.ID).data(Qt.UserRole)
 
@@ -263,8 +263,10 @@ class ContasView(QWidget):
         self.table.setItemDelegateForColumn(self.Column.N_CLASSIF, CurrencyLabelDelegate(self.table, bold=True, center=True))
         self.table.setItemDelegateForColumn(self.Column.CLASSIFIC, CurrencyLabelDelegate(self.table, bold=True, center=True))
         self.table.setItemDelegateForColumn(self.Column.REMOVER, ButtonDelegate(self.table, ContaTableLine.get_del_button(), self.on_del_conta))
-        self.table.setItemDelegateForColumn(self.Column.LANCAMENTOS, ButtonDelegate(self.table, ContaTableLine.get_open_lanc_button(), self.on_open_lancamentos))
-        self.table.setItemDelegateForColumn(self.Column.VISAO_MENSAL, ButtonDelegate(self.table, ContaTableLine.get_visao_mensal(), self.on_open_visao_mensal))
+        self.table.setItemDelegateForColumn(self.Column.LANCAMENTOS, \
+            ButtonDelegate(self.table, ContaTableLine.get_open_lanc_button(), self.on_open_lancamentos))
+        self.table.setItemDelegateForColumn(self.Column.VISAO_MENSAL, \
+            ButtonDelegate(self.table, ContaTableLine.get_visao_mensal(), self.on_open_visao_mensal))
 
         self.table.setColumnWidth(self.Column.ID, 100)
         self.table.resizeColumnToContents(self.Column.DESCRICAO)

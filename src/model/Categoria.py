@@ -18,8 +18,8 @@ class Categorias:
         self.__categorias.clear()
 
         categ_vazio = ORMCategorias(id=0, nm_categoria="(vazio)")
+        # categ_vazio = (0, "(vazio)", "0")
         categ_vazio.tot_lancamentos = 0
-
         self.__categorias.append(categ_vazio)
 
         # TODO: corrigir busca de valores de categoria vazio,

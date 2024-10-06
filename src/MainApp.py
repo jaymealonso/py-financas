@@ -1,13 +1,11 @@
-import os
 import sys
-import time
 from contextlib import suppress
 
 import view.icons.icons as icons
+from view.contas_vw import ContasView
 from util.settings import Settings
 from pathlib import Path
 from argparse import ArgumentParser
-from PyQt5 import QtGui
 from PyQt5.QtWidgets import QApplication, QMessageBox, QSplashScreen
 from PyQt5.QtCore import QFile, QTextStream, QDir, Qt
 from view.main_window import MainWindow
@@ -82,7 +80,11 @@ class MainApp:
         self.window = MainWindow(self.app)
         self.window.show()
         if self.args.conta_id:
-            self.window.tabbar.widget(0).on_open_lancamentos(self.args.conta_id)
+            contas_vw:ContasView = self.window.tabbar.widget(0)
+            conta_indexes = contas_vw.table.model().findItems(str(self.args.conta_id), Qt.MatchExactly ,contas_vw.Column.ID)
+            if conta_indexes:
+                conta_index = conta_indexes[0]
+                contas_vw.on_open_lancamentos(conta_index)
 
     def setup_theme(self, theme_name: str):
         if theme_name is None:

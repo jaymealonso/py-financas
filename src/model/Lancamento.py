@@ -113,11 +113,11 @@ class Lancamentos:
         # remove o time do date pra fazer a comparação
         data: str = f"{data.isoformat()} 00:00:00.000000"
         stmt_max_seq_ordem_linha = (
-            session.query(func.max(ORMLancamentos.seq_ordem_linha))
-            .filter(
-                ORMLancamentos.conta_id == conta_id,
-                ORMLancamentos.data == data,
-            )
+            session.query(func.max(ORMLancamentos.id))
+            # .filter(
+            #     ORMLancamentos.conta_id == conta_id,
+            #     # ORMLancamentos.data == data,
+            # )
             .first()
         )
         seq_ordem_linha: int = 1

@@ -62,6 +62,7 @@ class DataLoader:
                 {"nm_categoria": "Transferência"},
                 {"nm_categoria": "Transporte"},
                 {"nm_categoria": "Água"},
+                {"nm_categoria": "Vestuário"},
             ]
         )
         session.commit()

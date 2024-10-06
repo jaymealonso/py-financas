@@ -273,8 +273,8 @@ class CurrencyLabelDelegate(QStyledItemDelegate):
 class GenericInputDelegate(EmitterItemDelegade):
     def setModelData(self, editor: QWidget, model, index: QModelIndex):
         text = editor.text()
-        model.setData(index, text, Qt.DisplayRole)
         model.setData(index, text, Qt.UserRole)
+        model.setData(index, text, Qt.DisplayRole)
         logging.debug(f"setModelData {index.row()}/{index.column()}")
         self.changed.emit(index, editor)
 
