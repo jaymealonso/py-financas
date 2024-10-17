@@ -3,11 +3,12 @@ from PyQt5 import QtWidgets
 from sqlalchemy import Null
 from lib.Genericos.log import logging
 
+import copy
 import datetime
 import locale
 import util.curr_formatter as curr
-from PyQt5.QtCore import QEvent, QRect, QTimer, Qt, QModelIndex, pyqtSignal, QStringListModel
-from PyQt5.QtGui import QColor, QFont, QCursor, QStandardItemModel
+from PyQt5.QtCore import QEvent, QRect, QSize, QTimer, Qt, QModelIndex, pyqtSignal, QStringListModel
+from PyQt5.QtGui import QBrush, QColor, QFont, QCursor
 from PyQt5.QtWidgets import (
     QStyleOptionButton,
     QWidget,
@@ -21,7 +22,6 @@ from PyQt5.QtWidgets import (
     QCompleter, QPushButton,
 )
 from util.currency_editor import QCurrencyLineEdit
-from view.icons import icons
 
 locale.setlocale(locale.LC_ALL, "pt_BR.utf8")
 
@@ -60,7 +60,6 @@ class ButtonDelegate(QStyledItemDelegate):
         editor.setGeometry(option.rect)
 
     def editorEvent(self, event, model, option, index):
-        # logging.debug(f"Event >> r:{index.row()}c:{index.column()} type: {event.type()}")
         if event.type() == QEvent.MouseButtonRelease:
             self.pressed_index = Null
             if self.timer:
@@ -88,12 +87,20 @@ class ButtonDelegate(QStyledItemDelegate):
 
         return True
 
-    def sizeHint(self, option, index):
+    def sizeHint(self, option, index) -> QSize:
         size = super(ButtonDelegate, self).sizeHint(option, index)
         size.setHeight(50)
         return size
 
     def paint(self, painter, option: QStyleOptionViewItem, index: QModelIndex):
+
+        try:
+            text = index.data(Qt.UserRole)
+            if text:
+                self.button.setText(str(text))
+            # font = (index.data(Qt.FontRole) or QFont())
+        except Exception as e:
+            logging.error(f"IDLabelDelegate Exception {e}")
 
         painter.save()
 
@@ -107,7 +114,7 @@ class ButtonDelegate(QStyledItemDelegate):
 
         option = QStyleOptionButton()
         option.initFrom(self.button)
-        option.rect = self.rect_button
+        option.rect = copy.deepcopy( self.rect_button )
 
         if self.pressed_index == index:
             option.state = QtWidgets.QStyle.State_Sunken
@@ -116,8 +123,7 @@ class ButtonDelegate(QStyledItemDelegate):
             option, painter, self.button)
         btn_icon = self.button.icon().pixmap(32, 32)
         
-        target_rect = option.rect
-
+        target_rect:QRect = copy.deepcopy( option.rect )
         target_rect.setX(option.rect.x() + int(option.rect.width() / 2) - int(btn_icon.rect().width() / 2))
         target_rect.setY(option.rect.y() + int(option.rect.height() / 2) - int(btn_icon.rect().height() / 2))
 
@@ -126,7 +132,29 @@ class ButtonDelegate(QStyledItemDelegate):
 
         target_rect.setWidth(btn_icon.width())
         target_rect.setHeight(btn_icon.height())
-        
+
+        if text:
+            target_rect.setX(target_rect.x() - 16)
+            target_rect.setWidth(btn_icon.width())
+
+            text_rect = copy.deepcopy( self.rect_button )
+
+            text_rect.setX(option.rect.x() + int(option.rect.width() / 2) - 20)
+            if self.pressed_index == index:
+                text_rect.setY(self.rect_button.y() + 5)
+            else:
+                text_rect.setY(self.rect_button.y() + 8)
+            
+            # FOR TESTING
+            # background_brush = QBrush( QColor(255,0,0), Qt.SolidPattern)
+            # painter.fillRect(text_rect, background_brush)
+
+            painter.drawText(text_rect, Qt.AlignCenter + Qt.AlignVCenter, str(text))
+
+        # FOR TESTING
+        # background_brush = QBrush( QColor(255,0,0), Qt.SolidPattern)
+        # painter.fillRect(target_rect, background_brush)
+
         painter.drawPixmap(target_rect, btn_icon, QRect(0, 0, 0, 0))
         painter.restore()
 
@@ -147,20 +175,6 @@ def rect_intersect_cursor(rect: QRect, table: QTableView):
         pos.y() > y0 and pos.y() < y1
     
     return intersect
-
-
-# class ButtonAttachDelegate(ButtonDelegate):
-#     def __init__(self, parent_table: QTableView, button: QPushButton, pressed_event: Callable[[QModelIndex], None]):
-#         super().__init__(parent_table, button, pressed_event)
-
-#     def set_nr_anexo_col_index(self, index: int):
-#         self.nr_anexo_col_index = index
-
-#     def paint(self, painter, option: QStyleOptionViewItem, index: QModelIndex):
-#         model:QStandardItemModel = index.model()
-#         nr_anexo: int  = model.index(index.row(), self.nr_anexo_col_index).data(Qt.UserRole) or 0
-#         self.button.setText(nr_anexo if nr_anexo > 0 else "")
-#         super().paint(painter, option, index)
     
 
 class ButtonTimer:

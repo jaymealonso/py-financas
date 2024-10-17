@@ -1,2 +1,3 @@
-from .Lancamentos.FilterInputView import FilterInputView
-from .Lancamentos.SearchInputView import SearchInputView
+from .Lancamentos.FilterInputView import FilterInputView  # noqa: F401
+from .Lancamentos.SearchInputView import SearchInputView  # noqa: F401
+from .ExportExcel.ExportExcel import ExportExcel  # noqa: F401

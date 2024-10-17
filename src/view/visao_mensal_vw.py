@@ -1,5 +1,4 @@
-import moment
-from openpyxl import Workbook
+from enum import StrEnum
 import PyQt5.QtGui as QtGui
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
@@ -7,7 +6,6 @@ from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QToolBar,
-    QFileDialog,
     QSizePolicy,
     QSplitter
 )
@@ -17,13 +15,21 @@ from util.custom_table_delegates import CurrencyLabelDelegate, IDLabelDelegate
 from util.my_dialog import MyDialog
 from util.settings import JanelaVisaoMensalSettings, Settings
 from lib.Genericos.log import logging
+from lib import ExportExcel
 import view.contas_vw as cv
 import view.icons.icons as icons
 from lib.VisaoMensal.TableLine import VisaoGeralViewLine
 from model.Conta import Conta
 from model.VisaoMensal import VisaoMensal
-from util.curr_formatter import str_curr_to_int, str_curr_to_locale
+from util.curr_formatter import str_curr_to_locale
 from view.lanc_vw import LancamentosView
+
+
+class TEXTS(StrEnum):
+    TITLE = "Visão Mensal - (Conta {0})"
+    EXPORTAR_PREFIXO = "Visão Mensal"
+    LIMPAR_FILTRO = "Limpar filtro"
+    TOTAL = "TOTAL"
 
 
 class VisaoGeralView(MyDialog):
@@ -44,7 +50,7 @@ class VisaoGeralView(MyDialog):
         self.on_close_signal.connect(self.on_close)
 
         self.setWindowModality(Qt.ApplicationModal)
-        self.setWindowTitle(f"Visão Mensal - (Conta {conta_dc.id})")
+        self.setWindowTitle(TEXTS.TITLE.format(conta_dc.id))
         self.setMinimumSize(800, 600)
         try:
             self.restoreGeometry(self.settings.dimensoes)
@@ -100,47 +106,8 @@ class VisaoGeralView(MyDialog):
         return self.toolbar
 
     def on_exportar_planilha(self):
-        datetime_str: str = moment.now().isoformat().replace(":", "_")[:19]
-        default_filename: str = f"{self.conta_dc.descricao}-{datetime_str}.xlsx"
-        dialog = QFileDialog()
-        (filename, selectedFilter) = dialog.getSaveFileName(
-            self, "Exportar planilha", default_filename
-        )
-        if filename is None or filename == "":
-            return
-
-        wb = Workbook()
-        ws = wb.active
-
-        column_count = self.table.columnCount()
-        row_count = self.table.rowCount()
-
-        col_titles = map(
-            lambda index: self.table.horizontalHeaderItem(index).text(),
-            [i for i in range(column_count)],
-        )
-        ws.append(list(col_titles))
-
-        for row_index in range(row_count):
-            row_values = []
-            for col_index in range(column_count):
-                value = ""
-                if col_index == 0:
-                    cell = self.table.itemFromIndex(
-                        self.table.model().index(row_index, col_index)
-                    )
-                    if cell is None:
-                        cell = self.table.cellWidget(row_index, col_index)
-                    if cell is not None:
-                        value = cell.text()
-                else:
-                    cell = self.table.cellWidget(row_index, col_index)
-                    if cell is not None:
-                        value = str_curr_to_int(cell.text()) / 100
-                row_values.append(value)
-            ws.append(row_values)
-
-        wb.save(filename)
+        export_excel = ExportExcel(self, self.table.model(), self.conta_dc.descricao)
+        export_excel.export(TEXTS.EXPORTAR_PREFIXO)
 
     def get_table(self) -> VisaoGeralTableView:
         """Tabela de visão mensal"""
@@ -177,7 +144,7 @@ class VisaoGeralView(MyDialog):
             self.toolbar_vis_geral.addWidget(spacer)
 
             btn_clear_filter = self.toolbar_vis_geral.addAction(
-                icons.filter_clear(), "Limpar filtro"
+                icons.filter_clear(), TEXTS.LIMPAR_FILTRO
             )
             btn_clear_filter.setVisible(False)
             btn_clear_filter.triggered.connect(self.on_limpar_filtro)
@@ -261,7 +228,8 @@ class VisaoGeralView(MyDialog):
             if key < 1:
                 model.setItemData(
                     model.index(row_index, key), {
-                        Qt.DisplayRole: "TOTAL", Qt.UserRole: "TOTAL", Qt.FontRole: font
+                        Qt.DisplayRole: TEXTS.TOTAL,
+                        Qt.UserRole: TEXTS.TOTAL, Qt.FontRole: font
                     }
                 )
                 continue

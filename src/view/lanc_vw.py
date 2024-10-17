@@ -48,7 +48,7 @@ import view.contas_vw as cv
 import view.icons.icons as icons
 from view.anexos_vw import AnexosView
 from view.imp_lanc_vw import ImportarLancamentosView
-from lib import SearchInputView, FilterInputView
+from lib import SearchInputView, FilterInputView, ExportExcel
 from view.TableLine import TableLine
 
 
@@ -73,6 +73,8 @@ class TEXTS(StrEnum):
     ERRO = 'Erro'
     SELEC_UMA_LINHA = 'Selecionar ao menos uma linha.'
     NAO_EXISTE_CATEGORIA = "Não existe categoria com o nome {0}."
+    EXPORTAR_PLANILHA = "Exportar planilha"
+    EXPORTAR_PREFIXO = "Lançamentos"
 
 
 class LancamentosView(MyDialog):
@@ -111,7 +113,6 @@ class LancamentosView(MyDialog):
         Columns.SALDO: {"title": "Saldo", "col_width": 160},
         Columns.REMOVER: {"title": "Remover", "col_width": 100},
         Columns.ANEXOS: {"title": "Anexos", "col_width": 100},
-        # Column.NR_ANEXOS: {"sql_colname": "nr_anexos"},
     }
 
     def __init__(self, parent: QWidget, conta_dc: Conta):
@@ -184,6 +185,11 @@ class LancamentosView(MyDialog):
 
         rem_act = toolbar.addAction(icons.delete(), TEXTS.ELIMINAR_SELECIONADOS)
         rem_act.triggered.connect(lambda: self.on_rem_lancamentos())
+        
+        toolbar.addSeparator()
+
+        export_act = toolbar.addAction(icons.exportar_planilha(), TEXTS.EXPORTAR_PLANILHA)
+        export_act.triggered.connect(lambda: self.on_export_excel())
 
         return toolbar
 
@@ -385,14 +391,14 @@ class LancamentosView(MyDialog):
         model.removeRow(index.row())
         self.load_model_only()
 
-        logging.debug("Done !!!")
+        logging.debug("Feito !!!")
         self.on_delete.emit(lancamento_id)
 
     def on_add_lancamento(self, show_message=True):
-        logging.debug("Adding new lancamento in the database...")
+        logging.debug("Adicionando novo lancamento na base de dados...")
         new_lancamento_id = self.model_lancamentos.add_new_empty(self.conta_dc.id)
 
-        logging.debug(f"Done !!! Lancamento criado com id: {new_lancamento_id}")
+        logging.debug(f"Feito !!! Lancamento criado com id: {new_lancamento_id}")
         self.add_lancamento.emit(new_lancamento_id)
         self.load_model_only()
         model = self.table.model()
@@ -436,6 +442,11 @@ class LancamentosView(MyDialog):
 
         logging.debug("Finalizada a eliminação !!!")
         self.on_delete.emit(-1)
+
+    def on_export_excel(self) -> None:
+        model:QStandardItemModel = self.table.model().sourceModel()
+        export_excel = ExportExcel(self, model, self.conta_dc.descricao)
+        export_excel.export(TEXTS.EXPORTAR_PREFIXO)
 
     def load_model_only(self) -> None:
         self.model_lancamentos.load()
@@ -511,6 +522,12 @@ class LancamentosView(MyDialog):
                 },
             )
             model.setItemData(
+                model.index(new_index, self.Columns.ANEXOS),
+                {
+                    Qt.UserRole: row.nr_anexos 
+                },
+            )
+            model.setItemData(
                 model.index(new_index, self.Columns.NR_ANEXOS),
                 {
                     Qt.UserRole: row.nr_anexos 
@@ -564,8 +581,8 @@ class LancamentosView(MyDialog):
         self.table.setItemDelegateForColumn(self.Columns.CATEGORIA_ID, col4_del)
         self.table.setItemDelegateForColumn(self.Columns.VALOR, col5_del)
         self.table.setItemDelegateForColumn(self.Columns.SALDO, CurrencyLabelDelegate(self.table, bold=True))
-        self.table.setItemDelegateForColumn(self.Columns.REMOVER, ButtonDelegate(self.table, LancamentoTableLine.get_del_button(), 
-                                     self.on_del_lancamento) )
+        self.table.setItemDelegateForColumn(self.Columns.REMOVER, ButtonDelegate(self.table, 
+            LancamentoTableLine.get_del_button(), self.on_del_lancamento) )
         self.table.setItemDelegateForColumn(self.Columns.ANEXOS, col7_del )
 
         self.table.verticalScrollBar().setValue(vert_scr_position)
