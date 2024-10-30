@@ -47,10 +47,13 @@ futuramente:
 
 ### Outras funcionalidades (planejadas):
 
-- [ ] Exportar os lançamentos para Planilha.
+- [X] Exportar os lançamentos para Planilha.
 - [ ] Agendamento de despesas recorrentes para controle do que foi pago.
 - [ ] Associação das despesas agendadas com os arquivos relacionados de fatura, comprovantes de pagamento e outros.
 - [ ] Visão para gerenciamento dos documentos armazenados. 
+- [ ] Funcionalidade de Desfazer e Refazer
+- [ ] Categorização automatica de lançamentos baseada no histórico de categorização.
+- [ ] Armazenamento online dos dados (opcional)
 
 ### Como instalar
 

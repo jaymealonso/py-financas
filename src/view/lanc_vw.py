@@ -556,21 +556,12 @@ class LancamentosView(MyDialog):
         self.load_model_only()
 
         col1_del = GenericInputDelegate(self.table)
-        # col1_del.changed.connect(self.on_model_item_changed)
         col2_del = GenericInputDelegate(self.table)
-        # col2_del.changed.connect(self.on_model_item_changed)
         col3_del = self.tableline.get_date_input()
-        # col3_del.changed.connect(self.on_model_item_changed)
         col4_del = self.tableline.get_categoria_dropdown_delegate()
-        # col4_del.changed.connect(self.on_model_item_changed)
         col5_del = self.tableline.get_currency_value_delegate()
-        # col5_del.changed.connect(self.on_model_item_changed)
         col6_del = GenericInputDelegate(self.table)
-        # col6_del.changed.connect(self.on_model_item_changed)
-
         col7_del = ButtonDelegate(self.table, LancamentoTableLine.get_attach_button(), self.on_open_attachments)
-        # TODO: fix texto do botão com o nro de anexos
-        # col7_del.set_nr_anexo_col_index(self.Column.NR_ANEXOS)
 
         self.table.setItemDelegateForColumn(self.Columns.ID, IDLabelDelegate(self.table))
         self.table.setItemDelegateForColumn(self.Columns.SEQ_ORDEM_LINHA, IDLabelDelegate(self.table))
@@ -766,10 +757,4 @@ class LancamentoTableLine(TableLine):
         del_pbutt = QPushButton()
         del_pbutt.setToolTip("Anexos")
         del_pbutt.setIcon(icons.attach())
-        # TODO:consertar contagem de anexos no botao
-        # text = ""
-        # if count > 0:
-        #     text = str(count)
-        # del_pbutt.setText(text)
-        # del_pbutt.clicked.connect(lambda: parent.on_open_attachments(row_id))
         return del_pbutt

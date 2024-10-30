@@ -1,6 +1,7 @@
 from typing import Callable
 from PyQt5 import QtWidgets
 from sqlalchemy import Null
+from unidecode import unidecode
 from lib.Genericos.log import logging
 
 import copy
@@ -34,18 +35,17 @@ class ComboBoxWithSearch(QComboBox):
     def __init__(self, parent: QWidget, items: list[str]):
         super().__init__(parent)
         self.items = items
-        self.addItems(self.items)
+        # self.addItems(self.items)
 
         self.setEditable(True)
 
         model = QStringListModel(self.items)
         self.setModel(model)
-        self.completer = QCompleter(self.model(), self)
+        self.completer:QCompleter = QCompleter(self.model(), self)
+        self.completer.setFilterMode(Qt.MatchFlag.MatchContains)
         self.completer.setCaseSensitivity(Qt.CaseInsensitive)
         self.setCompleter(self.completer)
 
-    def hidePopup(self) -> None:
-        logging.debug("BLOCKED *** Hide pop")
 
 # TODO: funciona perfeitamente, falta somente corrigir o mouseover
 class ButtonDelegate(QStyledItemDelegate):
@@ -371,10 +371,10 @@ class ComboBoxDelegate(EmitterItemDelegade):
 
     def setEditorData(self, editor: QComboBox, index):
         """Envia dados para o widget quando aberto"""
-        logging.debug("Combobox Clear")
-        editor.clearEditText()
-        logging.debug("Show popup")
-        editor.showPopup()
+        logging.debug("Set data in combobox")
+        
+        editor.setEditText(index.data(Qt.DisplayRole))
+        editor.lineEdit().selectAll()
 
     def setModelData(self, editor: ComboBoxWithSearch, model, index: QModelIndex):
         """Na finalização envia os dados de volta para o modelo"""
@@ -383,8 +383,16 @@ class ComboBoxDelegate(EmitterItemDelegade):
             logging.debug(f"tipo_id vazio! index: { tipo_id_combo_index }")
             return
         tipo_id = list(self.key_values.keys())[tipo_id_combo_index]
-        model.setData(index, tipo_id, Qt.UserRole)
-        model.setData(index, self.key_values.get(tipo_id), Qt.DisplayRole)
+            
+        model.setItemData(index,
+            {
+                Qt.DisplayRole: self.key_values.get(tipo_id),
+                Qt.UserRole: tipo_id or -1,
+                Qt.AccessibleTextRole: unidecode(self.key_values.get(tipo_id))
+            },
+        )
+        # model.setData(index, tipo_id, Qt.UserRole)
+        # model.setData(index, self.key_values.get(tipo_id), Qt.DisplayRole)
         logging.debug("setModelData")
         self.changed.emit(index, editor)
 
