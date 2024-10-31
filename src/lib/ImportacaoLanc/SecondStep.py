@@ -4,9 +4,10 @@ from enum import IntEnum, auto
 
 from PyQt5.QtGui import QStandardItemModel
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import QAbstractItemView, QMessageBox, QSizePolicy, QTableView, QToolBar, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QAbstractItemView, QMessageBox, QSizePolicy, QTableView, QVBoxLayout, QWidget
 
 from lib.ImportacaoLanc.AddCategoriaPopup import AddCategoriasPopup
+from lib import CustomToolbar
 import util.curr_formatter as curr
 from lib.ImportacaoLanc.FirstStep import NewLancamento
 import view.icons.icons as icons
@@ -44,12 +45,12 @@ class SecondStepFrame(QWidget):
 
         # local vars
         self.table = self.get_table()
-        self.toolbar = QToolBar()
+        self.toolbar = self.get_toolbar()
         self.linhas = list[NewLancamento]
 
         # layout
         layout = QVBoxLayout()
-        layout.addWidget(self.get_toolbar())
+        layout.addWidget(self.toolbar)
         layout.addWidget(self.table)
 
         self.setLayout(layout)
@@ -60,23 +61,24 @@ class SecondStepFrame(QWidget):
 
         parent.importacao_finalizada.connect(self.set_linhas)
 
-    def get_toolbar(self) -> QToolBar:
-        self.toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+    def get_toolbar(self) -> CustomToolbar:
+        toolbar = CustomToolbar()
+        toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
 
-        btn_previous = self.toolbar.addAction(icons.results_prev(), "Passo anterior")
+        btn_previous = toolbar.addAction(icons.results_prev(), "Passo anterior")
         btn_previous.triggered.connect( self.passo_anterior.emit )
 
-        btn_criar_categ = self.toolbar.addAction(icons.add(), "Criar categorias")
+        btn_criar_categ = toolbar.addAction(icons.add(), "Criar categorias")
         btn_criar_categ.triggered.connect( self.on_criar_categorias )
 
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self.toolbar.addWidget(spacer)
+        toolbar.addWidget(spacer)
 
-        btn_import_lanc = self.toolbar.addAction(icons.excel_imports(), "Importar linhas")
+        btn_import_lanc = toolbar.addAction(icons.excel_imports(), "Importar linhas")
         btn_import_lanc.triggered.connect( self.on_import_linhas )
 
-        return self.toolbar
+        return toolbar
 
     def get_table(self) -> QTableView:
         """

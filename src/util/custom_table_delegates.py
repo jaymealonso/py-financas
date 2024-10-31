@@ -35,10 +35,7 @@ class ComboBoxWithSearch(QComboBox):
     def __init__(self, parent: QWidget, items: list[str]):
         super().__init__(parent)
         self.items = items
-        # self.addItems(self.items)
-
         self.setEditable(True)
-
         model = QStringListModel(self.items)
         self.setModel(model)
         self.completer:QCompleter = QCompleter(self.model(), self)
@@ -121,7 +118,7 @@ class ButtonDelegate(QStyledItemDelegate):
 
         self.button.style().drawControl(QtWidgets.QStyle.CE_PushButton, 
             option, painter, self.button)
-        btn_icon = self.button.icon().pixmap(32, 32)
+        btn_icon = self.button.icon().pixmap(24, 24)
         
         target_rect:QRect = copy.deepcopy( option.rect )
         target_rect.setX(option.rect.x() + int(option.rect.width() / 2) - int(btn_icon.rect().width() / 2))
@@ -365,19 +362,29 @@ class ComboBoxDelegate(EmitterItemDelegade):
         return editor
 
     def commitAndCloseEditor(self):
+        logging.debug("ComboBoxDelegate->commitAndCloseEditor")
         editor = self.sender()
         self.commitData.emit(editor)
         self.closeEditor.emit(editor, QStyledItemDelegate.NoHint)
 
     def setEditorData(self, editor: QComboBox, index):
         """Envia dados para o widget quando aberto"""
-        logging.debug("Set data in combobox")
-        
-        editor.setEditText(index.data(Qt.DisplayRole))
+        logging.debug("ComboBoxDelegate->setEditorData")
+        logging.debug("-- BLOCK SIGNALS -- ")
+        self.blockSignals(True)
+        editor.blockSignals(True)
+
+        editor.lineEdit().setText(index.data(Qt.DisplayRole))
         editor.lineEdit().selectAll()
+        editor.showPopup()
+
+        logging.debug("-- UNBLOCK SIGNALS -- ")
+        editor.blockSignals(False)
+        self.blockSignals(False)
 
     def setModelData(self, editor: ComboBoxWithSearch, model, index: QModelIndex):
         """Na finalização envia os dados de volta para o modelo"""
+        logging.debug("ComboBoxDelegate->setModelData")
         tipo_id_combo_index = editor.findText(editor.lineEdit().text())
         if tipo_id_combo_index is None or tipo_id_combo_index == -1 or tipo_id_combo_index >= len( editor.items ):
             logging.debug(f"tipo_id vazio! index: { tipo_id_combo_index }")
@@ -393,7 +400,6 @@ class ComboBoxDelegate(EmitterItemDelegade):
         )
         # model.setData(index, tipo_id, Qt.UserRole)
         # model.setData(index, self.key_values.get(tipo_id), Qt.DisplayRole)
-        logging.debug("setModelData")
         self.changed.emit(index, editor)
 
     def updateEditorGeometry(self, editor, option, index):

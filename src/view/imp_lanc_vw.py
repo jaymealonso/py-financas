@@ -8,7 +8,6 @@ from PyQt5.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
-    QToolBar,
     QVBoxLayout,
     QWidget,
 )
@@ -16,6 +15,7 @@ from PyQt5.QtWidgets import (
 from lib.Genericos.log import logging
 from lib.ImportacaoLanc.FirstStep import AbrirExcelErro, ConfigImportacaoBlock, FirstStepFrame, NewLancamento, NewLancamentoStatus
 from lib.ImportacaoLanc.SecondStep import SecondStepFrame
+from lib import CustomToolbar
 from model.Conta import Conta
 from model.Lancamento import Lancamentos as ORMLancamentos
 from util.my_dialog import MyDialog
@@ -44,7 +44,7 @@ class ImportarLancamentosView(MyDialog):
         self.second_table_frame.passo_anterior.connect(self.on_anterior)
         self.second_table_frame.import_linhas.connect(self.on_importar_clicked)
 
-        self.toolbar = QToolBar()
+        self.toolbar = CustomToolbar()
         self.file_path = QLineEdit()
 
         self.setWindowModality(Qt.ApplicationModal)

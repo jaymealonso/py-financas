@@ -13,9 +13,9 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QWidget,
     QVBoxLayout,
-    QToolBar,
     QApplication, QTableView, QMessageBox,
 )
+from lib import CustomToolbar
 from model.Categoria import Categorias
 
 
@@ -42,26 +42,26 @@ class CategoriasView(QWidget):
 
         layout = QVBoxLayout()
 
-        self.toolbar: QToolBar = None
+        self.toolbar: CustomToolbar = self.get_toolbar()
         self.table: CategoriaTableView = None
         self.model_categ = Categorias()
 
-        layout.addWidget(self.get_toolbar())
+        layout.addWidget(self.toolbar)
         layout.addWidget(self.get_table())
 
         self.setLayout(layout)
 
         self.load_table_data()
 
-    def get_toolbar(self):
-        self.toolbar = QToolBar()
-        add_act = self.toolbar.addAction(icons.add(), "Adicionar Categoria")
+    def get_toolbar(self) -> CustomToolbar:
+        toolbar = CustomToolbar()
+        add_act = toolbar.addAction(icons.add(), "Adicionar Categoria")
         add_act.triggered.connect(self.on_add_categoria)
-        self.toolbar.addSeparator()
-        refresh_act = self.toolbar.addAction(icons.atualizar(), "Atualizar")
+        toolbar.addSeparator()
+        refresh_act = toolbar.addAction(icons.atualizar(), "Atualizar")
         refresh_act.triggered.connect(self.load_table_data)
 
-        return self.toolbar
+        return toolbar
 
     def get_table(self) -> QTableView:
         self.table = CategoriaTableView(self)
