@@ -2,7 +2,7 @@ import csv
 from enum import IntEnum, StrEnum, auto
 import io
 
-from PyQt5.QtCore import QEvent, QItemSelectionModel, QModelIndex, Qt, pyqtSignal
+from PyQt5.QtCore import QEvent, QItemSelectionModel, QModelIndex, Qt, pyqtSignal, QSize
 from PyQt5.QtGui import QCursor, QKeySequence, QStandardItem, QStandardItemModel
 from PyQt5.QtWidgets import (
     QAction,
@@ -16,7 +16,6 @@ from PyQt5.QtWidgets import (
     QPushButton,
     QSizePolicy,
     QTableView,
-    QToolBar,
     QVBoxLayout,
     QWidget,
 )
@@ -25,6 +24,7 @@ from unidecode import unidecode
 import util.curr_formatter as curr
 from lib.Genericos.log import logging
 from lib.Lancamentos.SortFilterProxy import LancamentoSortFilterProxyModel
+from lib import CustomToolbar
 from model.Anexos import Anexos
 from model.Categoria import Categorias
 from model.Conta import Conta
@@ -161,12 +161,11 @@ class LancamentosView(MyDialog):
             logging.error(str(e))
             self.resize(1600, 900)
 
-    def get_toolbar(self) -> QToolBar:
+    def get_toolbar(self) -> CustomToolbar:
         """
         Retorna toolbar
         """
-        toolbar: QToolBar = QToolBar()
-        toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        toolbar: CustomToolbar = CustomToolbar()
 
         import_act = toolbar.addAction(icons.import_file(), TEXTS.IMPORTAR_LANCAMENTOS)
         import_act.triggered.connect(self.on_import_lancam)

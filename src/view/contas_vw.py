@@ -17,7 +17,6 @@ from PyQt5.QtGui import (
 from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
-    QToolBar,
     QComboBox,
     QLineEdit,
     QPushButton,
@@ -26,6 +25,7 @@ from PyQt5.QtWidgets import (
     QApplication,
     QTableView,
 )
+from lib import CustomToolbar
 from model.Conta import ContasTipo, Contas, Conta
 from util.custom_table_delegates import ButtonDelegate, GenericInputDelegate, ComboBoxDelegate, IDLabelDelegate, CurrencyLabelDelegate
 from model.db.db_orm import Lancamentos as ORMLancamentos
@@ -77,7 +77,7 @@ class ContasView(QWidget):
 
         components = ContasViewComponents(self)
         self.main_window = parent
-        self.toolbar = QToolBar()
+        self.toolbar = CustomToolbar()
         self.table = QTableView()
         self.model_tps_conta: ContasTipo = ContasTipo()
         self.model_contas = Contas()

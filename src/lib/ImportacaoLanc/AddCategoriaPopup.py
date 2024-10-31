@@ -1,8 +1,9 @@
 #!
 
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import QCheckBox, QDialog, QGridLayout, QHBoxLayout, QMessageBox, QPushButton, QScrollArea, QSizePolicy, QToolBar, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QCheckBox, QDialog, QGridLayout, QHBoxLayout, QMessageBox, QPushButton, QScrollArea, QSizePolicy, QVBoxLayout, QWidget
 import view.icons.icons as icons
+from lib import CustomToolbar
 from model.Categoria import Categorias
 from model.db.db_orm import Categorias as ORMCategorias
 
@@ -30,8 +31,8 @@ class AddCategoriasPopup(QDialog):
 
         self.setLayout(layout)
 
-    def get_toolbar(self) -> QToolBar:
-        toolbar = QToolBar()
+    def get_toolbar(self) -> CustomToolbar:
+        toolbar = CustomToolbar()
         toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
 
         btn_sele_all = toolbar.addAction(icons.select_all(), "Marca todos")

@@ -7,6 +7,7 @@ import locale
 from PyQt5.QtGui import QCursor, QIcon
 import openpyxl
 from lib.Genericos.log import logging
+from lib import CustomToolbar
 from util.curr_formatter import str_curr_to_int
 from util.settings import JanelaImportLancamentosSettings
 import view.icons.icons as icons
@@ -15,7 +16,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import ( QApplication, QComboBox, QHBoxLayout, QLabel, QLineEdit, QMessageBox, QProgressBar, 
-    QTableWidget, QTableWidgetItem, QToolBar, QVBoxLayout, QWidget )
+    QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget )
 from model.Categoria import Categorias as ORMCategorias
 
 from lib.ImportacaoLanc.TableLine import ImportarLancamentosTableLine
@@ -83,11 +84,11 @@ class FirstStepFrame(QWidget):
         # local vars
         self.settings = settings
         self.table = TableWidgetFirst(self)
-        self.toolbar = QToolBar()
+        self.toolbar = self.get_toolbar()
 
         # layout
         layout = QVBoxLayout()
-        layout.addWidget(self.get_toolbar())
+        layout.addWidget(self.toolbar)
         layout.addWidget(self.table)
 
         self.setLayout(layout)
@@ -95,16 +96,17 @@ class FirstStepFrame(QWidget):
         # model
         self.model_categoria = ORMCategorias()
 
-    def get_toolbar(self) -> QToolBar:
-        self.toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+    def get_toolbar(self) -> CustomToolbar:
+        toolbar = CustomToolbar()
+        toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
 
-        btn_next = self.toolbar.addAction(icons.results_next(), "Próximo passo")
+        btn_next = toolbar.addAction(icons.results_next(), "Próximo passo")
         btn_next.triggered.connect( self.on_proximo_passo )
 
-        btn_remove_line = self.toolbar.addAction(icons.delete(), "Remover linha(s)")
+        btn_remove_line = toolbar.addAction(icons.delete(), "Remover linha(s)")
         btn_remove_line.triggered.connect(self.on_remove_lines)
 
-        return self.toolbar
+        return toolbar
 
     def on_remove_lines(self) -> None:
         unique_rows = list(

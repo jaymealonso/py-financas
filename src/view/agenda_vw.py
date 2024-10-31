@@ -3,11 +3,11 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
-    QToolBar,
     QTableWidget,
     QLineEdit,
     QPushButton,
 )
+from lib import CustomToolbar
 from util.toaster import QToaster
 
 
@@ -15,7 +15,7 @@ class AgendaView(QWidget):
     def __init__(self):
         super(AgendaView, self).__init__()
 
-        self.toolbar: QToolBar = self.get_toolbar()
+        self.toolbar = self.get_toolbar()
         self.table: QTableWidget = self.get_table()
 
         layout = QVBoxLayout()
@@ -23,11 +23,11 @@ class AgendaView(QWidget):
         layout.addWidget(self.table)
         self.setLayout(layout)
 
-    def get_toolbar(self) -> QToolBar:
-        self.toolbar = QToolBar()
-        add_act = self.toolbar.addAction(icons.add(), "Adicionar Compromisso")
+    def get_toolbar(self) -> CustomToolbar:
+        toolbar = CustomToolbar()
+        add_act = toolbar.addAction(icons.add(), "Adicionar Compromisso")
         add_act.triggered.connect(lambda: self.on_add_compromisso())
-        return self.toolbar
+        return toolbar
 
     def on_add_conta(self, show_message=True):
         new_index = self.table.rowCount()

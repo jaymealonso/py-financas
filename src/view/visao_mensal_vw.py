@@ -5,10 +5,10 @@ from PyQt5.QtWidgets import (
     QAction,
     QWidget,
     QVBoxLayout,
-    QToolBar,
     QSizePolicy,
     QSplitter
 )
+from lib import CustomToolbar
 from lib.VisaoMensal.Table import VisaoGeralTableView
 
 from util.custom_table_delegates import CurrencyLabelDelegate, IDLabelDelegate
@@ -34,8 +34,8 @@ class TEXTS(StrEnum):
 
 class VisaoGeralView(MyDialog):
     def __init__(self, parent: QWidget, conta_dc: Conta):
-        self.toolbar: QToolBar = None
-        self.toolbar_vis_geral: QToolBar = None
+        self.toolbar: CustomToolbar = None
+        self.toolbar_vis_geral: CustomToolbar = None
         self.table: VisaoGeralTableView = None
         self.line = VisaoGeralViewLine()
         self.conta_dc = conta_dc
@@ -85,9 +85,9 @@ class VisaoGeralView(MyDialog):
         self.settings.dimensoes = self.saveGeometry()
         self.settings.divisoes = self.splitter.sizes()
 
-    def get_toolbar(self) -> QToolBar:
+    def get_toolbar(self) -> CustomToolbar:
         if self.toolbar is None:
-            self.toolbar = QToolBar()
+            self.toolbar = CustomToolbar()
 
             self.toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
 
@@ -133,9 +133,9 @@ class VisaoGeralView(MyDialog):
 
         return panel
     
-    def get_toolbar_vis_geral(self) -> QToolBar:
+    def get_toolbar_vis_geral(self) -> CustomToolbar:
         if self.toolbar_vis_geral is None:
-            self.toolbar_vis_geral = QToolBar()
+            self.toolbar_vis_geral = CustomToolbar()
 
             self.toolbar_vis_geral.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
 

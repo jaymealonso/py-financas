@@ -5,10 +5,10 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget,
     QTabWidget,
-    QToolBar,
     QApplication,
     QSizePolicy,
 )
+from lib import CustomToolbar
 from util.toaster import QToaster
 from view.configuracao_vw import ConfiguracaoView
 from view.contas_vw import ContasView
@@ -66,24 +66,12 @@ class MainWindow(QMainWindow):
 
         return self.tabbar
 
-    def fill_toolbar(self, toolbar: QToolBar):
+    def fill_toolbar(self, toolbar: CustomToolbar):
         # oculta menu popup que deixa ocultar a toolbar
         toolbar.toggleViewAction().setVisible(False)
         toolbar.setMovable(False)
         toolbar.setIconSize(QSize(64, 64))
         toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-
-        # save_act = toolbar.addAction(icons.load(), "Carregar")
-        # save_act.triggered.connect(self.on_load)
-        #
-        # load_act = toolbar.addAction(icons.save(), "Salvar")
-        # load_act.triggered.connect(self.on_save)
-        #
-        # undo_act = toolbar.addAction(icons.undo(), "Desfazer")
-        # undo_act.triggered.connect(self.on_undo)
-        #
-        # redo_act = toolbar.addAction(icons.redo(), "Refazer")
-        # redo_act.triggered.connect(self.on_redo)
 
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
