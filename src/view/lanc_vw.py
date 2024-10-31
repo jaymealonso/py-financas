@@ -65,6 +65,7 @@ class TEXTS(StrEnum):
     PROXIMO = 'Proximo'
     ANTERIOR = 'Anterior'
     FILTRAR = 'Filtrar'
+    FILTRAR_VALOR = 'Filtrar usando "{0}"'
     REMOVE_LANCAMENTO = "Remove Lancamento?"
     REMOVE_LANCAMENTOS = "Remove Lancamentos?"
     DESEJA_REMOVER = "Deseja remover o lançamento {0} ?"
@@ -285,10 +286,13 @@ class LancamentosView(MyDialog):
     def on_close_search_dialog(self):
         self.search_dialog = None
 
-    def open_filter(self):
+    def open_filter(self, valor:str=None):
         if not self.filter_dialog:
             self.filter_dialog = FilterInputView(self)
             self.layout().insertWidget(1, self.filter_dialog)
+        if valor:
+            self.filter_dialog.filter_field.setText(valor)
+            self.filter_dialog.filter_button.click()
         self.filter_dialog.show()
         self.filter_dialog.on_close_signal.connect(self.on_close_filter_dialog)
 
@@ -306,7 +310,7 @@ class LancamentosView(MyDialog):
             return
 
         menu = QMenu(self)
-        menu.addAction( QAction(icons.tab_search(), TEXTS.PROCURAR, menu, 
+        menu.addAction( QAction(icons.tab_search(), TEXTS.PROCURAR, menu,  
             shortcut=QKeySequence(Qt.CTRL + Qt.Key_F), 
             triggered=lambda: self.open_search(column_id)))
         menu.addSeparator()
@@ -320,6 +324,11 @@ class LancamentosView(MyDialog):
         menu.addAction( QAction(icons.tab_search(), TEXTS.FILTRAR, menu,
             shortcut=QKeySequence(Qt.CTRL + Qt.Key_L), 
             triggered=lambda: self.open_filter()))
+        valor_celula = self.table.selectedIndexes()[0].data(Qt.DisplayRole)
+        menu.addAction( QAction(icons.tab_search(), TEXTS.FILTRAR_VALOR.format(valor_celula), menu,
+            shortcut=QKeySequence(Qt.CTRL + Qt.Key_Semicolon), 
+            triggered=lambda: self.open_filter(valor_celula)))
+
         menu.popup(hheader.mapToGlobal(point))
 
     def table_cell_changed(self, index: QModelIndex):
@@ -334,6 +343,8 @@ class LancamentosView(MyDialog):
         value = model.data(model.mapFromSource(index), Qt.UserRole)
 
         column_data = self.COLUMNS.get(col)
+        if "sql_colname" not in column_data:
+            return
         sql_colname = column_data["sql_colname"]
 
         logging.debug(f"Modificando lancamento numero:{lancamento_id}")
@@ -352,7 +363,8 @@ class LancamentosView(MyDialog):
 
         # recalcula total
         # self.load_model_only(sql_colname == 'data')
-        self.load_model_only()
+        if sql_colname != 'categoria_id':
+            self.load_model_only()
         if sql_colname == 'data':
             item_new_indexes = model.match(model.index(0, self.Columns.ID), Qt.UserRole, lancamento_id, 1)
             if len(item_new_indexes) > 0:
@@ -389,7 +401,8 @@ class LancamentosView(MyDialog):
         self.model_lancamentos.delete(str(lancamento_id))
 
         model.removeRow(index.row())
-        self.load_model_only()
+        self.recalculate_saldo_total()
+        # self.load_model_only()
 
         logging.debug("Feito !!!")
         self.on_delete.emit(lancamento_id)
@@ -447,6 +460,26 @@ class LancamentosView(MyDialog):
         model:QStandardItemModel = self.table.model().sourceModel()
         export_excel = ExportExcel(self, model, self.conta_dc.descricao)
         export_excel.export(TEXTS.EXPORTAR_PREFIXO)
+
+    def recalculate_saldo_total(self):
+        self.model_lancamentos.load()
+        filter_model:LancamentoSortFilterProxyModel = self.table.model()
+        model:QStandardItemModel = filter_model.sourceModel()
+
+        saldo = 0
+        for (new_index, row) in enumerate(self.model_lancamentos.items):
+            saldo += row.valor
+            model.setItemData(
+                model.index(new_index, self.Columns.SALDO),
+                {
+                    Qt.DisplayRole: curr.str_curr_to_locale(saldo or 0),
+                    Qt.UserRole: saldo,
+                    Qt.AccessibleTextRole: saldo,
+                },
+            )
+        # Define valor do TOTAL que aparece no rodapé da janela
+        self.total_label.set_int_value(self.model_lancamentos.total)
+
 
     def load_model_only(self) -> None:
         self.model_lancamentos.load()
@@ -613,6 +646,11 @@ class LancamentosView(MyDialog):
         # Evento Ctrl + L para chamar a filtro na tabela
         if e.key() == Qt.Key_L and (e.modifiers() & Qt.ControlModifier):
             self.open_filter()
+
+        # Evento Ctrl + ; para chamar a filtro na tabela com valor
+        if e.key() == Qt.Key_Semicolon and (e.modifiers() & Qt.ControlModifier):
+            valor_celula = self.table.selectedIndexes()[0].data(Qt.DisplayRole)
+            self.open_filter(valor_celula)
 
         # Evento Ctrl + F para chamar a busca na coluna
         if e.key() == Qt.Key_F and (e.modifiers() & Qt.ControlModifier):
