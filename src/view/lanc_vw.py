@@ -78,6 +78,24 @@ class TEXTS(StrEnum):
     EXPORTAR_PREFIXO = "Lançamentos"
 
 
+# class LancamentosTableView(QTableView):
+#     def __init__(self) -> None:
+#         super(LancamentosTableView, self).__init__()
+#         self.last_edit_trigger: None = None
+
+#     def edit(self, index, trigger, event):
+#         result = super(QTableView, self).edit(index, trigger, event)
+    
+#         if trigger == QTableView.EditTrigger.DoubleClicked or \
+#            trigger == QTableView.EditTrigger.AnyKeyPressed:
+#             self.last_edit_trigger = trigger
+#             logging.debug(f"edit_triggered: {trigger}, {event}")
+#         else: 
+#             logging.debug(f"other edit_triggered event: {trigger}, event: {event} pos: {index.row()}/{index.column()}")
+
+#         return result
+
+
 class LancamentosView(MyDialog):
     # lancamento: ORMLancamentos, field:str
     changed = pyqtSignal(ORMLancamentos, str)

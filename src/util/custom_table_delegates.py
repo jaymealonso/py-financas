@@ -353,6 +353,7 @@ class ComboBoxDelegate(EmitterItemDelegade):
 
         self.parent_table = parent_table
         self.key_values = values
+        self.last_edit_trigger = None
 
     def createEditor(self, parent, option, index):
         """Cria editor widget e retorna ele"""
@@ -370,17 +371,26 @@ class ComboBoxDelegate(EmitterItemDelegade):
     def setEditorData(self, editor: QComboBox, index):
         """Envia dados para o widget quando aberto"""
         logging.debug("ComboBoxDelegate->setEditorData")
-        logging.debug("-- BLOCK SIGNALS -- ")
-        self.blockSignals(True)
-        editor.blockSignals(True)
+        # logging.debug("-- BLOCK SIGNALS -- ")
+        # self.blockSignals(True)
+        # editor.blockSignals(True)
 
-        editor.lineEdit().setText(index.data(Qt.DisplayRole))
-        editor.lineEdit().selectAll()
-        editor.showPopup()
+        # editor.lineEdit().setText(index.data(Qt.DisplayRole))
+        found_index = editor.findText(index.data(Qt.DisplayRole))
+        if found_index:
+            editor.setCurrentIndex(found_index)
+        if self.last_edit_trigger == QTableView.EditTrigger.DoubleClicked:
+            logging.debug("show popup!")
+            editor.showPopup()
+        else: 
+            editor.lineEdit().selectAll()
+            logging.debug("does not show popup!")
 
-        logging.debug("-- UNBLOCK SIGNALS -- ")
-        editor.blockSignals(False)
-        self.blockSignals(False)
+#        editor.setFocus()
+
+        # logging.debug("-- UNBLOCK SIGNALS -- ")
+        # editor.blockSignals(False)
+        # self.blockSignals(False)
 
     def setModelData(self, editor: ComboBoxWithSearch, model, index: QModelIndex):
         """Na finalização envia os dados de volta para o modelo"""
@@ -404,6 +414,19 @@ class ComboBoxDelegate(EmitterItemDelegade):
 
     def updateEditorGeometry(self, editor, option, index):
         editor.setGeometry(option.rect)
+
+    def editorEvent(self, event, model, option, index):
+        result = super(ComboBoxDelegate, self).editorEvent(event, model, option, index)
+        if event.type() == QEvent.MouseButtonDblClick:
+            logging.debug("editorevent db click")
+            self.last_edit_trigger = QTableView.EditTrigger.DoubleClicked
+        elif event.type() == QEvent.KeyPress:
+            logging.debug("editorevent keypress")
+            self.last_edit_trigger = QTableView.EditTrigger.AnyKeyPressed
+        else:
+            self.last_edit_trigger = None
+            logging.debug("other editorevent")
+        return result
 
 
 class DateEditDelegate(EmitterItemDelegade):
