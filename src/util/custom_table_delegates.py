@@ -9,7 +9,7 @@ import datetime
 import locale
 import util.curr_formatter as curr
 from PyQt5.QtCore import QEvent, QRect, QSize, QTimer, Qt, QModelIndex, pyqtSignal, QStringListModel
-from PyQt5.QtGui import QBrush, QColor, QFont, QCursor
+from PyQt5.QtGui import QColor, QFont, QCursor
 from PyQt5.QtWidgets import (
     QStyleOptionButton,
     QWidget,
@@ -371,26 +371,20 @@ class ComboBoxDelegate(EmitterItemDelegade):
     def setEditorData(self, editor: QComboBox, index):
         """Envia dados para o widget quando aberto"""
         logging.debug("ComboBoxDelegate->setEditorData")
-        # logging.debug("-- BLOCK SIGNALS -- ")
-        # self.blockSignals(True)
-        # editor.blockSignals(True)
 
-        # editor.lineEdit().setText(index.data(Qt.DisplayRole))
         found_index = editor.findText(index.data(Qt.DisplayRole))
         if found_index:
             editor.setCurrentIndex(found_index)
-        if self.last_edit_trigger == QTableView.EditTrigger.DoubleClicked:
-            logging.debug("show popup!")
-            editor.showPopup()
-        else: 
-            editor.lineEdit().selectAll()
-            logging.debug("does not show popup!")
 
-#        editor.setFocus()
+        # if self.last_edit_trigger == QTableView.EditTrigger.DoubleClicked or \
+        #    self.last_edit_trigger == QTableView.EditTrigger.AnyKeyPressed:
+        #     logging.debug("show popup!")
+        #     editor.showPopup()
+        # else: 
+        #     editor.lineEdit().selectAll()
+        #     logging.debug("does not show popup!")
+        editor.lineEdit().selectAll()
 
-        # logging.debug("-- UNBLOCK SIGNALS -- ")
-        # editor.blockSignals(False)
-        # self.blockSignals(False)
 
     def setModelData(self, editor: ComboBoxWithSearch, model, index: QModelIndex):
         """Na finalização envia os dados de volta para o modelo"""
@@ -408,8 +402,6 @@ class ComboBoxDelegate(EmitterItemDelegade):
                 Qt.AccessibleTextRole: unidecode(self.key_values.get(tipo_id))
             },
         )
-        # model.setData(index, tipo_id, Qt.UserRole)
-        # model.setData(index, self.key_values.get(tipo_id), Qt.DisplayRole)
         self.changed.emit(index, editor)
 
     def updateEditorGeometry(self, editor, option, index):
@@ -418,14 +410,14 @@ class ComboBoxDelegate(EmitterItemDelegade):
     def editorEvent(self, event, model, option, index):
         result = super(ComboBoxDelegate, self).editorEvent(event, model, option, index)
         if event.type() == QEvent.MouseButtonDblClick:
-            logging.debug("editorevent db click")
+            logging.debug("Editorevent db click")
             self.last_edit_trigger = QTableView.EditTrigger.DoubleClicked
         elif event.type() == QEvent.KeyPress:
-            logging.debug("editorevent keypress")
+            logging.debug("Editorevent keypress")
             self.last_edit_trigger = QTableView.EditTrigger.AnyKeyPressed
         else:
             self.last_edit_trigger = None
-            logging.debug("other editorevent")
+            logging.debug("other Editorevent")
         return result
 
 
