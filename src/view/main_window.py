@@ -45,7 +45,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.container)
 
     def closeEvent(self, event) -> None:
-        print("Entrou evento close")
+        logging.debug("Entrou evento close")
         self.app.closeAllWindows()
 
         self.settings.dimensoes = self.saveGeometry()

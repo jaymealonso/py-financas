@@ -1,3 +1,4 @@
+import logging
 from typing import List
 from sqlalchemy import func, insert, select, update
 from sqlalchemy.orm import Session
@@ -37,7 +38,7 @@ class Categorias:
 
             self.__categorias = self.__categorias + result
 
-        print(f">>> Carregadas {len(self.__categorias)} categorias.")
+        logging.debug(f">>> Carregadas {len(self.__categorias)} categorias.")
 
     def add_new_empty(self) -> int:
         return self.add_new(ORMCategorias(id=None, nm_categoria="Nova Categoria"))

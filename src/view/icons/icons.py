@@ -4,8 +4,6 @@ from PyQt5.QtCore import QSize
 
 path = os.path.dirname(os.path.abspath(__file__))
 
-print(f"Diretório de icones: {path}")
-
 
 def app_icon() -> QIcon:
     _app_icon = QIcon()

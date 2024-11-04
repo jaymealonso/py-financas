@@ -194,8 +194,6 @@ class ButtonTimer:
 
         intersect = \
             rect_intersect_cursor(self.brect, self.parent_delegate.parent_table)
-        # print(f"counter: {self.run_counter}, ", end="")
-        # print(f"btn(x:{x0}, {pos.x()}, {x1}; y:{y0}, {pos.y()}, {y1}) is is?: {intersect}")
         
         if self.run_counter > 20 or not intersect:
             self.parent_delegate.pressed_index = Null

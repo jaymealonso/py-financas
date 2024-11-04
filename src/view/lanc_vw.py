@@ -5,6 +5,7 @@ import io
 from PyQt5.QtCore import QAbstractItemModel, QEvent, QItemSelectionModel, QModelIndex, Qt, pyqtSignal
 from PyQt5.QtGui import QCursor, QKeySequence, QStandardItem, QStandardItemModel
 from PyQt5.QtWidgets import (
+    QAbstractItemView,
     QAction,
     QApplication,
     QCheckBox,
@@ -200,6 +201,11 @@ class LancamentosView(MyDialog):
         Retorna tabela com o seu layout
         """
         self.table = QTableView()
+        self.table.setDragDropMode(QAbstractItemView.InternalMove)
+        self.table.setDragEnabled(True)
+        self.table.viewport().setAcceptDrops(True)
+        self.table.setDropIndicatorShown(True)
+        self.table.setDragDropOverwriteMode(False)
 
         model = QStandardItemModel(0, len(self.COLUMNS))
         model.setHorizontalHeaderLabels([col["title"] for col in self.COLUMNS.values()])
@@ -219,11 +225,16 @@ class LancamentosView(MyDialog):
         return self.table
 
     def model_item_changed(self, item:QStandardItem):
-        logging.debug(f"Item changed row: {item.row()} col: {item.column()}, Userrole: {item.data(Qt.UserRole)}")
-
         index = item.index()
         row = index.row()
         col = index.column()
+
+        if index.column() not in [LancamentosView.Columns.NR_REFERENCIA, LancamentosView.Columns.DESCRICAO, LancamentosView.Columns.DESCRICAO_USER, 
+                                  LancamentosView.Columns.DATA, LancamentosView.Columns.VALOR, LancamentosView.Columns.CATEGORIA_ID]:
+            logging.debug(f"Não é possivel modificar coluna {index.column()}. Alteração cancelada.")
+            return
+
+        logging.debug(f"Item changed row: {item.row()} col: {item.column()}, Userrole: {item.data(Qt.UserRole)}")
 
         logging.debug(f"Cell changed row/col: {row}/{col}")
 
@@ -235,6 +246,7 @@ class LancamentosView(MyDialog):
         column_data = self.COLUMNS.get(col)
         if "sql_colname" not in column_data:
             return
+
         sql_colname = column_data["sql_colname"]
 
         logging.debug(f"Modificando lancamento numero:{lancamento_id}")
@@ -746,7 +758,8 @@ class CopyAndPasteInTable:
             for j, cell in enumerate(line):
                 index_to_change = model.index(rows[0]+i,columns[0]+j)
 
-                if index_to_change.column() not in [LancamentosView.Columns.CATEGORIA_ID, LancamentosView.Columns.DESCRICAO, LancamentosView.Columns.DESCRICAO_USER, LancamentosView.Columns.DATA, LancamentosView.Columns.VALOR]:
+                if index_to_change.column() not in [LancamentosView.Columns.NR_REFERENCIA, LancamentosView.Columns.DESCRICAO, LancamentosView.Columns.DESCRICAO_USER, 
+                                                    LancamentosView.Columns.DATA, LancamentosView.Columns.VALOR, LancamentosView.Columns.CATEGORIA_ID]:
                     QMessageBox.critical(self.parent_view, TEXTS.ERRO, 'Coluna não modificavel.')
                     return False
 
