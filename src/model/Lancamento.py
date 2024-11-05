@@ -1,4 +1,5 @@
 from datetime import date
+import datetime
 import moment
 from typing import List
 from sqlalchemy import insert, update, delete, func, select
@@ -10,7 +11,7 @@ from model.db.db_orm import (
     Anexos as ORMAnexos,
 )
 from model.Conta import Conta
-
+from sqlalchemy.sql import text
 
 class Lancamentos:
     """
@@ -51,7 +52,7 @@ class Lancamentos:
             self.__items = (
                 session.query(ORMLancamentos)
                 .filter(ORMLancamentos.conta_id == self.conta.id)
-                .order_by(ORMLancamentos.data)
+                .order_by(ORMLancamentos.data, ORMLancamentos.seq_ordem_linha)
                 # se não forçar o carregamento aqui carrega quando referencia o "Categorias"
                 .options(joinedload(ORMLancamentos.Categorias))
                 .all()
@@ -106,24 +107,35 @@ class Lancamentos:
 
             return new_lancamento.id
 
-    def _get_next_seq(self, data: date, conta_id: int) -> int:
+    def _get_next_seq(self, data: datetime.date, conta_id: int) -> int:
         """Busca o próximo numero de sequencial para o mesma data + conta_id"""
-        session = Session(self.__db.engine)
 
-        # remove o time do date pra fazer a comparação
+        sql = text('''
+            select coalesce(max(seq_ordem_linha), 0) + 1000 as next_no
+			  from lancamentos 
+			  where data = :data
+			    and conta_id = :conta_id
+         ''')
         data: str = f"{data.isoformat()} 00:00:00.000000"
-        stmt_max_seq_ordem_linha = (
-            session.query(func.max(ORMLancamentos.id))
-            # .filter(
-            #     ORMLancamentos.conta_id == conta_id,
-            #     # ORMLancamentos.data == data,
-            # )
-            .first()
-        )
-        seq_ordem_linha: int = 1
-        if stmt_max_seq_ordem_linha[0]:
-            seq_ordem_linha = int(stmt_max_seq_ordem_linha[0]) + 1
-        return seq_ordem_linha
+        with self.__db.engine.connect() as conn:
+            value = conn.execute(sql, {"data": data, "conta_id": conta_id}).first()
+
+        return value[0]
+
+        # # remove o time do date pra fazer a comparação
+        # data: str = f"{data.isoformat()} 00:00:00.000000"
+        # stmt_max_seq_ordem_linha = (
+        #     session.query(func.max(ORMLancamentos.id))
+        #     # .filter(
+        #     #     ORMLancamentos.conta_id == conta_id,
+        #     #     # ORMLancamentos.data == data,
+        #     # )
+        #     .first()
+        # )
+        # seq_ordem_linha: int = 1
+        # if stmt_max_seq_ordem_linha[0]:
+        #     seq_ordem_linha = int(stmt_max_seq_ordem_linha[0]) + 1
+        # return seq_ordem_linha
 
     def delete(self, lancamento_id: str):
         """
@@ -166,3 +178,42 @@ class Lancamentos:
             conn.execute(stmt_update)
 
         trans.commit()
+
+    def get_middle_nr_seq(self, lancamento_id: int) -> int:
+
+        sql = text('''
+            select l.* from lancamentos as l
+			inner join (
+                select data, conta_id from lancamentos where id = :lancamento_id
+            )  as x on x.data = l.data and x.conta_id = l.conta_id
+			order by l.data, l.seq_ordem_linha 
+         ''')
+        with self.__db.engine.connect() as conn:
+            values = conn.execute(sql, {"lancamento_id": lancamento_id}).all()
+
+        index = next((index for index, value in enumerate(values) if value.id == lancamento_id), 0)
+
+        current = values[index]
+        prev_rec = None
+        if index > 0:
+            prev_rec = values[index - 1]
+        if not prev_rec:
+            seq_middle = current.seq_ordem_linha / 2
+        else:
+            seq_middle = prev_rec.seq_ordem_linha + ( ( current.seq_ordem_linha - prev_rec.seq_ordem_linha ) / 2 )
+
+        return seq_middle
+    
+    def get_next_nr_seq(self, data: datetime.date) -> int:
+
+        sql = text('''
+            select max( seq_ordem_linha ) from lancamentos 
+              where data = :data
+        ''')
+        with self.__db.engine.connect() as conn:
+            value = conn.execute(sql, {"data": data}).first()
+            if not value:
+                value = 0
+            value += 1000
+
+        return value

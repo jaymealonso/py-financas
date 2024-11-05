@@ -5,6 +5,7 @@ from datetime import datetime
 from PyQt5.QtCore import QMimeData, QModelIndex, QObject, QRegExp, Qt, QSortFilterProxyModel
 
 import moment.utils
+import view.lanc_vw
 
 from lib.Genericos.MySortFilterProxyModel import MySortFilterProxyModel
 
@@ -116,6 +117,19 @@ class LancamentoSortFilterProxyModel(MySortFilterProxyModel):
     def dropMimeData(self, data: QMimeData | None, action: Qt.DropAction, row: int, column: int, parent: QModelIndex) -> bool:
         logging.debug(f"""LancamentoSortFilterProxyModel->dropMimeData 
                           row: {row} column: {column}, action: {action}, modelindex: {parent.row()}/{parent.column()}""")
+        if parent.row() == -1 and parent.column() == -1 and action == Qt.DropAction.MoveAction:
+            lanc_view:view.lanc_vw.LancamentosView = self.parent()
+            model = lanc_view.table.model()
+
+            index = model.index(row, 0)
+            lancamento_id = index.data(Qt.UserRole)
+            seq_linha = model.index(row, 1).data(Qt.UserRole)
+            next_lancamento_id = index.sibling(row +1, 0).data(Qt.UserRole)
+            logging.debug(f"lancamento_id: {lancamento_id}, next:{next_lancamento_id}, seq: {seq_linha}")
+
+            middle_nr = lanc_view.model_lancamentos.get_middle_nr_seq(lancamento_id)
+            logging.debug(f"middle_nr: {middle_nr}")
+
         # result = super().dropMimeData(data, action, row, column, parent)
         return False # result
 

@@ -3,7 +3,7 @@ from enum import IntEnum, StrEnum, auto
 import io
 
 from PyQt5.QtCore import QAbstractItemModel, QEvent, QItemSelectionModel, QModelIndex, Qt, pyqtSignal
-from PyQt5.QtGui import QCursor, QDropEvent, QKeySequence, QStandardItem, QStandardItemModel
+from PyQt5.QtGui import QCursor, QKeySequence, QStandardItem, QStandardItemModel
 from PyQt5.QtWidgets import (
     QAbstractItemView,
     QAction,

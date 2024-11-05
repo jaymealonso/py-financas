@@ -3,7 +3,7 @@
 .coverage
 .idea/*
 *__pycache__*
-*database.db*
+*database*.db*
 dist
 output
 build
