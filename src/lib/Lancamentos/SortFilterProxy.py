@@ -1,7 +1,9 @@
+import logging
 from PyQt5.QtGui import QStandardItemModel
 import moment
 from datetime import datetime
-from PyQt5.QtCore import QModelIndex, QObject, QRegExp, Qt
+from PyQt5.QtCore import QMimeData, QModelIndex, QObject, QRegExp, Qt, QSortFilterProxyModel
+
 import moment.utils
 
 from lib.Genericos.MySortFilterProxyModel import MySortFilterProxyModel
@@ -110,3 +112,17 @@ class LancamentoSortFilterProxyModel(MySortFilterProxyModel):
                     return True
                 
         return False
+
+    def dropMimeData(self, data: QMimeData | None, action: Qt.DropAction, row: int, column: int, parent: QModelIndex) -> bool:
+        logging.debug(f"""LancamentoSortFilterProxyModel->dropMimeData 
+                          row: {row} column: {column}, action: {action}, modelindex: {parent.row()}/{parent.column()}""")
+        # result = super().dropMimeData(data, action, row, column, parent)
+        return False # result
+
+
+    # def flags(self, index: QModelIndex) -> Qt.ItemFlags:
+    #     flags = super(LancamentoSortFilterProxyModel, self).flags(index)
+    #     # sort_model_flags = QSortFilterProxyModel.flags(index)
+
+    #     # return Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled | flags
+    #     return Qt.ItemIsDragEnabled | flags    

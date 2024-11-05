@@ -334,10 +334,13 @@ class CurrencyEditDelegate(EmitterItemDelegade):
             logging.error(f"CurrencyEditDelegate Exception {e}")
 
         painter.save()
-        if value < 0:
-            painter.setPen(QColor(Qt.red))
-        else:
+        try:
             painter.setPen(QColor(Qt.darkGreen))
+            if value < 0:
+                painter.setPen(QColor(Qt.red))
+        except Exception as e1:
+            pass
+
         option.rect.setWidth(option.rect.width() - 3)
         option.rect.center()
 

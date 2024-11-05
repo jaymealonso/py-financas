@@ -3,7 +3,7 @@ from enum import IntEnum, StrEnum, auto
 import io
 
 from PyQt5.QtCore import QAbstractItemModel, QEvent, QItemSelectionModel, QModelIndex, Qt, pyqtSignal
-from PyQt5.QtGui import QCursor, QKeySequence, QStandardItem, QStandardItemModel
+from PyQt5.QtGui import QCursor, QDropEvent, QKeySequence, QStandardItem, QStandardItemModel
 from PyQt5.QtWidgets import (
     QAbstractItemView,
     QAction,
@@ -81,6 +81,23 @@ class TEXTS(StrEnum):
     EXPORTAR_PREFIXO = "Lançamentos"
 
 
+class LancamentosTableView(QTableView):
+    def __init__(self, parent: QWidget | None = ...) -> None:
+        super(LancamentosTableView, self).__init__(parent)
+        self.setDragEnabled(True)
+        self.viewport().setAcceptDrops(True)
+        self.setDropIndicatorShown(True)
+
+        self.setDragDropMode(QAbstractItemView.InternalMove)
+
+        self.setDefaultDropAction(Qt.IgnoreAction)
+        self.setDragDropOverwriteMode(False)
+
+    # def dropEvent(self, e: QDropEvent | None) -> None:
+    #     logging.debug("Drop Event")
+    #     return super().dropEvent(e)
+    
+
 class LancamentosView(MyDialog):
     # lancamento: ORMLancamentos, field:str
     changed = pyqtSignal(ORMLancamentos, str)
@@ -123,7 +140,7 @@ class LancamentosView(MyDialog):
         super(LancamentosView, self).__init__(parent)
 
         self.toolbar = self.get_toolbar()
-        table: QTableView = self.get_table()
+        table = self.get_table()
         self.tableline = LancamentoTableLine(self)
         self.conta_dc = conta_dc
         self.parent: cv.ContasView = parent
@@ -196,16 +213,17 @@ class LancamentosView(MyDialog):
 
         return toolbar
 
-    def get_table(self) -> QTableView:
+    def get_table(self) -> LancamentosTableView:
         """
         Retorna tabela com o seu layout
         """
-        self.table = QTableView()
-        self.table.setDragDropMode(QAbstractItemView.InternalMove)
-        self.table.setDragEnabled(True)
-        self.table.viewport().setAcceptDrops(True)
-        self.table.setDropIndicatorShown(True)
-        self.table.setDragDropOverwriteMode(False)
+        self.table = LancamentosTableView(self)
+        # self.table.setDragDropMode(QAbstractItemView.InternalMove)
+        # self.table.setDragEnabled(True)
+        # self.table.viewport().setAcceptDrops(True)
+        # self.table.setDropIndicatorShown(True)
+        # # self.table.setDefaultDropAction(Qt.MoveAction)
+        # self.table.setDragDropOverwriteMode(False)
 
         model = QStandardItemModel(0, len(self.COLUMNS))
         model.setHorizontalHeaderLabels([col["title"] for col in self.COLUMNS.values()])
