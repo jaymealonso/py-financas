@@ -3,6 +3,7 @@ from PyQt5.QtGui import QStandardItemModel
 import moment
 from datetime import datetime
 from PyQt5.QtCore import QMimeData, QModelIndex, QObject, QRegExp, Qt, QSortFilterProxyModel
+from PyQt5.QtWidgets import QAbstractItemView
 
 import moment.utils
 import view.lanc_vw
@@ -121,22 +122,34 @@ class LancamentoSortFilterProxyModel(MySortFilterProxyModel):
             lanc_view:view.lanc_vw.LancamentosView = self.parent()
             model = lanc_view.table.model()
 
-            index = model.index(row, 0)
-            lancamento_id = index.data(Qt.UserRole)
+            lancamento_id_index = model.index(row, 0)
+            lancamento_id = lancamento_id_index.data(Qt.UserRole)
             seq_linha = model.index(row, 1).data(Qt.UserRole)
-            next_lancamento_id = index.sibling(row +1, 0).data(Qt.UserRole)
+            next_lancamento_id = lancamento_id_index.sibling(row +1, 0).data(Qt.UserRole)
             logging.debug(f"lancamento_id: {lancamento_id}, next:{next_lancamento_id}, seq: {seq_linha}")
 
-            middle_nr = lanc_view.model_lancamentos.get_middle_nr_seq(lancamento_id)
-            logging.debug(f"middle_nr: {middle_nr}")
+            if lanc_view.table.dropIndicatorPosition() in [QAbstractItemView.DropIndicatorPosition.OnItem, 
+                                                           QAbstractItemView.DropIndicatorPosition.OnViewport]:
+                logging.debug(f"Item solto fora do alvo permitido. {lanc_view.table.dropIndicatorPosition()}")
+                return True
+
+            if lancamento_id:
+                middle_nr = lanc_view.model_lancamentos.get_middle_nr_seq(lancamento_id, next_lancamento_id)
+                logging.debug(f"middle_nr: {middle_nr}")
 
         # result = super().dropMimeData(data, action, row, column, parent)
-        return False # result
-
+        return True # result
+    
+    def supportedDropActions(self) -> Qt.DropActions:
+        return Qt.DropAction.MoveAction #  super().supportedDropActions()
 
     # def flags(self, index: QModelIndex) -> Qt.ItemFlags:
     #     flags = super(LancamentoSortFilterProxyModel, self).flags(index)
-    #     # sort_model_flags = QSortFilterProxyModel.flags(index)
+    #     # logging.debug(f"col: {index.column()} row: {index.row()}, {int(flags)}")
 
-    #     # return Qt.ItemIsDragEnabled | Qt.ItemIsDropEnabled | flags
-    #     return Qt.ItemIsDragEnabled | flags    
+    #     # return Qt.ItemFlag.ItemIsEditable | Qt.ItemFlag.ItemIsDragEnabled | Qt.ItemFlag.ItemIsEnabled # | flags
+    #     # flags1 = Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEditable | Qt.ItemFlag.ItemIsDragEnabled | Qt.ItemFlag.ItemIsEnabled
+    #     # flags1 = Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEditable | Qt.ItemFlag.ItemIsDragEnabled | \
+    #     #          Qt.ItemFlag.ItemIsDropEnabled | Qt.ItemFlag.ItemIsEnabled
+    #     flags ^= Qt.ItemFlag.ItemIsDropEnabled
+    #     return flags

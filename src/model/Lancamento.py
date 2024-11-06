@@ -179,7 +179,11 @@ class Lancamentos:
 
         trans.commit()
 
-    def get_middle_nr_seq(self, lancamento_id: int) -> int:
+    def get_middle_nr_seq(self, from_lanc_id: int, after_lanc_id: int) -> int:
+        FIRST_SEQ_ORDEM_LINHA = 1000
+
+        if not after_lanc_id:
+            return FIRST_SEQ_ORDEM_LINHA
 
         sql = text('''
             select l.* from lancamentos as l
@@ -189,9 +193,9 @@ class Lancamentos:
 			order by l.data, l.seq_ordem_linha 
          ''')
         with self.__db.engine.connect() as conn:
-            values = conn.execute(sql, {"lancamento_id": lancamento_id}).all()
+            values = conn.execute(sql, {"lancamento_id": from_lanc_id}).all()
 
-        index = next((index for index, value in enumerate(values) if value.id == lancamento_id), 0)
+        index = next((index for index, value in enumerate(values) if value.id == from_lanc_id), 0)
 
         current = values[index]
         prev_rec = None
