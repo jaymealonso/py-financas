@@ -140,7 +140,7 @@ class ContasView(QWidget):
         if lancamentos_window.isHidden():
             position = lancamentos_window.pos()
             logging.debug(
-                f"Abrir janela Lanç. (conta id:{conta_id}) posição (X: {position.x()}, Y: {position.y()})."
+                f"Abrir janela Lanç. (conta id: {conta_id}) posição (X: {position.x()}, Y: {position.y()})."
             )
 
             lancamentos_window.show()
