@@ -111,7 +111,7 @@ class LancamentosTableView(QTableView):
 
         if widget != self:
             # Forbid dropping any external data to this widget
-            logging.debug("Ignore event - fora do componente")
+            logging.debug(f"Ignore event - fora do componente")
             event.ignore()
 
             return
@@ -139,7 +139,7 @@ class LancamentosTableView(QTableView):
 
     def _get_position(self, position: QtCore.QPoint, bounds: QtCore.QRect) -> QAbstractItemView.DropIndicatorPosition:
         output = QAbstractItemView.DropIndicatorPosition.OnViewport
-        # margin = 10
+        margin = 10
 
         # logging.debug(f"pos: {position.y()} bound: {bounds.top()} calc: {position.y() - bounds.top()}")
 
