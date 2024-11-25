@@ -27,7 +27,13 @@ from PyQt5.QtWidgets import (
 )
 from lib import CustomToolbar
 from model.Conta import ContasTipo, Contas, Conta
-from util.custom_table_delegates import ButtonDelegate, GenericInputDelegate, ComboBoxDelegate, IDLabelDelegate, CurrencyLabelDelegate
+from util.custom_table_delegates import (
+    ButtonDelegate,
+    GenericInputDelegate,
+    ComboBoxDelegate,
+    IDLabelDelegate,
+    CurrencyLabelDelegate,
+)
 from model.db.db_orm import Lancamentos as ORMLancamentos
 
 
@@ -94,8 +100,8 @@ class ContasView(QWidget):
         logging.debug("Reloading data...")
         self.load_table_data()
 
-    def on_del_conta(self, index: QModelIndex): 
-        model:QStandardItemModel = index.model()
+    def on_del_conta(self, index: QModelIndex):
+        model: QStandardItemModel = index.model()
         conta_id = model.index(index.row(), self.Column.ID).data(Qt.UserRole)
 
         button = QMessageBox.question(
@@ -115,7 +121,7 @@ class ContasView(QWidget):
         self.load_table_data()
 
     def on_open_lancamentos(self, index: QModelIndex):
-        model:QStandardItemModel = index.model()
+        model: QStandardItemModel = index.model()
         conta_id = model.index(index.row(), self.Column.ID).data(Qt.UserRole)
         conta_dc = self.model_contas.find_by_id(conta_id)
 
@@ -139,16 +145,14 @@ class ContasView(QWidget):
 
         if lancamentos_window.isHidden():
             position = lancamentos_window.pos()
-            logging.debug(
-                f"Abrir janela Lanç. (conta id: {conta_id}) posição (X: {position.x()}, Y: {position.y()})."
-            )
+            logging.debug(f"Abrir janela Lanç. (conta id: {conta_id}) posição (X: {position.x()}, Y: {position.y()}).")
 
             lancamentos_window.show()
 
         lancamentos_window.activateWindow()
 
     def on_open_visao_mensal(self, index: QModelIndex):
-        model:QStandardItemModel = index.model()
+        model: QStandardItemModel = index.model()
         conta_id = model.index(index.row(), self.Column.ID).data(Qt.UserRole)
         conta = self.model_contas.find_by_id(conta_id)
         if not conta:
@@ -162,22 +166,16 @@ class ContasView(QWidget):
         del self.lanc_windows_open[sender.conta_dc.id]
 
     def handle_lancamento_created(self, lancamento_id: int):
-        logging.info(
-            f"Lancamento criado {lancamento_id}, recarregando dados na contas view."
-        )
+        logging.info(f"Lancamento criado {lancamento_id}, recarregando dados na contas view.")
         self.load_table_data()
 
     def handle_lancamento_changed(self, lancamento: ORMLancamentos, field: str):
-        logging.info(
-            f"Lancamento modificado {lancamento.id}, recarregando dados na contas view."
-        )
+        logging.info(f"Lancamento modificado {lancamento.id}, recarregando dados na contas view.")
         if field == "categoria_id":
             self.load_table_data()
 
     def handle_delete_lancamento(self, lancamento_id: int):
-        logging.info(
-            f"Lancamento eliminado {lancamento_id}, recarregando dados na contas view."
-        )
+        logging.info(f"Lancamento eliminado {lancamento_id}, recarregando dados na contas view.")
         self.load_table_data()
 
     def model_item_changed(self, item: QModelIndex):
@@ -234,15 +232,16 @@ class ContasView(QWidget):
                 model.index(new_index, self.Column.MOEDA),
                 {Qt.DisplayRole: row.moeda, Qt.UserRole: row.moeda},
             )
-            tipo_conta_descr = next((item.descricao for item in self.model_tps_conta.items if item.id == row.tipo_id), "")
+            tipo_conta_descr = next(
+                (item.descricao for item in self.model_tps_conta.items if item.id == row.tipo_id), ""
+            )
             model.setItemData(
                 model.index(new_index, self.Column.TIPO),
                 {Qt.DisplayRole: tipo_conta_descr, Qt.UserRole: row.tipo_id},
             )
             model.setItemData(
                 model.index(new_index, self.Column.TOTAL),
-                {Qt.DisplayRole: curr.str_curr_to_locale(row.total or 0),
-                 Qt.UserRole: row.total},
+                {Qt.DisplayRole: curr.str_curr_to_locale(row.total or 0), Qt.UserRole: row.total},
             )
             model.setItemData(
                 model.index(new_index, self.Column.N_CLASSIF),
@@ -253,20 +252,31 @@ class ContasView(QWidget):
                 {Qt.DisplayRole: row.lanc_classif, Qt.UserRole: row.lanc_classif},
             )
 
-
         self.table.setItemDelegateForColumn(self.Column.ID, IDLabelDelegate(self.table))
         self.table.setItemDelegateForColumn(self.Column.DESCRICAO, GenericInputDelegate(self.table))
         self.table.setItemDelegateForColumn(self.Column.NUMERO, GenericInputDelegate(self.table))
         self.table.setItemDelegateForColumn(self.Column.MOEDA, GenericInputDelegate(self.table))
-        self.table.setItemDelegateForColumn(self.Column.TIPO, ContaTableLine.get_tipo_conta_dropdown_delegate(self.table, self.model_tps_conta))
+        self.table.setItemDelegateForColumn(
+            self.Column.TIPO, ContaTableLine.get_tipo_conta_dropdown_delegate(self.table, self.model_tps_conta)
+        )
         self.table.setItemDelegateForColumn(self.Column.TOTAL, CurrencyLabelDelegate(self.table, bold=True))
-        self.table.setItemDelegateForColumn(self.Column.N_CLASSIF, CurrencyLabelDelegate(self.table, bold=True, center=True))
-        self.table.setItemDelegateForColumn(self.Column.CLASSIFIC, CurrencyLabelDelegate(self.table, bold=True, center=True))
-        self.table.setItemDelegateForColumn(self.Column.REMOVER, ButtonDelegate(self.table, ContaTableLine.get_del_button(), self.on_del_conta))
-        self.table.setItemDelegateForColumn(self.Column.LANCAMENTOS, \
-            ButtonDelegate(self.table, ContaTableLine.get_open_lanc_button(), self.on_open_lancamentos))
-        self.table.setItemDelegateForColumn(self.Column.VISAO_MENSAL, \
-            ButtonDelegate(self.table, ContaTableLine.get_visao_mensal(), self.on_open_visao_mensal))
+        self.table.setItemDelegateForColumn(
+            self.Column.N_CLASSIF, CurrencyLabelDelegate(self.table, bold=True, center=True)
+        )
+        self.table.setItemDelegateForColumn(
+            self.Column.CLASSIFIC, CurrencyLabelDelegate(self.table, bold=True, center=True)
+        )
+        self.table.setItemDelegateForColumn(
+            self.Column.REMOVER, ButtonDelegate(self.table, ContaTableLine.get_del_button(), self.on_del_conta)
+        )
+        self.table.setItemDelegateForColumn(
+            self.Column.LANCAMENTOS,
+            ButtonDelegate(self.table, ContaTableLine.get_open_lanc_button(), self.on_open_lancamentos),
+        )
+        self.table.setItemDelegateForColumn(
+            self.Column.VISAO_MENSAL,
+            ButtonDelegate(self.table, ContaTableLine.get_visao_mensal(), self.on_open_visao_mensal),
+        )
 
         self.table.setColumnWidth(self.Column.ID, 100)
         self.table.resizeColumnToContents(self.Column.DESCRICAO)
@@ -382,7 +392,7 @@ class ContaTableLine(TableLine):
         op_lanc_pbutt.setToolTip(TEXTS.OPEN_MONTHLY_VIEW)
         op_lanc_pbutt.setIcon(icons.visao_mensal())
         return op_lanc_pbutt
-    
+
     # def get_del_button(self, conta_id: int) -> QPushButton:
     #     del_pbutt = QPushButton()
     #     del_pbutt.setToolTip(TEXTS.REMOVE_ACCOUNT_TOOLTIP)
@@ -432,4 +442,3 @@ class ContasViewComponents:
         self.parent.load_table_data()
 
         layout.addWidget(self.parent.table)
-
