@@ -1,4 +1,3 @@
-import time
 from MainApp import MainApp, SplashWindow
 
 if __name__ == "__main__":
@@ -15,5 +14,3 @@ if __name__ == "__main__":
     splash.close()
 
     sys.exit(app.app.exec_())
-
-

@@ -1,6 +1,9 @@
 
 # Instruções de Build
 
+Nova documentação
+> Em 25.11.2024 adicionei RUFF e UV siga o [link](new.md) para verificar.
+
 ## Configuração do build:
 
 ### Libs e versões usadas no projeto:
@@ -62,9 +65,17 @@ Opções de linhas de comando:
 
 ## Como gerar o executavel
 
+Dentro do diretório scripts existem 2 arquivos, para windows e linux respectivamente
+
 ### Windows
+Criar um .exe que contem todas as libs (recomendado). 
 ```
-build.bat
+build-onefile.bat
+```
+
+Criar um .exe menor e manter as libs separadamente
+```
+build-onedir.bat
 ```
 
 ### Linux
@@ -76,7 +87,7 @@ o executavel será gerado no diretório ```/dist```
 
 # Possíveis problemas
 
-## Instalar locale do Portugues Brasil - no lixux
+## Instalar locale do Portugues Brasil - no linux
 
 Verificar se existe ``` pt_BR ``` na lista de locales:
 ```
