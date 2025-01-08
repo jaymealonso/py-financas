@@ -2,12 +2,96 @@
 
 from PyQt5 import QtGui
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import QTableView, QWidget
+from PyQt5.QtWidgets import QTableView, QWidget, QHeaderView
 
 from lib.Genericos.log import logging
 
 
-class VisaoGeralTableView(QTableView):
+class FreezeTableWidget(QTableView):
+    """Classe para congelar colunas de uma tabela. Peguei da internet não sei como funciona."""
+
+    def __init__(self, model):
+        super(FreezeTableWidget, self).__init__()
+        # self.setModel(model)
+        self.frozenTableView = QTableView(self)
+        # self.init()
+        self.horizontalHeader().sectionResized.connect(self.updateSectionWidth)
+        self.verticalHeader().sectionResized.connect(self.updateSectionHeight)
+        self.frozenTableView.verticalScrollBar().valueChanged.connect(self.verticalScrollBar().setValue)
+        self.verticalScrollBar().valueChanged.connect(self.frozenTableView.verticalScrollBar().setValue)
+
+    def setModel(self, model):
+        super().setModel(model)
+        self.init()
+
+    def init(self):
+        self.frozenTableView.setModel(self.model())
+        self.frozenTableView.setFocusPolicy(Qt.NoFocus)
+        self.frozenTableView.verticalHeader().hide()
+        self.frozenTableView.horizontalHeader().setSectionResizeMode(QHeaderView.Fixed)
+        self.viewport().stackUnder(self.frozenTableView)
+
+        # self.frozenTableView.setStyleSheet("""
+        #     QTableView { border: none;
+        #                  background-color: #8EDE21;
+        #                  selection-background-color: #999;
+        #     }""")  # for demo purposes
+
+        self.frozenTableView.setSelectionModel(self.selectionModel())
+        for col in range(1, self.model().columnCount()):
+            self.frozenTableView.setColumnHidden(col, True)
+        self.frozenTableView.setColumnWidth(0, self.columnWidth(0))
+        self.frozenTableView.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.frozenTableView.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.frozenTableView.show()
+        self.updateFrozenTableGeometry()
+        self.setHorizontalScrollMode(self.ScrollPerPixel)
+        self.setVerticalScrollMode(self.ScrollPerPixel)
+        self.frozenTableView.setVerticalScrollMode(self.ScrollPerPixel)
+
+    def updateSectionWidth(self, logicalIndex, oldSize, newSize):
+        if logicalIndex == 0:
+            self.frozenTableView.setColumnWidth(0, newSize)
+            self.updateFrozenTableGeometry()
+
+    def updateSectionHeight(self, logicalIndex, oldSize, newSize):
+        self.frozenTableView.setRowHeight(logicalIndex, newSize)
+
+    def resizeEvent(self, event):
+        super(FreezeTableWidget, self).resizeEvent(event)
+        self.updateFrozenTableGeometry()
+
+    def moveCursor(self, cursorAction, modifiers):
+        current = super(FreezeTableWidget, self).moveCursor(cursorAction, modifiers)
+        if (
+            cursorAction == self.MoveLeft
+            and self.current.column() > 0
+            and self.visualRect(current).topLeft().x() < self.frozenTableView.columnWidth(0)
+        ):
+            newValue = (
+                self.horizontalScrollBar().value()
+                + self.visualRect(current).topLeft().x()
+                - self.frozenTableView.columnWidth(0)
+            )
+            self.horizontalScrollBar().setValue(newValue)
+        return current
+
+    def scrollTo(self, index, hint):
+        if index.column() > 0:
+            super(FreezeTableWidget, self).scrollTo(index, hint)
+
+    def updateFrozenTableGeometry(self):
+        self.frozenTableView.setGeometry(
+            self.verticalHeader().width() + self.frameWidth(),
+            self.frameWidth(),
+            self.columnWidth(0),
+            self.viewport().height() + self.horizontalHeader().height(),
+        )
+
+
+class VisaoGeralTableView(FreezeTableWidget):
+    """Classe para a tabela de visão geral."""
+
     selection_released = pyqtSignal(list)
 
     def __init__(self, parent: QWidget | None = ...) -> None:
@@ -20,9 +104,15 @@ class VisaoGeralTableView(QTableView):
 
     def keyPressEvent(self, e: QtGui.QKeyEvent | None) -> None:
         super().keyPressEvent(e)
-        if e.key() in (Qt.Key.Key_Down, Qt.Key.Key_Up, Qt.Key.Key_Left,Qt.Key.Key_Right):
+        if not e:
+            return
+        if (
+            e.key() == Qt.Key.Key_Down
+            or e.key() == Qt.Key.Key_Up
+            or e.key() == Qt.Key.Key_Left
+            or e.key() == Qt.Key.Key_Right
+        ):
             self.on_selection_ended()
-
 
     def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
         super(VisaoGeralTableView, self).mouseReleaseEvent(event)
@@ -39,7 +129,7 @@ class VisaoGeralTableView(QTableView):
         filters = []
         for index, item in enumerate(selected):
             try:
-                mes_ano = self.header_labels[item.column()]   
+                mes_ano = self.header_labels[item.column()]
                 categoria_nm = self.categorias_labels[item.row()]
             except Exception:
                 logging.debug(f"Mes/Categoria não encontrado, ind: { index }.")

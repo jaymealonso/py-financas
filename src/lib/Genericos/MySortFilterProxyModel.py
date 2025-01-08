@@ -2,7 +2,6 @@ from PyQt5.QtCore import QModelIndex, QObject, QSortFilterProxyModel, Qt
 
 
 class MySortFilterProxyModel(QSortFilterProxyModel):
-
     def __init__(self, parent: QObject | None = ...) -> None:
         super(MySortFilterProxyModel, self).__init__(parent)
 

@@ -22,7 +22,7 @@ class FilterAllTable:
 
 class FilterCategoria:
     def __init__(self, categoria: str) -> None:
-        self.categoria = categoria or f'(vazio)'
+        self.categoria = categoria or f"(vazio)"
         self.filter_categoria = None
 
     def validate(self, categoria: str) -> bool:
@@ -50,14 +50,10 @@ class FilterAnoMes:
         self.filter_data_final = moment.date(prox_ano, prox_mes, 1).add(day=-1)
 
     def validate(self, date_moment: moment.Moment) -> bool:
-        return (
-            date_moment >= self.filter_data_inicio
-            and date_moment <= self.filter_data_final
-        )
+        return date_moment >= self.filter_data_inicio and date_moment <= self.filter_data_final
 
 
 class LancamentoSortFilterProxyModel(MySortFilterProxyModel):
-
     def __init__(self, parent: QObject | None = ...) -> None:
         super(LancamentoSortFilterProxyModel, self).__init__(parent)
 
@@ -68,7 +64,7 @@ class LancamentoSortFilterProxyModel(MySortFilterProxyModel):
         self.filters.clear()
         self.text_filters.clear()
 
-    def filter_text(self, text:str) -> None:
+    def filter_text(self, text: str) -> None:
         self.text_filters.clear()
         self.text_filters.append({0: FilterAllTable(text)})
 
@@ -76,24 +72,22 @@ class LancamentoSortFilterProxyModel(MySortFilterProxyModel):
         self.filters.append({0: FilterAnoMes(ano_mes), 1: FilterCategoria(categoria)})
 
     def filterAcceptsRow(self, source_row: int, source_parent: QModelIndex) -> bool:
-        if len(self.text_filters) == 0 and  len(self.filters) == 0:
+        if len(self.text_filters) == 0 and len(self.filters) == 0:
             return True
-        
+
         if len(self.text_filters) > 0:
-            src_model:QStandardItemModel = self.sourceModel()
+            src_model: QStandardItemModel = self.sourceModel()
             # search in all columns
             for col_index in range(src_model.columnCount()):
-                text = self.sourceModel().index(source_row,  col_index, source_parent).data()
+                text = self.sourceModel().index(source_row, col_index, source_parent).data()
                 single_filter = list(dict.values(self.text_filters[0]))[0]
                 if single_filter.validate(text):
                     return True
 
         if len(self.filters) > 0:
-            categoria = self.sourceModel().index(source_row,  6, source_parent).data()
+            categoria = self.sourceModel().index(source_row, 6, source_parent).data()
 
-            date_date: datetime = (
-                self.sourceModel().index(source_row, 5, source_parent).data(Qt.UserRole)
-            )
+            date_date: datetime = self.sourceModel().index(source_row, 5, source_parent).data(Qt.UserRole)
             if not date_date:
                 return True
             date_moment: moment.Moment = moment.date(date_date)
@@ -103,33 +97,35 @@ class LancamentoSortFilterProxyModel(MySortFilterProxyModel):
                 filter_ano_mes = single_filter_aux[0]
                 filter_categoria = single_filter_aux[1]
 
-                if not isinstance(filter_categoria, FilterCategoria) or not isinstance(
-                    filter_ano_mes, FilterAnoMes
-                ):
+                if not isinstance(filter_categoria, FilterCategoria) or not isinstance(filter_ano_mes, FilterAnoMes):
                     continue
 
-                if filter_ano_mes.validate(date_moment) and filter_categoria.validate(
-                    categoria
-                ):
+                if filter_ano_mes.validate(date_moment) and filter_categoria.validate(categoria):
                     return True
-                
+
         return False
 
-    def dropMimeData(self, data: QMimeData | None, action: Qt.DropAction, row: int, column: int, parent: QModelIndex) -> bool:
+    def dropMimeData(
+        self, data: QMimeData | None, action: Qt.DropAction, row: int, column: int, parent: QModelIndex
+    ) -> bool:
         logging.debug(f"""LancamentoSortFilterProxyModel->dropMimeData 
                           row: {row} column: {column}, action: {action}, modelindex: {parent.row()}/{parent.column()}""")
+
+        # In between rows
         if parent.row() == -1 and parent.column() == -1 and action == Qt.DropAction.MoveAction:
-            lanc_view:view.lanc_vw.LancamentosView = self.parent()
+            lanc_view: view.lanc_vw.LancamentosView = self.parent()
             model = lanc_view.table.model()
 
             lancamento_id_index = model.index(row, 0)
             lancamento_id = lancamento_id_index.data(Qt.UserRole)
             seq_linha = model.index(row, 1).data(Qt.UserRole)
-            next_lancamento_id = lancamento_id_index.sibling(row +1, 0).data(Qt.UserRole)
+            next_lancamento_id = lancamento_id_index.sibling(row + 1, 0).data(Qt.UserRole)
             logging.debug(f"lancamento_id: {lancamento_id}, next:{next_lancamento_id}, seq: {seq_linha}")
 
-            if lanc_view.table.dropIndicatorPosition() in [QAbstractItemView.DropIndicatorPosition.OnItem, 
-                                                           QAbstractItemView.DropIndicatorPosition.OnViewport]:
+            if lanc_view.table.dropIndicatorPosition() in [
+                QAbstractItemView.DropIndicatorPosition.OnItem,
+                QAbstractItemView.DropIndicatorPosition.OnViewport,
+            ]:
                 logging.debug(f"Item solto fora do alvo permitido. {lanc_view.table.dropIndicatorPosition()}")
                 return True
 
@@ -138,10 +134,10 @@ class LancamentoSortFilterProxyModel(MySortFilterProxyModel):
                 logging.debug(f"middle_nr: {middle_nr}")
 
         # result = super().dropMimeData(data, action, row, column, parent)
-        return True # result
-    
+        return True  # result
+
     def supportedDropActions(self) -> Qt.DropActions:
-        return Qt.DropAction.MoveAction #  super().supportedDropActions()
+        return Qt.DropAction.MoveAction  #  super().supportedDropActions()
 
     # def flags(self, index: QModelIndex) -> Qt.ItemFlags:
     #     flags = super(LancamentoSortFilterProxyModel, self).flags(index)

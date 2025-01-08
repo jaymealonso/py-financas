@@ -83,8 +83,9 @@ class TEXTS(StrEnum):
 
 
 class LancamentosTableView(QTableView):
-    def __init__(self, parent: QWidget | None = ...) -> None:
+    def __init__(self, parent: QWidget) -> None:
         super(LancamentosTableView, self).__init__(parent)
+        self.parent = parent
         self.setDragEnabled(True)
         self.viewport().setAcceptDrops(False)
         self.setDropIndicatorShown(True)
@@ -103,6 +104,22 @@ class LancamentosTableView(QTableView):
 
     def dropEvent(self, event: QDropEvent | None) -> None:
         logging.debug("dropevent")
+
+        selection = self.selectedIndexes()
+        from_index = selection[0].row() if selection else -1
+
+        globalPos = self.viewport().mapToGlobal(event.pos())
+        header = self.verticalHeader()
+        to_index = header.logicalIndexAt(header.mapFromGlobal(globalPos).y())
+
+        logging.debug(f"from: {from_index} to: {to_index}")
+
+        lancamento_id = self.model().index(from_index, 0).data(Qt.UserRole)
+        next_lancamento_id = self.model().index(to_index, 0).data(Qt.UserRole)
+
+        middle_nr = self.parent.model_lancamentos.get_middle_nr_seq(lancamento_id, next_lancamento_id)
+        logging.debug(f"middle_nr: {middle_nr}")
+
         return super().dropEvent(event)
 
     def dragMoveEvent(self, event: QDragMoveEvent | None) -> None:
@@ -137,34 +154,37 @@ class LancamentosTableView(QTableView):
         # logging.debug(f"> Ignore event r:{index.row()} c: {index.column()}")
         event.ignore()
 
-    def _get_position(self, position: QtCore.QPoint, bounds: QtCore.QRect) -> QAbstractItemView.DropIndicatorPosition:
+    def _get_position(
+        self, mouse_position: QtCore.QPoint, widget_bounds: QtCore.QRect
+    ) -> QAbstractItemView.DropIndicatorPosition:
         output = QAbstractItemView.DropIndicatorPosition.OnViewport
-        margin = 10
+        margin = 20
+        half_margin = margin / 2
 
-        # logging.debug(f"pos: {position.y()} bound: {bounds.top()} calc: {position.y() - bounds.top()}")
+        half_widget_size = (widget_bounds.bottom() - widget_bounds.top()) / 2
 
-        half_widget_size = (bounds.bottom() - bounds.top()) / 2
+        y_margin_top_start = widget_bounds.top()
+        y_margin_top_end = widget_bounds.top() + half_margin
 
-        if position.y() > bounds.top() and position.y() < (bounds.top() + half_widget_size):
-            logging.debug(
-                f"above => y:{position.y()} > {bounds.top()} and {position.y()} < {( bounds.top() + half_widget_size )} "
-            )
-            return QAbstractItemView.DropIndicatorPosition.AboveItem
+        y_margin_bottom_start = widget_bounds.bottom() - half_margin
+        y_margin_bottom_end = widget_bounds.bottom()
 
-        if position.y() > (bounds.top() + half_widget_size) and position.y() < bounds.bottom():
-            logging.debug(
-                f"below => {position.y()} > {( bounds.top() + half_widget_size )} and {position.y()} < {bounds.bottom()}"
-            )
-            return QAbstractItemView.DropIndicatorPosition.BelowItem
+        position_txt = "***Onviewport***"
+        if mouse_position.y() > y_margin_top_start and \
+           mouse_position.y() < y_margin_top_end :  # fmt: skip
+            position_txt = "Above***"
+            output = QAbstractItemView.DropIndicatorPosition.AboveItem
 
-        # if position.y() - bounds.top() < margin:
-        #     return QAbstractItemView.AboveItem
+        if mouse_position.y() > y_margin_bottom_start and \
+           mouse_position.y() < y_margin_bottom_end:  # fmt: skip
+            position_txt = "***Below"
+            output = QAbstractItemView.DropIndicatorPosition.BelowItem
 
-        # if bounds.bottom() - position.y() < margin:
-        #     return QAbstractItemView.BelowItem
-
-        # if bounds.contains(position, True):
-        #     return QAbstractItemView.OnItem
+        logging.debug(
+            f"""{position_txt} => y: {mouse_position.y()} 
+                y_margin_top_start: {y_margin_top_start} y_margin_top_end: {y_margin_top_end}
+                y_margin_bottom_start: {y_margin_bottom_start} y_margin_bottom_end: {y_margin_bottom_end}"""
+        )
 
         return output
 
