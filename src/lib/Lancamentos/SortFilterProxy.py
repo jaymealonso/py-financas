@@ -2,7 +2,7 @@ import logging
 from PyQt5.QtGui import QStandardItemModel
 import moment
 from datetime import datetime
-from PyQt5.QtCore import QMimeData, QModelIndex, QObject, QRegExp, Qt, QSortFilterProxyModel
+from PyQt5.QtCore import QMimeData, QModelIndex, QObject, QRegExp, Qt, pyqtSignal
 from PyQt5.QtWidgets import QAbstractItemView
 
 import moment.utils
@@ -22,7 +22,7 @@ class FilterAllTable:
 
 class FilterCategoria:
     def __init__(self, categoria: str) -> None:
-        self.categoria = categoria or f"(vazio)"
+        self.categoria = categoria or "(vazio)"
         self.filter_categoria = None
 
     def validate(self, categoria: str) -> bool:
@@ -54,6 +54,12 @@ class FilterAnoMes:
 
 
 class LancamentoSortFilterProxyModel(MySortFilterProxyModel):
+    """Proxy model for LancamentosView"""
+
+    # prev_lancamento_id, next_lancamento_id
+    dropped_lancamento = pyqtSignal(int, int)
+    """Signal emitted when a lancamento is dropped here from drag and drop"""
+
     def __init__(self, parent: QObject | None = ...) -> None:
         super(LancamentoSortFilterProxyModel, self).__init__(parent)
 
@@ -72,6 +78,9 @@ class LancamentoSortFilterProxyModel(MySortFilterProxyModel):
         self.filters.append({0: FilterAnoMes(ano_mes), 1: FilterCategoria(categoria)})
 
     def filterAcceptsRow(self, source_row: int, source_parent: QModelIndex) -> bool:
+        COLUNA_CATEGORIA_INDEX = 6
+        COLUNA_DATA_INDEX = 5
+
         if len(self.text_filters) == 0 and len(self.filters) == 0:
             return True
 
@@ -85,9 +94,10 @@ class LancamentoSortFilterProxyModel(MySortFilterProxyModel):
                     return True
 
         if len(self.filters) > 0:
-            categoria = self.sourceModel().index(source_row, 6, source_parent).data()
-
-            date_date: datetime = self.sourceModel().index(source_row, 5, source_parent).data(Qt.UserRole)
+            categoria = self.sourceModel().index(source_row, COLUNA_CATEGORIA_INDEX, source_parent).data()
+            date_date: datetime = (
+                self.sourceModel().index(source_row, COLUNA_DATA_INDEX, source_parent).data(Qt.UserRole)
+            )
             if not date_date:
                 return True
             date_moment: moment.Moment = moment.date(date_date)
@@ -115,11 +125,12 @@ class LancamentoSortFilterProxyModel(MySortFilterProxyModel):
         if parent.row() == -1 and parent.column() == -1 and action == Qt.DropAction.MoveAction:
             lanc_view: view.lanc_vw.LancamentosView = self.parent()
             model = lanc_view.table.model()
-
-            lancamento_id_index = model.index(row, 0)
+            if row == 0:
+                row = 1
+            lancamento_id_index = model.index(row - 1, 0)
             lancamento_id = lancamento_id_index.data(Qt.UserRole)
             seq_linha = model.index(row, 1).data(Qt.UserRole)
-            next_lancamento_id = lancamento_id_index.sibling(row + 1, 0).data(Qt.UserRole)
+            next_lancamento_id = lancamento_id_index.sibling(row, 0).data(Qt.UserRole)
             logging.debug(f"lancamento_id: {lancamento_id}, next:{next_lancamento_id}, seq: {seq_linha}")
 
             if lanc_view.table.dropIndicatorPosition() in [
@@ -130,22 +141,9 @@ class LancamentoSortFilterProxyModel(MySortFilterProxyModel):
                 return True
 
             if lancamento_id:
-                middle_nr = lanc_view.model_lancamentos.get_middle_nr_seq(lancamento_id, next_lancamento_id)
-                logging.debug(f"middle_nr: {middle_nr}")
+                self.dropped_lancamento.emit(lancamento_id, next_lancamento_id)
 
-        # result = super().dropMimeData(data, action, row, column, parent)
         return True  # result
 
     def supportedDropActions(self) -> Qt.DropActions:
         return Qt.DropAction.MoveAction  #  super().supportedDropActions()
-
-    # def flags(self, index: QModelIndex) -> Qt.ItemFlags:
-    #     flags = super(LancamentoSortFilterProxyModel, self).flags(index)
-    #     # logging.debug(f"col: {index.column()} row: {index.row()}, {int(flags)}")
-
-    #     # return Qt.ItemFlag.ItemIsEditable | Qt.ItemFlag.ItemIsDragEnabled | Qt.ItemFlag.ItemIsEnabled # | flags
-    #     # flags1 = Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEditable | Qt.ItemFlag.ItemIsDragEnabled | Qt.ItemFlag.ItemIsEnabled
-    #     # flags1 = Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEditable | Qt.ItemFlag.ItemIsDragEnabled | \
-    #     #          Qt.ItemFlag.ItemIsDropEnabled | Qt.ItemFlag.ItemIsEnabled
-    #     flags ^= Qt.ItemFlag.ItemIsDropEnabled
-    #     return flags

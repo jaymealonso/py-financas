@@ -1,9 +1,10 @@
 import csv
 from enum import IntEnum, StrEnum, auto
 import io
-
 from PyQt5 import QtCore
-from PyQt5.QtCore import QAbstractItemModel, QEvent, QItemSelectionModel, QModelIndex, Qt, pyqtSignal
+from PyQt5 import QtWidgets
+from PyQt5.QtCore import QAbstractItemModel, QEvent, QItemSelectionModel, QModelIndex, QRect, Qt, pyqtSignal
+from PyQt5 import QtGui
 from PyQt5.QtGui import QCursor, QDragMoveEvent, QDropEvent, QKeySequence, QStandardItem, QStandardItemModel
 from PyQt5.QtWidgets import (
     QAbstractItemView,
@@ -43,16 +44,12 @@ from util import (
     IDLabelDelegate,
     MyDialog,
 )
-
-
 from util.settings import JanelaLancamentosSettings, Settings
 from util.toaster import QToaster
-
 import view.contas_vw as cv
 import view.icons.icons as icons
 from view.anexos_vw import AnexosView
 from view.imp_lanc_vw import ImportarLancamentosView
-
 from view.TableLine import TableLine
 
 
@@ -83,11 +80,15 @@ class TEXTS(StrEnum):
 
 
 class LancamentosTableView(QTableView):
+    """Tabela de lançamentos. Implementacao de funcionalidade de arrastar e soltar"""
+
     def __init__(self, parent: QWidget) -> None:
         super(LancamentosTableView, self).__init__(parent)
-        self.parent = parent
+        self.parent: QWidget = parent
         self.setDragEnabled(True)
-        self.viewport().setAcceptDrops(False)
+        viewport = self.viewport()
+        if viewport:
+            viewport.setAcceptDrops(False)
         self.setDropIndicatorShown(True)
         self.setDragDropOverwriteMode(False)
 
@@ -95,61 +96,84 @@ class LancamentosTableView(QTableView):
 
         self.setDefaultDropAction(Qt.DropAction.IgnoreAction)
 
+        self.dropIndicatorRect = QtCore.QRect()
+
     def startDrag(self, supportedActions: Qt.DropActions | Qt.DropAction) -> None:
-        self.last_dragged_lancamento_index = None
-        if len(self.selectedIndexes()) == 1:
-            self.last_dragged_lancamento_index = self.selectedIndexes()[0]
+        """Inicia o processo de arrastar e soltar"""
+
+        self.last_dragged_index = None
+        if len(self.selectedIndexes()) >= 1:
+            self.last_dragged_index = self.selectedIndexes()[0]
 
         return super().startDrag(supportedActions)
 
     def dropEvent(self, event: QDropEvent | None) -> None:
-        logging.debug("dropevent")
+        """Evento de soltar o item arrastado"""
+        # logging.debug("dropevent")
 
-        selection = self.selectedIndexes()
-        from_index = selection[0].row() if selection else -1
+        # selection = self.selectedIndexes()
+        # from_index = selection[0].row() if selection else -1
 
-        globalPos = self.viewport().mapToGlobal(event.pos())
-        header = self.verticalHeader()
-        to_index = header.logicalIndexAt(header.mapFromGlobal(globalPos).y())
+        # globalPos = self.viewport().mapToGlobal(event.pos())
+        # header = self.verticalHeader()
+        # to_index = header.logicalIndexAt(header.mapFromGlobal(globalPos).y())
 
-        logging.debug(f"from: {from_index} to: {to_index}")
+        # logging.debug(f"from: {from_index} to: {to_index}")
 
-        lancamento_id = self.model().index(from_index, 0).data(Qt.UserRole)
-        next_lancamento_id = self.model().index(to_index, 0).data(Qt.UserRole)
+        # lancamento_id = self.model().index(from_index, 0).data(Qt.UserRole)
+        # next_lancamento_id = self.model().index(to_index, 0).data(Qt.UserRole)
 
-        middle_nr = self.parent.model_lancamentos.get_middle_nr_seq(lancamento_id, next_lancamento_id)
-        logging.debug(f"middle_nr: {middle_nr}")
+        # middle_nr = self.parent.model_lancamentos.get_middle_nr_seq(lancamento_id, next_lancamento_id)
+        # logging.debug(f"middle_nr: {middle_nr}")
 
         return super().dropEvent(event)
 
     def dragMoveEvent(self, event: QDragMoveEvent | None) -> None:
+        """Evento de mover o item arrastado"""
         IN_BETWEEN_POSITIONS = frozenset((QAbstractItemView.AboveItem, QAbstractItemView.BelowItem))
-        widget = event.source()
 
-        if widget != self:
+        if event is None:
+            return
+        mouseover_widget: LancamentosTableView = event.source()
+        if mouseover_widget is None:
+            return
+
+        if mouseover_widget != self:
             # Forbid dropping any external data to this widget
-            logging.debug(f"Ignore event - fora do componente")
+            logging.debug("Ignore event - fora do componente")
             event.ignore()
 
             return
 
-        index = widget.indexAt(event.pos())
+        index = mouseover_widget.indexAt(event.pos())
+        logging.debug(f"dragMoveEvent r:{index.row()} c: {index.column()}")
         position = self._get_position(event.pos(), self.visualRect(index))
 
-        if index.siblingAtColumn(LancamentosView.Columns.DATA).data(
-            Qt.UserRole
-        ) != self.last_dragged_lancamento_index.siblingAtColumn(LancamentosView.Columns.DATA).data(Qt.UserRole):
+        dragged_date = self.last_dragged_index.siblingAtColumn(LancamentosView.Columns.DATA).data(Qt.UserRole)
+        dropping_date = index.siblingAtColumn(LancamentosView.Columns.DATA).data(Qt.UserRole)
+        if dragged_date != dropping_date:
             # logging.debug(f"Evento ignorado datas diferentes r:{index.row()} c: {index.column()}")
             event.ignore()
 
             return
 
         if position in IN_BETWEEN_POSITIONS:
-            super(LancamentosTableView, self).dragMoveEvent(event)
-            # logging.debug(f"Accept event r:{index.row()} c: {index.column()}")
-            event.accept()
+            if position == QAbstractItemView.BelowItem:
+                super(LancamentosTableView, self).dragMoveEvent(event)
+                # logging.debug(f"Accept event r:{index.row()} c: {index.column()}")
+                event.accept()
+            else:
+                if index.row() == 0:
+                    super(LancamentosTableView, self).dragMoveEvent(event)
+                    # logging.debug(f"Accept event r:{index.row()} c: {index.column()}")
+                    event.accept()
 
             return
+
+        # if position == QAbstractItemView.OnViewport:
+        #     super(LancamentosTableView, self).dragMoveEvent(event)
+        #     event.accept()
+        #     return
 
         # logging.debug(f"> Ignore event r:{index.row()} c: {index.column()}")
         event.ignore()
@@ -157,16 +181,17 @@ class LancamentosTableView(QTableView):
     def _get_position(
         self, mouse_position: QtCore.QPoint, widget_bounds: QtCore.QRect
     ) -> QAbstractItemView.DropIndicatorPosition:
-        output = QAbstractItemView.DropIndicatorPosition.OnViewport
-        margin = 20
-        half_margin = margin / 2
+        """Calcula a posição do mouse em relação ao widget"""
 
-        half_widget_size = (widget_bounds.bottom() - widget_bounds.top()) / 2
+        output = QAbstractItemView.DropIndicatorPosition.OnViewport
+        margin = 6
+
+        # half_widget_size = (widget_bounds.bottom() - widget_bounds.top()) / 2
 
         y_margin_top_start = widget_bounds.top()
-        y_margin_top_end = widget_bounds.top() + half_margin
+        y_margin_top_end = widget_bounds.top() + margin
 
-        y_margin_bottom_start = widget_bounds.bottom() - half_margin
+        y_margin_bottom_start = widget_bounds.bottom() - margin
         y_margin_bottom_end = widget_bounds.bottom()
 
         position_txt = "***Onviewport***"
@@ -187,6 +212,37 @@ class LancamentosTableView(QTableView):
         )
 
         return output
+
+    # def paintEvent(self, event) -> None:
+    #     super().paintEvent(event)
+
+    #     painter = QtGui.QPainter(self.viewport())
+    #     # self.drawFrame(painter)
+    #     # painter.drawRect(0, 0, 20, 20)
+
+    #     # in original implementation, it calls an inline function paintDropIndicator here
+    #     self.paintDropIndicator(painter)
+
+    # def paintDropIndicator(self, painter: QtGui.QPainter) -> None:
+    #     if self.state() == QAbstractItemView.State.DraggingState:
+    #         opt = QtWidgets.QStyleOption()
+    #         opt.initFrom(self)
+    #         opt.rect = self.dropIndicatorRect
+    #         rect: QRect = opt.rect
+
+    #         brush = QtGui.QBrush(QtGui.QColor(Qt.white))
+
+    #         if rect.height() == 0:
+    #             pen = QtGui.QPen(brush, 2, QtCore.Qt.SolidLine)
+    #             painter.setPen(pen)
+    #             painter.drawLine(rect.topLeft(), rect.topRight())
+    #         else:
+    #             pen = QtGui.QPen(brush, 2, QtCore.Qt.SolidLine)
+    #             painter.setPen(pen)
+    #             painter.drawRect(rect)
+
+    #         # painter.drawRect(rect.topLeft().y(), 0, 20, 20)
+    #         # logging.debug(f"paintDropIndicator x: {rect.topLeft().x() } y:{rect.topLeft().y()}")
 
 
 class LancamentosView(MyDialog):
@@ -302,6 +358,13 @@ class LancamentosView(MyDialog):
 
         return toolbar
 
+    def on_dropped_lancamento(self, prev_lancamento_id: int, next_lancamento_id: int):
+        if self.table.last_dragged_index:
+            moving_lancamento_id = self.table.last_dragged_index.siblingAtColumn(self.Columns.ID).data(Qt.UserRole)
+            self.model_lancamentos.update_seq_ordem_linha(moving_lancamento_id, prev_lancamento_id, next_lancamento_id)
+
+            self.load_model_only()
+
     def get_table(self) -> LancamentosTableView:
         """
         Retorna tabela com o seu layout
@@ -312,6 +375,7 @@ class LancamentosView(MyDialog):
         model.setHorizontalHeaderLabels([col["title"] for col in self.COLUMNS.values()])
 
         sortModel = LancamentoSortFilterProxyModel(self)
+        sortModel.dropped_lancamento.connect(self.on_dropped_lancamento)
         sortModel.setSourceModel(model)
         self.table.setModel(sortModel)
         self.table.setSortingEnabled(True)

@@ -20,5 +20,5 @@ class MyDialog(QDialog):
             self.on_close_signal.emit(self)
         super(MyDialog, self).keyPressEvent(event)
 
-    def closeEvent(self, event: QCloseEvent) -> None:
+    def closeEvent(self, _event: QCloseEvent) -> None:
         self.on_close_signal.emit(self)

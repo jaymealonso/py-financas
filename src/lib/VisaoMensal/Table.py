@@ -2,9 +2,11 @@
 
 from PyQt5 import QtGui
 from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtGui import QMouseEvent
 from PyQt5.QtWidgets import QTableView, QWidget, QHeaderView
 
 from lib.Genericos.log import logging
+from util.custom_table_delegates import IDLabelDelegate
 
 
 class FreezeTableWidget(QTableView):
@@ -12,9 +14,9 @@ class FreezeTableWidget(QTableView):
 
     def __init__(self, model):
         super(FreezeTableWidget, self).__init__()
-        # self.setModel(model)
         self.frozenTableView = QTableView(self)
-        # self.init()
+
+        # Events
         self.horizontalHeader().sectionResized.connect(self.updateSectionWidth)
         self.verticalHeader().sectionResized.connect(self.updateSectionHeight)
         self.frozenTableView.verticalScrollBar().valueChanged.connect(self.verticalScrollBar().setValue)
@@ -43,6 +45,8 @@ class FreezeTableWidget(QTableView):
         self.frozenTableView.setColumnWidth(0, self.columnWidth(0))
         self.frozenTableView.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.frozenTableView.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
+        self.frozenTableView.setItemDelegateForColumn(0, IDLabelDelegate(self.frozenTableView))
         self.frozenTableView.show()
         self.updateFrozenTableGeometry()
         self.setHorizontalScrollMode(self.ScrollPerPixel)
@@ -93,8 +97,9 @@ class VisaoGeralTableView(FreezeTableWidget):
     """Classe para a tabela de visão geral."""
 
     selection_released = pyqtSignal(list)
+    """Sinal emitido quando a seleção é liberada."""
 
-    def __init__(self, parent: QWidget | None = ...) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         # vars
         self.header_labels = None
@@ -114,7 +119,7 @@ class VisaoGeralTableView(FreezeTableWidget):
         ):
             self.on_selection_ended()
 
-    def mouseReleaseEvent(self, event: QtGui.QMouseEvent):
+    def mouseReleaseEvent(self, event: QMouseEvent | None = None):
         super(VisaoGeralTableView, self).mouseReleaseEvent(event)
         logging.debug("mouse release")
         self.on_selection_ended()

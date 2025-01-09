@@ -13,6 +13,7 @@ from model.db.db_orm import (
 from model.Conta import Conta
 from sqlalchemy.sql import text
 
+
 class Lancamentos:
     """
     Todos os lancamentos de uma conta
@@ -110,12 +111,12 @@ class Lancamentos:
     def _get_next_seq(self, data: datetime.date, conta_id: int) -> int:
         """Busca o próximo numero de sequencial para o mesma data + conta_id"""
 
-        sql = text('''
+        sql = text("""
             select coalesce(max(seq_ordem_linha), 0) + 1000 as next_no
 			  from lancamentos 
 			  where data = :data
 			    and conta_id = :conta_id
-         ''')
+         """)
         data: str = f"{data.isoformat()} 00:00:00.000000"
         with self.__db.engine.connect() as conn:
             value = conn.execute(sql, {"data": data, "conta_id": conta_id}).first()
@@ -142,12 +143,8 @@ class Lancamentos:
         Elimina lancamento com o ID enviado e relação com categorias
         """
         with Session(self.__db.engine) as session:
-            session.query(ORMLancCateg).filter(
-                ORMLancCateg.c.lancamento_id == lancamento_id
-            ).delete()
-            session.query(ORMLancamentos).filter(
-                ORMLancamentos.id == lancamento_id
-            ).delete()
+            session.query(ORMLancCateg).filter(ORMLancCateg.c.lancamento_id == lancamento_id).delete()
+            session.query(ORMLancamentos).filter(ORMLancamentos.id == lancamento_id).delete()
 
             session.commit()
 
@@ -170,50 +167,42 @@ class Lancamentos:
                 )
                 conn.execute(stmt_insert)
         else:
-            stmt_update = (
-                update(ORMLancamentos)
-                .where(ORMLancamentos.id == id)
-                .values({column_name: value})
-            )
+            stmt_update = update(ORMLancamentos).where(ORMLancamentos.id == id).values({column_name: value})
             conn.execute(stmt_update)
 
         trans.commit()
 
-    def get_middle_nr_seq(self, from_lanc_id: int, after_lanc_id: int) -> int:
-        FIRST_SEQ_ORDEM_LINHA = 1000
+    def update_seq_ordem_linha(self, moving_lanc_id: int, prev_lanc_id: int, next_lanc_id: int) -> None:
+        if not prev_lanc_id:
+            return
 
-        if not after_lanc_id:
-            return FIRST_SEQ_ORDEM_LINHA
-
-        sql = text('''
+        # Busca todos os registros com a mesma data do lancamento que está sendo movido
+        sql = text("""
             select l.* from lancamentos as l
 			inner join (
                 select data, conta_id from lancamentos where id = :lancamento_id
             )  as x on x.data = l.data and x.conta_id = l.conta_id
 			order by l.data, l.seq_ordem_linha 
-         ''')
+         """)
         with self.__db.engine.connect() as conn:
-            values = conn.execute(sql, {"lancamento_id": from_lanc_id}).all()
+            values = conn.execute(sql, {"lancamento_id": moving_lanc_id}).all()
 
-        index = next((index for index, value in enumerate(values) if value.id == from_lanc_id), 0)
+        index_moving = next((index for index, value in enumerate(values) if value.id == moving_lanc_id), 0)
+        index_prev = next((index for index, value in enumerate(values) if value.id == prev_lanc_id), 0)
 
-        current = values[index]
-        prev_rec = None
-        if index > 0:
-            prev_rec = values[index - 1]
-        if not prev_rec:
-            seq_middle = current.seq_ordem_linha / 2
-        else:
-            seq_middle = prev_rec.seq_ordem_linha + ( ( current.seq_ordem_linha - prev_rec.seq_ordem_linha ) / 2 )
+        values.insert(index_prev, values.pop(index_moving))
 
-        return seq_middle
-    
+        seq_ordem_linha = 0
+        for value in values:
+            seq_ordem_linha += 1000
+
+            self.update(value.id, "seq_ordem_linha", seq_ordem_linha)
+
     def get_next_nr_seq(self, data: datetime.date) -> int:
-
-        sql = text('''
+        sql = text("""
             select max( seq_ordem_linha ) from lancamentos 
               where data = :data
-        ''')
+        """)
         with self.__db.engine.connect() as conn:
             value = conn.execute(sql, {"data": data}).first()
             if not value:

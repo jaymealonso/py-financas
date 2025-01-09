@@ -12,3 +12,5 @@ config.ini
 .pytest_cache
 storage
 *.spec
+.mypy_cache
+.ruff_cache
