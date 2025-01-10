@@ -9,7 +9,7 @@ from argparse import ArgumentParser
 from PyQt5.QtWidgets import QApplication, QMessageBox, QSplashScreen
 from PyQt5.QtCore import QFile, QTextStream, QDir, Qt
 from view.main_window import MainWindow
-from model.db.db import Database
+from model import Database
 
 
 class MainApp:
@@ -22,17 +22,14 @@ class MainApp:
         self.args = self.arg_parser.parse_args()
         self.db: Database = None
         self.setup_theme(self.args.theme)
-        self.db = self.prepare_database(
-            drop=self.args.drop, populate_sample=self.args.sample
-        )
+        self.db = self.prepare_database(drop=self.args.drop, populate_sample=self.args.sample)
 
-    def prepare_database(
-        self, drop: bool = False, populate_sample: bool = False
-    ) -> Database:
+    def prepare_database(self, drop: bool = False, populate_sample: bool = False) -> Database:
         db = Database()
         if not db.exists():
-            QMessageBox.critical(None, 'Erro ao abrir base de dados',
-                'Arquivo escolhido como base de dados não é compativel.')
+            QMessageBox.critical(
+                None, "Erro ao abrir base de dados", "Arquivo escolhido como base de dados não é compativel."
+            )
             sys.exit(1)
         if drop:
             db.drop_all()
@@ -44,9 +41,7 @@ class MainApp:
         Configura argumentos de linha de comando
         """
         parser = ArgumentParser(description="Programa de finanças")
-        parser.add_argument(
-            "-D", "--drop", help="Elimina dados da base de dados.", action="store_true"
-        )
+        parser.add_argument("-D", "--drop", help="Elimina dados da base de dados.", action="store_true")
         parser.add_argument(
             "-s",
             "--sample",
@@ -80,8 +75,10 @@ class MainApp:
         self.window = MainWindow(self.app)
         self.window.show()
         if self.args.conta_id:
-            contas_vw:ContasView = self.window.tabbar.widget(0)
-            conta_indexes = contas_vw.table.model().findItems(str(self.args.conta_id), Qt.MatchExactly ,contas_vw.Column.ID)
+            contas_vw: ContasView = self.window.tabbar.widget(0)
+            conta_indexes = contas_vw.table.model().findItems(
+                str(self.args.conta_id), Qt.MatchExactly, contas_vw.Column.ID
+            )
             if conta_indexes:
                 conta_index = conta_indexes[0]
                 contas_vw.on_open_lancamentos(conta_index)
@@ -110,6 +107,7 @@ class MainApp:
 #     def close(self):
 #         self.splash.close()  # close the splash scre
 
+
 class SplashWindow:
     def show(self) -> QSplashScreen:
         pass
@@ -119,7 +117,8 @@ class SplashWindow:
         #         pyi_splash.close()
 
     def close(self):
-        if getattr(sys, 'frozen', False):
+        if getattr(sys, "frozen", False):
             with suppress(ModuleNotFoundError):
                 import pyi_splash  # noqa
+
                 pyi_splash.close()

@@ -1,11 +1,10 @@
 import csv
 from enum import IntEnum, StrEnum, auto
 import io
+from typing import cast
 from PyQt5 import QtCore
-from PyQt5 import QtWidgets
-from PyQt5.QtCore import QAbstractItemModel, QEvent, QItemSelectionModel, QModelIndex, QRect, Qt, pyqtSignal
-from PyQt5 import QtGui
-from PyQt5.QtGui import QCursor, QDragMoveEvent, QDropEvent, QKeySequence, QStandardItem, QStandardItemModel
+from PyQt5.QtCore import QAbstractItemModel, QEvent, QItemSelectionModel, QModelIndex, Qt, pyqtSignal
+from PyQt5.QtGui import QCursor, QDragMoveEvent, QKeySequence, QStandardItem, QStandardItemModel
 from PyQt5.QtWidgets import (
     QAbstractItemView,
     QAction,
@@ -28,11 +27,8 @@ from unidecode import unidecode
 
 import util.curr_formatter as curr
 from lib import LancamentoSortFilterProxyModel, CustomToolbar, logging, SearchInputView, FilterInputView, ExportExcel
-from model.Anexos import Anexos
-from model.Categoria import Categorias
-from model.Conta import Conta
-from model.Lancamento import Lancamentos
-from model.db.db_orm import Anexos as ORMAnexos, Lancamentos as ORMLancamentos
+from model import Anexos, Categorias, Conta, Lancamentos, ORMAnexos, ORMLancamentos
+
 from util import (
     QCurrencyLineEdit,
     ButtonDelegate,
@@ -107,27 +103,6 @@ class LancamentosTableView(QTableView):
 
         return super().startDrag(supportedActions)
 
-    def dropEvent(self, event: QDropEvent | None) -> None:
-        """Evento de soltar o item arrastado"""
-        # logging.debug("dropevent")
-
-        # selection = self.selectedIndexes()
-        # from_index = selection[0].row() if selection else -1
-
-        # globalPos = self.viewport().mapToGlobal(event.pos())
-        # header = self.verticalHeader()
-        # to_index = header.logicalIndexAt(header.mapFromGlobal(globalPos).y())
-
-        # logging.debug(f"from: {from_index} to: {to_index}")
-
-        # lancamento_id = self.model().index(from_index, 0).data(Qt.UserRole)
-        # next_lancamento_id = self.model().index(to_index, 0).data(Qt.UserRole)
-
-        # middle_nr = self.parent.model_lancamentos.get_middle_nr_seq(lancamento_id, next_lancamento_id)
-        # logging.debug(f"middle_nr: {middle_nr}")
-
-        return super().dropEvent(event)
-
     def dragMoveEvent(self, event: QDragMoveEvent | None) -> None:
         """Evento de mover o item arrastado"""
         IN_BETWEEN_POSITIONS = frozenset((QAbstractItemView.AboveItem, QAbstractItemView.BelowItem))
@@ -160,22 +135,14 @@ class LancamentosTableView(QTableView):
         if position in IN_BETWEEN_POSITIONS:
             if position == QAbstractItemView.BelowItem:
                 super(LancamentosTableView, self).dragMoveEvent(event)
-                # logging.debug(f"Accept event r:{index.row()} c: {index.column()}")
                 event.accept()
             else:
                 if index.row() == 0:
                     super(LancamentosTableView, self).dragMoveEvent(event)
-                    # logging.debug(f"Accept event r:{index.row()} c: {index.column()}")
                     event.accept()
 
             return
 
-        # if position == QAbstractItemView.OnViewport:
-        #     super(LancamentosTableView, self).dragMoveEvent(event)
-        #     event.accept()
-        #     return
-
-        # logging.debug(f"> Ignore event r:{index.row()} c: {index.column()}")
         event.ignore()
 
     def _get_position(
@@ -185,8 +152,6 @@ class LancamentosTableView(QTableView):
 
         output = QAbstractItemView.DropIndicatorPosition.OnViewport
         margin = 6
-
-        # half_widget_size = (widget_bounds.bottom() - widget_bounds.top()) / 2
 
         y_margin_top_start = widget_bounds.top()
         y_margin_top_end = widget_bounds.top() + margin
@@ -212,37 +177,6 @@ class LancamentosTableView(QTableView):
         )
 
         return output
-
-    # def paintEvent(self, event) -> None:
-    #     super().paintEvent(event)
-
-    #     painter = QtGui.QPainter(self.viewport())
-    #     # self.drawFrame(painter)
-    #     # painter.drawRect(0, 0, 20, 20)
-
-    #     # in original implementation, it calls an inline function paintDropIndicator here
-    #     self.paintDropIndicator(painter)
-
-    # def paintDropIndicator(self, painter: QtGui.QPainter) -> None:
-    #     if self.state() == QAbstractItemView.State.DraggingState:
-    #         opt = QtWidgets.QStyleOption()
-    #         opt.initFrom(self)
-    #         opt.rect = self.dropIndicatorRect
-    #         rect: QRect = opt.rect
-
-    #         brush = QtGui.QBrush(QtGui.QColor(Qt.white))
-
-    #         if rect.height() == 0:
-    #             pen = QtGui.QPen(brush, 2, QtCore.Qt.SolidLine)
-    #             painter.setPen(pen)
-    #             painter.drawLine(rect.topLeft(), rect.topRight())
-    #         else:
-    #             pen = QtGui.QPen(brush, 2, QtCore.Qt.SolidLine)
-    #             painter.setPen(pen)
-    #             painter.drawRect(rect)
-
-    #         # painter.drawRect(rect.topLeft().y(), 0, 20, 20)
-    #         # logging.debug(f"paintDropIndicator x: {rect.topLeft().x() } y:{rect.topLeft().y()}")
 
 
 class LancamentosView(MyDialog):
@@ -672,7 +606,7 @@ class LancamentosView(MyDialog):
 
     def recalculate_saldo_total(self):
         self.model_lancamentos.load()
-        filter_model: LancamentoSortFilterProxyModel = self.table.model()
+        filter_model: LancamentoSortFilterProxyModel = cast(LancamentoSortFilterProxyModel, self.table.model())
         model: QStandardItemModel = filter_model.sourceModel()
 
         saldo = 0

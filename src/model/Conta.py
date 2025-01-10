@@ -3,8 +3,7 @@ from dataclasses import dataclass
 from sqlalchemy import insert, update
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import text
-from model.db.db import Database
-from model.db.db_orm import ContasTipo as ORMContasTipo, Contas as ORMContas, Lancamentos as ORMLancamentos
+from model import Database, ORMContasTipo, ORMContas
 
 
 @dataclass
@@ -29,9 +28,7 @@ class ContasTipo:
         with Session(self.__db.engine) as session:
             contas_tipo = session.query(ORMContasTipo).all()
             for conta_tipo in contas_tipo:
-                self.__items.append(
-                    ContaTipo(id=conta_tipo.id, descricao=conta_tipo.descricao)
-                )
+                self.__items.append(ContaTipo(id=conta_tipo.id, descricao=conta_tipo.descricao))
 
 
 @dataclass
@@ -106,7 +103,6 @@ class Contas:
         session.commit()
 
     def delete(self, conta_id: str):
-
         sql = text("SELECT id FROM lancamentos WHERE conta_id = :conta_id")
         sql_delete_lc = text("DELETE FROM lancamentos_categorias WHERE lancamento_id = :lancamento_id")
         sql_delete = text("DELETE FROM lancamentos WHERE conta_id = :conta_id")
@@ -114,7 +110,7 @@ class Contas:
 
         with Session(self.__db.engine) as session:
             result = session.execute(sql, {"conta_id": conta_id}).all()
-            for (lancamento_id, ) in result:
+            for (lancamento_id,) in result:
                 session.execute(sql_delete_lc, {"lancamento_id": lancamento_id})
 
             session.execute(sql_delete, {"conta_id": conta_id})
@@ -125,9 +121,7 @@ class Contas:
 
     def update(self, conta_id: str, fieldname: str, value):
         session = Session(self.__db.engine)
-        session.execute(
-            update(ORMContas).where(ORMContas.id == conta_id).values({fieldname: value})
-        )
+        session.execute(update(ORMContas).where(ORMContas.id == conta_id).values({fieldname: value}))
         session.commit()
 
     def find_by_id(self, id: int) -> Conta:

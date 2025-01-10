@@ -15,9 +15,20 @@ import view.icons.icons as icons
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import ( QApplication, QComboBox, QHBoxLayout, QLabel, QLineEdit, QMessageBox, QProgressBar, 
-    QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget )
-from model.Categoria import Categorias as ORMCategorias
+from PyQt5.QtWidgets import (
+    QApplication,
+    QComboBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QProgressBar,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
+from model import ORMCategorias
 
 from lib.ImportacaoLanc.TableLine import ImportarLancamentosTableLine
 
@@ -31,10 +42,11 @@ class AbrirExcelErro(Exception):
 
 class NewLancamentoStatus(IntEnum):
     Nenhum = 0
-    Erro = auto() # impede registro de ser adicionado
-    Aviso = auto() # não impede registro de ser adicionado
-    Info = auto() # não impede registro de ser adicionado
-    Sucesso = auto() # depois de inserido apresenta este
+    Erro = auto()  # impede registro de ser adicionado
+    Aviso = auto()  # não impede registro de ser adicionado
+    Info = auto()  # não impede registro de ser adicionado
+    Sucesso = auto()  # depois de inserido apresenta este
+
 
 @dataclass
 class NewLancamento:
@@ -47,7 +59,7 @@ class NewLancamento:
     data: date
     valor: int
     categoria_id: int
-    
+
     row_index: int = field(default=0)
     message_status: NewLancamentoStatus = field(default=NewLancamentoStatus.Nenhum)
     message: str = field(default="")
@@ -64,11 +76,11 @@ class NewLancamento:
             return icons.status_ok()
         elif self.message_status == NewLancamentoStatus.Nenhum:
             return icons.status_not_exec()
-        elif self.message_status == NewLancamentoStatus.Erro :
+        elif self.message_status == NewLancamentoStatus.Erro:
             return icons.status_error()
-        elif self.message_status == NewLancamentoStatus.Info :
+        elif self.message_status == NewLancamentoStatus.Info:
             return icons.status_info()
-        elif self.message_status == NewLancamentoStatus.Aviso :
+        elif self.message_status == NewLancamentoStatus.Aviso:
             return icons.status_warning()
         else:
             return None
@@ -101,7 +113,7 @@ class FirstStepFrame(QWidget):
         toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
 
         btn_next = toolbar.addAction(icons.results_next(), "Próximo passo")
-        btn_next.triggered.connect( self.on_proximo_passo )
+        btn_next.triggered.connect(self.on_proximo_passo)
 
         btn_remove_line = toolbar.addAction(icons.delete(), "Remover linha(s)")
         btn_remove_line.triggered.connect(self.on_remove_lines)
@@ -109,34 +121,26 @@ class FirstStepFrame(QWidget):
         return toolbar
 
     def on_remove_lines(self) -> None:
-        unique_rows = list(
-            dict.fromkeys(
-                [x.row() for x in self.table.selectedIndexes() if x.row() > 0]
-            )
-        )
+        unique_rows = list(dict.fromkeys([x.row() for x in self.table.selectedIndexes() if x.row() > 0]))
         unique_rows.sort(reverse=True)
         for sel in unique_rows:
             self.table.removeRow(sel)
 
     def on_proximo_passo(self):
-        """ Envia linhas selecionadas para a proxima tabela de preview """
-        if len( self.table.selectedIndexes() ) == 0:
+        """Envia linhas selecionadas para a proxima tabela de preview"""
+        if len(self.table.selectedIndexes()) == 0:
             QMessageBox.critical(self, "Erro", "Favor selecionar ao menos uma linha.")
             return
-        
+
         mapping_cols = {}
         for col_index in range(self.table.columnCount()):
             column_combo: QComboBox = self.table.cellWidget(0, col_index)
             if column_combo.currentData() != "":
                 mapping_cols[column_combo.currentData()] = col_index
 
-        selected_row_indexes = list(
-            dict.fromkeys(
-                [x.row() for x in self.table.selectedIndexes() if x.row() > 0]
-            )
-        )
+        selected_row_indexes = list(dict.fromkeys([x.row() for x in self.table.selectedIndexes() if x.row() > 0]))
 
-        # carrega categorias todas as vezes pois alguma pode ter sido 
+        # carrega categorias todas as vezes pois alguma pode ter sido
         # adicionada por outro processo
         self.model_categoria.load()
 
@@ -165,14 +169,15 @@ class FirstStepFrame(QWidget):
                     new_lancamento.__setattr__(col, curr_value)
                 elif col == "categoria_id":
                     categ_value = next(
-                        (item.id for item in self.model_categoria.items if item.nm_categoria == cell_value), None)
+                        (item.id for item in self.model_categoria.items if item.nm_categoria == cell_value), None
+                    )
                     if not categ_value:
                         if cell_value != "":
-                            new_lancamento.message=f'Categoria com o nome "{cell_value}" não encontrada.'
+                            new_lancamento.message = f'Categoria com o nome "{cell_value}" não encontrada.'
                             new_lancamento.message_status = NewLancamentoStatus.Aviso
                             new_lancamento.new_categoria = cell_value
                         else:
-                            new_lancamento.message="Categoria vazia."
+                            new_lancamento.message = "Categoria vazia."
                             new_lancamento.message_status = NewLancamentoStatus.Aviso
 
                     new_lancamento.categoria_id = categ_value
@@ -180,7 +185,7 @@ class FirstStepFrame(QWidget):
                     new_lancamento.__setattr__(col, cell_value)
             if not new_lancamento.valid():
                 text = f"Erro ao adicionar linha {row_index + 1}. Devem ao menos existir atributos: data, valor e descricao"
-                new_lancamento.message=text
+                new_lancamento.message = text
                 new_lancamento.pode_inserir = False
                 new_lancamento.message_status = NewLancamentoStatus.Erro
                 logging.debug(text)
@@ -193,7 +198,7 @@ class FirstStepFrame(QWidget):
         # salva mapeamento das colunas
         self.settings.import_col_position = mapping_cols
 
-    def csv_to_table(self, file_name_fullpath:str):
+    def csv_to_table(self, file_name_fullpath: str):
         """
         Apos arquivo selecionado inicia o processamento e exibição das linhas na tabela
         """
@@ -241,7 +246,7 @@ class FirstStepFrame(QWidget):
         prog_bar.setRange(1, len(list(ws.rows)))
         self.layout().addWidget(prog_bar)
 
-        rowcount = 1 # starts at one because of the header line
+        rowcount = 1  # starts at one because of the header line
         for row in ws.rows:
             rowcount += 1
         self.table.setRowCount(rowcount)
@@ -285,9 +290,7 @@ class FirstStepFrame(QWidget):
         try:
             decimal_point = locale.localeconv()["decimal_point"]
             thousands_sep = locale.localeconv()["thousands_sep"]
-            curr_str = curr_str.replace(mil_separador, thousands_sep).replace(
-                dec_separador, decimal_point
-            )
+            curr_str = curr_str.replace(mil_separador, thousands_sep).replace(dec_separador, decimal_point)
             curr_int = str_curr_to_int(curr_str)
         except Exception as e:
             logging.debug(f"Erro importando valor em currency!, {e}")
@@ -303,24 +306,25 @@ class FirstStepFrame(QWidget):
             logging.debug("Erro importando valor em formato data!", e)
             date = None
 
-        return date        
+        return date
 
 
 class TableWidgetFirst(QTableWidget):
-    """ Primeira tabela do processo de importacao """
+    """Primeira tabela do processo de importacao"""
 
     def __init__(self, parent: QWidget):
         super(TableWidgetFirst, self).__init__(parent)
-        
+
         self.setColumnCount(0)
+
 
 class ConfigImportacaoBlock(QWidget):
     def __init__(self, parent: QWidget, settings: JanelaImportLancamentosSettings) -> None:
         super().__init__(parent)
-        
+
         # local vars
         self.settings = settings
-        self.decimal_separator:QLineEdit = None
+        self.decimal_separator: QLineEdit = None
         self.mil_separator: QLineEdit = None
         self.date_format: QLineEdit = None
 
@@ -332,19 +336,13 @@ class ConfigImportacaoBlock(QWidget):
     def config_inputs(self):
         self.decimal_separator = QLineEdit(self.settings.separador_decimal)
         self.decimal_separator.setObjectName("separador_decimal")
-        self.decimal_separator.editingFinished.connect(
-            lambda: self._on_change_params(self.decimal_separator)
-        )
+        self.decimal_separator.editingFinished.connect(lambda: self._on_change_params(self.decimal_separator))
         self.mil_separator = QLineEdit(self.settings.separador_milhar)
         self.mil_separator.setObjectName("separador_milhar")
-        self.mil_separator.editingFinished.connect(
-            lambda: self._on_change_params(self.mil_separator)
-        )
+        self.mil_separator.editingFinished.connect(lambda: self._on_change_params(self.mil_separator))
         self.date_format = QLineEdit(self.settings.formato_data)
         self.date_format.setObjectName("formato_data")
-        self.date_format.editingFinished.connect(
-            lambda: self._on_change_params(self.date_format)
-        )
+        self.date_format.editingFinished.connect(lambda: self._on_change_params(self.date_format))
 
     def config_layout(self) -> QHBoxLayout:
         layout = QHBoxLayout()
@@ -366,27 +364,3 @@ class ConfigImportacaoBlock(QWidget):
             self.settings.separador_milhar = source.text()
         elif source.objectName() == "formato_data":
             self.settings.formato_data = source.text()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

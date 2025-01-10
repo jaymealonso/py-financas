@@ -10,6 +10,7 @@ from model.db.db_orm import (
     association_lanc_categ,
 )
 
+
 class DataLoader:
     def __init__(self, engine: Engine) -> None:
         self.engine = engine
@@ -26,12 +27,11 @@ class DataLoader:
                 {"descricao": "Conta Corrente"},
                 {"descricao": "Poupança"},
                 {"descricao": "Cartão Crédito"},
-            ]
+            ],
         )
         session.commit()
 
     def __insert_categorias(self):
-
         session = Session(self.engine)
         session.execute(
             insert(Categorias),
@@ -63,7 +63,7 @@ class DataLoader:
                 {"nm_categoria": "Transporte"},
                 {"nm_categoria": "Água"},
                 {"nm_categoria": "Vestuário"},
-            ]
+            ],
         )
         session.commit()
 
@@ -73,10 +73,9 @@ class DataLoader:
         self.__insert_lanc_categoria()
 
     def __insert_contas(self):
-
         session = Session(self.engine)
         session.execute(
-            insert(Contas), 
+            insert(Contas),
             [
                 {
                     "descricao": "Itaú-CC",
@@ -107,7 +106,6 @@ class DataLoader:
         session.commit()
 
     def __insert_lancamentos(self):
-
         session = Session(self.engine)
         session.execute(
             insert(Lancamentos),
@@ -122,7 +120,7 @@ class DataLoader:
                 },
                 {
                     "conta_id": 1,
-                    "seq_ordem_linha": 2,                    
+                    "seq_ordem_linha": 2,
                     "nr_referencia": "334563",
                     "descricao": "Transf Port.",
                     "data": moment.date("2019-11-30").date,
@@ -130,7 +128,7 @@ class DataLoader:
                 },
                 {
                     "conta_id": 2,
-                    "seq_ordem_linha": 1,                    
+                    "seq_ordem_linha": 1,
                     "nr_referencia": "334562",
                     "descricao": "Salário",
                     "data": moment.date("2019-11-30").date,
@@ -147,7 +145,7 @@ class DataLoader:
                 },
                 {
                     "conta_id": 2,
-                    "seq_ordem_linha": 3,                    
+                    "seq_ordem_linha": 3,
                     "nr_referencia": "334564",
                     "descricao": "Comprar chiclete",
                     "data": moment.date("2019-11-30").date,
@@ -169,7 +167,7 @@ class DataLoader:
                     "data": moment.date("2019-12-02").date,
                     "valor": -36050,
                 },
-            ]
+            ],
         )
         session.commit()
 
@@ -180,6 +178,6 @@ class DataLoader:
             [
                 {"lancamento_id": 1, "categoria_id": 1},
                 {"lancamento_id": 2, "categoria_id": 1},
-            ]
+            ],
         )
         session.commit()

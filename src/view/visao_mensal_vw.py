@@ -13,8 +13,7 @@ from lib import ExportExcel
 import view.contas_vw as cv
 import view.icons.icons as icons
 from lib.VisaoMensal.TableLine import VisaoGeralViewLine
-from model.Conta import Conta
-from model.VisaoMensal import VisaoMensal
+from model import Conta, VisaoMensal
 from util.curr_formatter import str_curr_to_locale
 from view.lanc_vw import LancamentosView
 

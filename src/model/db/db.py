@@ -5,11 +5,12 @@ from PyQt5.QtWidgets import QMessageBox
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError, OperationalError, ObjectNotExecutableError
-
-from model.db.db_orm import Base
-from model.initial_load.initial_db_data import DataLoader
+from sqlalchemy.orm import declarative_base
+from model import DataLoader
 from util.settings import Settings
 from util.singleton_meta import SingletonMeta
+
+Base = declarative_base()
 
 
 class Database(metaclass=SingletonMeta):
@@ -61,7 +62,7 @@ class Database(metaclass=SingletonMeta):
         tem os metadados preenchidos
         """
         with self.engine.connect() as conn:
-            return self.engine.dialect.has_table(conn, 'contas_tipo')
+            return self.engine.dialect.has_table(conn, "contas_tipo")
 
     def run_initial_load(self, populate_sample: bool):
         startup = DataLoader(self.engine)

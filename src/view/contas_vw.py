@@ -26,7 +26,7 @@ from PyQt5.QtWidgets import (
     QTableView,
 )
 from lib import CustomToolbar
-from model.Conta import ContasTipo, Contas, Conta
+from model import ContasTipo, Contas, Conta, ORMLancamentos
 from util.custom_table_delegates import (
     ButtonDelegate,
     GenericInputDelegate,
@@ -34,7 +34,6 @@ from util.custom_table_delegates import (
     IDLabelDelegate,
     CurrencyLabelDelegate,
 )
-from model.db.db_orm import Lancamentos as ORMLancamentos
 
 
 class TEXTS(StrEnum):

@@ -3,8 +3,7 @@ from pathlib import Path
 import shutil
 from lib.Genericos.log import logging
 from typing import List
-from model.db.db import Database
-from model.db.db_orm import Anexos as ORMAnexos, Lancamentos as ORMLancamentos
+from model import Database, ORMAnexos, ORMLancamentos
 from sqlalchemy import insert
 from sqlalchemy.orm import Session
 from util.settings import get_root_path
@@ -31,25 +30,17 @@ class Anexos:
     def load(self) -> None:
         self.__items.clear()
         with Session(self.__db.engine) as session:
-            self.__items = (
-                session.query(ORMAnexos)
-                .filter(ORMAnexos.lancamento_id == self.lancamento_id)
-                .all()
-            )
+            self.__items = session.query(ORMAnexos).filter(ORMAnexos.lancamento_id == self.lancamento_id).all()
 
         # busca todos os arquivos até 3 dir abaixo do "storage" e associa
         # eles ao seus devidos registros recuperados da base de dados baseado no ID
         storage_dir = Path(get_root_path(paths=["storage"]))
         files = list(storage_dir.glob("*/*/*"))
         for anexo in self.__items:
-            caminho = next(
-                (file for file in files if file.name.split("_")[0] == anexo.id), ""
-            )
+            caminho = next((file for file in files if file.name.split("_")[0] == anexo.id), "")
             anexo.caminho = str(caminho)
 
-    def add_new(
-        self, id: str, descricao: str, nome_arquivo: str, lancamento_id: int
-    ) -> ORMAnexos:
+    def add_new(self, id: str, descricao: str, nome_arquivo: str, lancamento_id: int) -> ORMAnexos:
         """
         Adiciona novo anexo ao DB com os dados de entrada enviados
         e retorna o ID do novo anexo
@@ -83,9 +74,7 @@ class Anexos:
             for anexo in anexos:
                 self._move_arquivos_anexos(lancamento, anexo, new_data)
 
-    def _move_arquivos_anexos(
-        self, lancamento: ORMLancamentos, anexo: ORMAnexos, new_data: date
-    ):
+    def _move_arquivos_anexos(self, lancamento: ORMLancamentos, anexo: ORMAnexos, new_data: date):
         """Move arquivos anexos para novo diretorio se ano/mes for diferente"""
         origin_file = Path(
             get_root_path(

@@ -21,8 +21,7 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QCheckBox,
 )
-from model.db.db_orm import Lancamentos as ORMLancamentos, Anexos as ORMAnexos
-from model.Anexos import Anexos
+from model import ORMLancamentos, ORMAnexos, Anexos
 from util.settings import get_root_path
 
 
@@ -49,9 +48,7 @@ class AnexosView(QDialog):
 
         super(AnexosView, self).__init__(parent)
 
-        self.setWindowTitle(
-            f"Anexos - (Lancamento {lancamento.id} | {lancamento.descricao})"
-        )
+        self.setWindowTitle(f"Anexos - (Lancamento {lancamento.id} | {lancamento.descricao})")
         self.setMinimumSize(1200, 600)
         self.resize(1600, 600)
 
@@ -103,11 +100,7 @@ class AnexosView(QDialog):
         data = self.lancamento.data
 
         origin_file = Path(file_fullpath)
-        dest_dir = Path(
-            get_root_path(
-                paths=["storage", f"{data.year}", f"{data.year}.{data.month:0>2}"]
-            )
-        )
+        dest_dir = Path(get_root_path(paths=["storage", f"{data.year}", f"{data.year}.{data.month:0>2}"]))
         uuid = uuid4()
         dest_file = dest_dir / f"{uuid}_{origin_file.name}"
 

@@ -2,8 +2,7 @@ import logging
 from typing import List
 from sqlalchemy import func, insert, select, update
 from sqlalchemy.orm import Session
-from model.db.db import Database
-from model.db.db_orm import Categorias as ORMCategorias, Lancamentos as ORMLancamentos
+from model import Database, ORMCategorias, ORMLancamentos
 
 
 class Categorias:
@@ -57,11 +56,7 @@ class Categorias:
         return result.inserted_primary_key.id
 
     def update(self, categoria_id: int, fieldname: str, value):
-        stmt = (
-            update(ORMCategorias)
-                .where(ORMCategorias.id == categoria_id)
-                .values({fieldname: value})
-        )
+        stmt = update(ORMCategorias).where(ORMCategorias.id == categoria_id).values({fieldname: value})
 
         with self.__db.engine.connect() as conn:
             trans = conn.begin()
@@ -73,8 +68,6 @@ class Categorias:
         Elimina categoria com o ID enviado
         """
         with Session(self.__db.engine) as session:
-            session.query(ORMCategorias).filter(
-                ORMCategorias.id == categoria_id
-            ).delete()
+            session.query(ORMCategorias).filter(ORMCategorias.id == categoria_id).delete()
 
             session.commit()

@@ -4,13 +4,8 @@ import moment
 from typing import List
 from sqlalchemy import insert, update, delete, func, select
 from sqlalchemy.orm import Session, joinedload
-from model.db.db import Database
-from model.db.db_orm import (
-    Lancamentos as ORMLancamentos,
-    association_lanc_categ as ORMLancCateg,
-    Anexos as ORMAnexos,
-)
-from model.Conta import Conta
+from model import Database, Conta, ORMLancamentos, ORMLancCateg, ORMAnexos
+
 from sqlalchemy.sql import text
 
 
@@ -188,9 +183,12 @@ class Lancamentos:
             values = conn.execute(sql, {"lancamento_id": moving_lanc_id}).all()
 
         index_moving = next((index for index, value in enumerate(values) if value.id == moving_lanc_id), 0)
+
+        moving_record = values.pop(index_moving)
+
         index_prev = next((index for index, value in enumerate(values) if value.id == prev_lanc_id), 0)
 
-        values.insert(index_prev, values.pop(index_moving))
+        values.insert(index_prev + 1, moving_record)
 
         seq_ordem_linha = 0
         for value in values:

@@ -11,7 +11,8 @@ from lib import CustomToolbar
 import util.curr_formatter as curr
 from lib.ImportacaoLanc.FirstStep import NewLancamento
 import view.icons.icons as icons
-from model.Categoria import Categorias
+from model import Categorias
+
 
 class SecondStepFrame(QWidget):
     # list[NewLancamento]
@@ -30,13 +31,13 @@ class SecondStepFrame(QWidget):
         MESSAGE = auto()
 
     COLUMNS = {
-        Column.NR_REFERENCIA: { "title": "Número Ref.", "sql_colname": "nr_referencia", "col_width": 100 },
+        Column.NR_REFERENCIA: {"title": "Número Ref.", "sql_colname": "nr_referencia", "col_width": 100},
         Column.DESCRICAO: {"title": "Descrição", "sql_colname": "descricao", "col_width": 500},
         Column.DESCRICAO_USER: {"title": "Descrição Usuário", "sql_colname": "descricao_user", "col_width": 100},
         Column.DATA: {"title": "Data", "sql_colname": "data", "col_width": 160},
         Column.CATEGORIA_ID: {"title": "Categorias", "sql_colname": "categoria_id", "col_width": 260},
         Column.VALOR: {"title": "Valor", "sql_colname": "valor", "col_width": 160},
-        Column.NEW_ID: {"title": "Novo ID", "sql_colname": "id", "col_width": 90 },
+        Column.NEW_ID: {"title": "Novo ID", "sql_colname": "id", "col_width": 90},
         Column.MESSAGE: {"title": "Mensagem de importação", "sql_colname": "valor", "col_width": 600},
     }
 
@@ -57,7 +58,7 @@ class SecondStepFrame(QWidget):
 
         # model
         self.model_categorias = Categorias()
-        self.model_categorias.load()        
+        self.model_categorias.load()
 
         parent.importacao_finalizada.connect(self.set_linhas)
 
@@ -66,17 +67,17 @@ class SecondStepFrame(QWidget):
         toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
 
         btn_previous = toolbar.addAction(icons.results_prev(), "Passo anterior")
-        btn_previous.triggered.connect( self.passo_anterior.emit )
+        btn_previous.triggered.connect(self.passo_anterior.emit)
 
         btn_criar_categ = toolbar.addAction(icons.add(), "Criar categorias")
-        btn_criar_categ.triggered.connect( self.on_criar_categorias )
+        btn_criar_categ.triggered.connect(self.on_criar_categorias)
 
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         toolbar.addWidget(spacer)
 
         btn_import_lanc = toolbar.addAction(icons.excel_imports(), "Importar linhas")
-        btn_import_lanc.triggered.connect( self.on_import_linhas )
+        btn_import_lanc.triggered.connect(self.on_import_linhas)
 
         return toolbar
 
@@ -94,7 +95,7 @@ class SecondStepFrame(QWidget):
         self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
 
         return self.table
-    
+
     def load_table_data(self):
         # reset sort order
         self.table.sortByColumn(-1, Qt.AscendingOrder)
@@ -103,10 +104,10 @@ class SecondStepFrame(QWidget):
         self.set_column_default_sizes()
 
     def load_model_only(self):
-        model:QStandardItemModel = self.table.model()
+        model: QStandardItemModel = self.table.model()
         model.setRowCount(len(self.linhas))
         vertical_col_indexes = []
-        for (new_index, row) in enumerate(self.linhas):
+        for new_index, row in enumerate(self.linhas):
             vertical_col_indexes.append(str(row.row_index))
             model.setItemData(
                 model.index(new_index, self.Column.NR_REFERENCIA),
@@ -121,18 +122,20 @@ class SecondStepFrame(QWidget):
                 {Qt.DisplayRole: row.descricao_user, Qt.UserRole: row.descricao_user},
             )
             try:
-                data = row.data.strftime("%x")                
+                data = row.data.strftime("%x")
             except:  # noqa: E722
                 data = "Inválida"
             model.setItemData(
                 model.index(new_index, self.Column.DATA),
                 {Qt.DisplayRole: data, Qt.UserRole: row.data},
             )
-            nm_categoria = next((x.nm_categoria for x in self.model_categorias.items 
-                if x.id == row.categoria_id), "Erro: Categoria não encontrada")
+            nm_categoria = next(
+                (x.nm_categoria for x in self.model_categorias.items if x.id == row.categoria_id),
+                "Erro: Categoria não encontrada",
+            )
             model.setItemData(
                 model.index(new_index, self.Column.CATEGORIA_ID),
-                { Qt.DisplayRole: nm_categoria },
+                {Qt.DisplayRole: nm_categoria},
             )
             model.setItemData(
                 model.index(new_index, self.Column.VALOR),
@@ -144,13 +147,11 @@ class SecondStepFrame(QWidget):
 
             model.setItemData(
                 model.index(new_index, self.Column.NEW_ID),
-                { Qt.DisplayRole: row.id },
+                {Qt.DisplayRole: row.id},
             )
             model.setItemData(
-                model.index(new_index, self.Column.MESSAGE), { 
-                    Qt.DisplayRole: row.message,
-                    Qt.DecorationRole: row.icon
-                },
+                model.index(new_index, self.Column.MESSAGE),
+                {Qt.DisplayRole: row.message, Qt.DecorationRole: row.icon},
             )
 
         model.setVerticalHeaderLabels(vertical_col_indexes)
@@ -170,7 +171,7 @@ class SecondStepFrame(QWidget):
 
     def on_criar_categorias(self):
         """Chama popup de criação de categorias"""
-        
+
         values = set()
         linha: NewLancamento = None
         for linha in self.linhas:
@@ -179,7 +180,7 @@ class SecondStepFrame(QWidget):
         if len(values) == 0:
             QMessageBox.critical(self, "Erro", "Nenhuma categoria nova detectada.")
             return
-        
+
         popup = AddCategoriasPopup(self, values)
         popup.categ_created.connect(self.passo_anterior.emit)
         popup.open()

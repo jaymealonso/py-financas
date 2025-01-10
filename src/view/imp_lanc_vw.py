@@ -13,18 +13,25 @@ from PyQt5.QtWidgets import (
 )
 
 from lib.Genericos.log import logging
-from lib.ImportacaoLanc.FirstStep import AbrirExcelErro, ConfigImportacaoBlock, FirstStepFrame, NewLancamento, NewLancamentoStatus
+from lib.ImportacaoLanc.FirstStep import (
+    AbrirExcelErro,
+    ConfigImportacaoBlock,
+    FirstStepFrame,
+    NewLancamento,
+    NewLancamentoStatus,
+)
 from lib.ImportacaoLanc.SecondStep import SecondStepFrame
 from lib import CustomToolbar
-from model.Conta import Conta
-from model.Lancamento import Lancamentos as ORMLancamentos
+from model import Conta, ORMLancamentos
 from util.my_dialog import MyDialog
 from util.settings import JanelaImportLancamentosSettings, Settings
 from util.toaster import QToaster
 import view.icons.icons as icons
 
+
 class ImportarLancamentosView(MyDialog):
-    """ Janela principal de importacao de lancamentos"""
+    """Janela principal de importacao de lancamentos"""
+
     # list[NewLancamento]
     importacao_finalizada = pyqtSignal(list)
 
@@ -33,8 +40,7 @@ class ImportarLancamentosView(MyDialog):
 
         self.conta_dc = conta_dc
         self.global_settings = Settings()
-        self.settings: JanelaImportLancamentosSettings = \
-            self.global_settings.load_impo_lanc_settings(self.conta_dc.id)
+        self.settings: JanelaImportLancamentosSettings = self.global_settings.load_impo_lanc_settings(self.conta_dc.id)
 
         self.btn_procurar = QPushButton("Importar")
         self.first_table_frame = FirstStepFrame(self, self.settings)
@@ -48,9 +54,7 @@ class ImportarLancamentosView(MyDialog):
         self.file_path = QLineEdit()
 
         self.setWindowModality(Qt.ApplicationModal)
-        self.setWindowTitle(
-            f"Importar Lançamentos - (Conta {conta_dc.id} | {conta_dc.descricao})"
-        )
+        self.setWindowTitle(f"Importar Lançamentos - (Conta {conta_dc.id} | {conta_dc.descricao})")
         self.restore_geometry()
         self.on_close_signal.connect(self.on_close)
 
@@ -96,7 +100,7 @@ class ImportarLancamentosView(MyDialog):
         layout.addWidget(self.btn_procurar)
         self.btn_procurar.clicked.connect(self.processar_arquivo)
 
-        container =  QWidget()
+        container = QWidget()
         container.setLayout(layout)
         return container
 
@@ -126,7 +130,7 @@ class ImportarLancamentosView(MyDialog):
                 QMessageBox.Ok,
             ).exec_()
 
-    def on_importar_clicked(self, linhas:list[NewLancamento]) -> None:
+    def on_importar_clicked(self, linhas: list[NewLancamento]) -> None:
         created_lines = 0
         for new_lancamento in linhas:
             if not new_lancamento.pode_inserir:
@@ -153,19 +157,18 @@ class ImportarLancamentosView(MyDialog):
                 new_lancamento.message = "Erro ao importar linha."
                 new_lancamento.message_status = NewLancamentoStatus.Erro
                 new_lancamento.pode_inserir = False
-                                
+
             # atualiza relação entre o lancamento e categoria
             if new_lancamento.categoria_id:
-                self.model_lancamentos.update(new_lancamento_id, 'categoria_id', new_lancamento.categoria_id)
+                self.model_lancamentos.update(new_lancamento_id, "categoria_id", new_lancamento.categoria_id)
 
         QToaster.showMessage(
             self,
-            f"Foram criados { created_lines } novos lançamentos." if created_lines > 0
-                else "Não foram criados lançamentos.",
+            f"Foram criados { created_lines } novos lançamentos."
+            if created_lines > 0
+            else "Não foram criados lançamentos.",
             closable=False,
             timeout=2000,
             corner=Qt.BottomRightCorner,
-        )                
+        )
         self.importacao_finalizada.emit(linhas)
-
-

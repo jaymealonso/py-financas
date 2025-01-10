@@ -1,11 +1,22 @@
 #!
 
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import QCheckBox, QDialog, QGridLayout, QHBoxLayout, QMessageBox, QPushButton, QScrollArea, QSizePolicy, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import (
+    QCheckBox,
+    QDialog,
+    QGridLayout,
+    QHBoxLayout,
+    QMessageBox,
+    QPushButton,
+    QScrollArea,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 import view.icons.icons as icons
 from lib import CustomToolbar
-from model.Categoria import Categorias
-from model.db.db_orm import Categorias as ORMCategorias
+from model import Categorias, ORMCategorias
+
 
 class AddCategoriasPopup(QDialog):
     categ_created = pyqtSignal()
@@ -36,7 +47,7 @@ class AddCategoriasPopup(QDialog):
         toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
 
         btn_sele_all = toolbar.addAction(icons.select_all(), "Marca todos")
-        btn_sele_all.triggered.connect( self.on_marca_todos )
+        btn_sele_all.triggered.connect(self.on_marca_todos)
 
         btn_dsel_all = toolbar.addAction(icons.deselect_all(), "Desmarca todos")
         btn_dsel_all.triggered.connect(self.on_desmarca_todos)
@@ -44,12 +55,12 @@ class AddCategoriasPopup(QDialog):
         return toolbar
 
     def on_marca_todos(self):
-        check:QCheckBox = None
+        check: QCheckBox = None
         for check in self.checkboxes:
             check.setChecked(True)
 
     def on_desmarca_todos(self):
-        check:QCheckBox = None
+        check: QCheckBox = None
         for check in self.checkboxes:
             check.setChecked(False)
 
@@ -82,7 +93,7 @@ class AddCategoriasPopup(QDialog):
         hbox.addWidget(btn_fechar)
         actionbar.setLayout(hbox)
         return actionbar
-    
+
     def on_criar(self):
         check: QCheckBox = None
         created_count = 0
@@ -95,4 +106,3 @@ class AddCategoriasPopup(QDialog):
             QMessageBox.information(self, "Sucesso", f"{ created_count } categorias criadas.")
             self.categ_created.emit()
             self.close()
-

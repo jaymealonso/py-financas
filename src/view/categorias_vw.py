@@ -18,7 +18,7 @@ from PyQt5.QtWidgets import (
     QMessageBox,
 )
 from lib import CustomToolbar
-from model.Categoria import Categorias
+from model import Categorias
 
 
 class Column(IntEnum):
