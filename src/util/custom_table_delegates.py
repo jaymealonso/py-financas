@@ -20,9 +20,10 @@ from PyQt5.QtWidgets import (
     QDateEdit,
     QStyledItemDelegate,
     QStyleOptionViewItem,
-    QCompleter, QPushButton,
+    QCompleter,
+    QPushButton,
 )
-from util.currency_editor import QCurrencyLineEdit
+from util import QCurrencyLineEdit
 
 locale.setlocale(locale.LC_ALL, "pt_BR.utf8")
 
@@ -38,7 +39,7 @@ class ComboBoxWithSearch(QComboBox):
         self.setEditable(True)
         model = QStringListModel(self.items)
         self.setModel(model)
-        self.completer:QCompleter = QCompleter(self.model(), self)
+        self.completer: QCompleter = QCompleter(self.model(), self)
         self.completer.setFilterMode(Qt.MatchFlag.MatchContains)
         self.completer.setCaseSensitivity(Qt.CaseInsensitive)
         self.setCompleter(self.completer)
@@ -49,10 +50,10 @@ class ButtonDelegate(QStyledItemDelegate):
     def __init__(self, parent_table: QTableView, button: QPushButton, pressed_event: Callable[[QModelIndex], None]):
         super(ButtonDelegate, self).__init__(parent_table)
         self.parent_table = parent_table
-        self.button:QPushButton = button
+        self.button: QPushButton = button
         self.pressed_index: QModelIndex = Null
         self.pressed_event = pressed_event
-    
+
     def updateEditorGeometry(self, editor, option, index):
         editor.setGeometry(option.rect)
 
@@ -90,7 +91,6 @@ class ButtonDelegate(QStyledItemDelegate):
         return size
 
     def paint(self, painter, option: QStyleOptionViewItem, index: QModelIndex):
-
         try:
             text = index.data(Qt.UserRole)
             if text:
@@ -106,21 +106,20 @@ class ButtonDelegate(QStyledItemDelegate):
             option.rect.left() + int(spacing / 2),
             option.rect.top() + int(spacing / 2),
             option.rect.width() - spacing,
-            option.rect.height() - spacing
+            option.rect.height() - spacing,
         )
 
         option = QStyleOptionButton()
         option.initFrom(self.button)
-        option.rect = copy.deepcopy( self.rect_button )
+        option.rect = copy.deepcopy(self.rect_button)
 
         if self.pressed_index == index:
             option.state = QtWidgets.QStyle.State_Sunken
 
-        self.button.style().drawControl(QtWidgets.QStyle.CE_PushButton, 
-            option, painter, self.button)
+        self.button.style().drawControl(QtWidgets.QStyle.CE_PushButton, option, painter, self.button)
         btn_icon = self.button.icon().pixmap(24, 24)
-        
-        target_rect:QRect = copy.deepcopy( option.rect )
+
+        target_rect: QRect = copy.deepcopy(option.rect)
         target_rect.setX(option.rect.x() + int(option.rect.width() / 2) - int(btn_icon.rect().width() / 2))
         target_rect.setY(option.rect.y() + int(option.rect.height() / 2) - int(btn_icon.rect().height() / 2))
 
@@ -134,14 +133,14 @@ class ButtonDelegate(QStyledItemDelegate):
             target_rect.setX(target_rect.x() - 16)
             target_rect.setWidth(btn_icon.width())
 
-            text_rect = copy.deepcopy( self.rect_button )
+            text_rect = copy.deepcopy(self.rect_button)
 
             text_rect.setX(option.rect.x() + int(option.rect.width() / 2) - 20)
             if self.pressed_index == index:
                 text_rect.setY(self.rect_button.y() + 5)
             else:
                 text_rect.setY(self.rect_button.y() + 8)
-            
+
             # FOR TESTING
             # background_brush = QBrush( QColor(255,0,0), Qt.SolidPattern)
             # painter.fillRect(text_rect, background_brush)
@@ -155,8 +154,8 @@ class ButtonDelegate(QStyledItemDelegate):
         painter.drawPixmap(target_rect, btn_icon, QRect(0, 0, 0, 0))
         painter.restore()
 
-def rect_intersect_cursor(rect: QRect, table: QTableView): 
 
+def rect_intersect_cursor(rect: QRect, table: QTableView):
     pos = table.viewport().mapFromGlobal(QCursor.pos())
 
     tl = rect.topLeft()
@@ -167,12 +166,10 @@ def rect_intersect_cursor(rect: QRect, table: QTableView):
     x1 = br.x()
     y1 = br.y()
 
-    intersect = \
-        pos.x() > x0 and pos.x() < x1 and \
-        pos.y() > y0 and pos.y() < y1
-    
+    intersect = pos.x() > x0 and pos.x() < x1 and pos.y() > y0 and pos.y() < y1
+
     return intersect
-    
+
 
 class ButtonTimer:
     def __init__(self, parent: ButtonDelegate) -> None:
@@ -192,9 +189,8 @@ class ButtonTimer:
     def check_status(self):
         self.run_counter += 1
 
-        intersect = \
-            rect_intersect_cursor(self.brect, self.parent_delegate.parent_table)
-        
+        intersect = rect_intersect_cursor(self.brect, self.parent_delegate.parent_table)
+
         if self.run_counter > 20 or not intersect:
             self.parent_delegate.pressed_index = Null
             self.timer.stop()
@@ -220,7 +216,7 @@ class IDLabelDelegate(QStyledItemDelegate):
         text = ""
         try:
             text = index.data(Qt.UserRole)
-            font = (index.data(Qt.FontRole) or QFont())
+            font = index.data(Qt.FontRole) or QFont()
         except Exception as e:
             logging.error(f"IDLabelDelegate Exception {e}")
 
@@ -255,8 +251,8 @@ class CurrencyLabelDelegate(QStyledItemDelegate):
         value = 0
         try:
             value = index.data(Qt.UserRole)
-            text  = index.data(Qt.DisplayRole)
-            font  = index.data(Qt.FontRole) or QFont()
+            text = index.data(Qt.DisplayRole)
+            font = index.data(Qt.FontRole) or QFont()
             if value is None or text is None or font is None:
                 return
         except Exception as e:
@@ -297,9 +293,7 @@ class CurrencyEditDelegate(EmitterItemDelegade):
         self.parent_table = parent_table
 
     def createEditor(self, widget, option, index: QModelIndex):
-        logging.debug(
-            f"Create Currency Editor, row: {index.row()}, col: {index.column()}"
-        )
+        logging.debug(f"Create Currency Editor, row: {index.row()}, col: {index.column()}")
         value = index.data(Qt.UserRole)
         curr_edit = QCurrencyLineEdit(widget, value)
         return curr_edit
@@ -310,17 +304,13 @@ class CurrencyEditDelegate(EmitterItemDelegade):
         logging.debug(f"setEditorData {index.row()}/{index.column()} = ???")
 
     def setModelData(self, editor: QCurrencyLineEdit, model, index):
-        logging.debug(
-            f"Before setModelData {index.row()}/{index.column()} = int {editor.text()}"
-        )
+        logging.debug(f"Before setModelData {index.row()}/{index.column()} = int {editor.text()}")
         value_int: int = editor.valueAsInt()
         value_str: str = curr.str_curr_to_locale(value_int)
         model.setData(index, value_int, Qt.UserRole)
         model.setData(index, value_str, Qt.DisplayRole)
 
-        logging.debug(
-            f"After setModelData {index.row()}/{index.column()} = int {editor.text()}"
-        )
+        logging.debug(f"After setModelData {index.row()}/{index.column()} = int {editor.text()}")
         self.changed.emit(index, editor)
 
     def updateEditorGeometry(self, editor, option, index):
@@ -328,7 +318,7 @@ class CurrencyEditDelegate(EmitterItemDelegade):
 
     def paint(self, painter, option: QStyleOptionViewItem, index: QModelIndex):
         try:
-            value = index.data(Qt.UserRole) 
+            value = index.data(Qt.UserRole)
             text = index.data(Qt.DisplayRole)
         except Exception as e:
             logging.error(f"CurrencyEditDelegate Exception {e}")
@@ -381,26 +371,26 @@ class ComboBoxDelegate(EmitterItemDelegade):
         #    self.last_edit_trigger == QTableView.EditTrigger.AnyKeyPressed:
         #     logging.debug("show popup!")
         #     editor.showPopup()
-        # else: 
+        # else:
         #     editor.lineEdit().selectAll()
         #     logging.debug("does not show popup!")
         editor.lineEdit().selectAll()
-
 
     def setModelData(self, editor: ComboBoxWithSearch, model, index: QModelIndex):
         """Na finalização envia os dados de volta para o modelo"""
         logging.debug("ComboBoxDelegate->setModelData")
         tipo_id_combo_index = editor.findText(editor.lineEdit().text())
-        if tipo_id_combo_index is None or tipo_id_combo_index == -1 or tipo_id_combo_index >= len( editor.items ):
+        if tipo_id_combo_index is None or tipo_id_combo_index == -1 or tipo_id_combo_index >= len(editor.items):
             logging.debug(f"tipo_id vazio! index: { tipo_id_combo_index }")
             return
         tipo_id = list(self.key_values.keys())[tipo_id_combo_index]
-            
-        model.setItemData(index,
+
+        model.setItemData(
+            index,
             {
                 Qt.DisplayRole: self.key_values.get(tipo_id),
                 Qt.UserRole: tipo_id or -1,
-                Qt.AccessibleTextRole: unidecode(self.key_values.get(tipo_id))
+                Qt.AccessibleTextRole: unidecode(self.key_values.get(tipo_id)),
             },
         )
         self.changed.emit(index, editor)
@@ -430,7 +420,7 @@ class DateEditDelegate(EmitterItemDelegade):
 
     def createEditor(self, widget, option, index: QModelIndex):
         try:
-            value = index.data(Qt.UserRole) # self.model.itemData(index)[Qt.UserRole]
+            value = index.data(Qt.UserRole)  # self.model.itemData(index)[Qt.UserRole]
         except Exception as e:
             logging.debug(f"sem data, erro: {e}")
             value = datetime.date.today()
@@ -459,7 +449,7 @@ class DateEditDelegate(EmitterItemDelegade):
     def paint(self, painter, option, index: QModelIndex):
         text = ""
         try:
-            text = index.data(Qt.DisplayRole) # self.model.itemData(index)[Qt.DisplayRole]
+            text = index.data(Qt.DisplayRole)  # self.model.itemData(index)[Qt.DisplayRole]
         except Exception as e:
             logging.error(f"DateEditDelegate Exception {e}")
 

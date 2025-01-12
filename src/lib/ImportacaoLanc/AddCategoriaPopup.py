@@ -6,13 +6,13 @@ from PyQt5.QtWidgets import (
     QDialog,
     QGridLayout,
     QHBoxLayout,
-    QMessageBox,
     QPushButton,
     QScrollArea,
     QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
+from lib.Genericos.QMessageHelper import MyMessagePopup
 import view.icons.icons as icons
 from lib import CustomToolbar
 from model import Categorias, ORMCategorias
@@ -103,6 +103,6 @@ class AddCategoriasPopup(QDialog):
                 created_count += 1
 
         if created_count > 0:
-            QMessageBox.information(self, "Sucesso", f"{ created_count } categorias criadas.")
+            MyMessagePopup(self).info(f"{ created_count } categorias criadas.")
             self.categ_created.emit()
             self.close()

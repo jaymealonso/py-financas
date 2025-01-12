@@ -1,12 +1,10 @@
 import csv
-from enum import IntEnum, StrEnum, auto
+from enum import StrEnum
 import io
 from typing import cast
-from PyQt5 import QtCore
-from PyQt5.QtCore import QAbstractItemModel, QEvent, QItemSelectionModel, QModelIndex, Qt, pyqtSignal
-from PyQt5.QtGui import QCursor, QDragMoveEvent, QKeySequence, QStandardItem, QStandardItemModel
+from PyQt5.QtCore import QAbstractItemModel, QItemSelectionModel, QModelIndex, Qt, pyqtSignal
+from PyQt5.QtGui import QCursor, QKeySequence, QStandardItem, QStandardItemModel, QKeyEvent
 from PyQt5.QtWidgets import (
-    QAbstractItemView,
     QAction,
     QApplication,
     QCheckBox,
@@ -22,11 +20,19 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from sqlalchemy import Boolean
 from unidecode import unidecode
 
 import util.curr_formatter as curr
-from lib import LancamentoSortFilterProxyModel, CustomToolbar, logging, SearchInputView, FilterInputView, ExportExcel
+from lib import (
+    MyMessagePopup,
+    CustomToolbar,
+    logging,
+    SearchInputView,
+    FilterInputView,
+    ExportExcel,
+    LancamentoSortFilterProxyModel,
+)
+from lib.Lancamentos import LancamentosTableColumns, CIndex
 from model import Anexos, Categorias, Conta, Lancamentos, ORMAnexos, ORMLancamentos
 
 from util import (
@@ -39,8 +45,10 @@ from util import (
     GenericInputDelegate,
     IDLabelDelegate,
     MyDialog,
+    JanelaLancamentosSettings,
+    Settings,
 )
-from util.settings import JanelaLancamentosSettings, Settings
+
 from util.toaster import QToaster
 import view.contas_vw as cv
 import view.icons.icons as icons
@@ -68,115 +76,10 @@ class TEXTS(StrEnum):
     DESEJA_REMOVER = "Deseja remover o lançamento {0} ?"
     NOVO_LANC_ADICIONADO = "Novo lançamento adicionado."
     DESEJA_REM_LANCS = "Deseja remover {0} lançamentos ?"
-    ERRO = "Erro"
     SELEC_UMA_LINHA = "Selecionar ao menos uma linha."
     NAO_EXISTE_CATEGORIA = "Não existe categoria com o nome {0}."
     EXPORTAR_PLANILHA = "Exportar planilha"
     EXPORTAR_PREFIXO = "Lançamentos"
-
-
-class LancamentosTableView(QTableView):
-    """Tabela de lançamentos. Implementacao de funcionalidade de arrastar e soltar"""
-
-    def __init__(self, parent: QWidget) -> None:
-        super(LancamentosTableView, self).__init__(parent)
-        self.parent: QWidget = parent
-        self.setDragEnabled(True)
-        viewport = self.viewport()
-        if viewport:
-            viewport.setAcceptDrops(False)
-        self.setDropIndicatorShown(True)
-        self.setDragDropOverwriteMode(False)
-
-        self.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
-
-        self.setDefaultDropAction(Qt.DropAction.IgnoreAction)
-
-        self.dropIndicatorRect = QtCore.QRect()
-
-    def startDrag(self, supportedActions: Qt.DropActions | Qt.DropAction) -> None:
-        """Inicia o processo de arrastar e soltar"""
-
-        self.last_dragged_index = None
-        if len(self.selectedIndexes()) >= 1:
-            self.last_dragged_index = self.selectedIndexes()[0]
-
-        return super().startDrag(supportedActions)
-
-    def dragMoveEvent(self, event: QDragMoveEvent | None) -> None:
-        """Evento de mover o item arrastado"""
-        IN_BETWEEN_POSITIONS = frozenset((QAbstractItemView.AboveItem, QAbstractItemView.BelowItem))
-
-        if event is None:
-            return
-        mouseover_widget: LancamentosTableView = event.source()
-        if mouseover_widget is None:
-            return
-
-        if mouseover_widget != self:
-            # Forbid dropping any external data to this widget
-            logging.debug("Ignore event - fora do componente")
-            event.ignore()
-
-            return
-
-        index = mouseover_widget.indexAt(event.pos())
-        logging.debug(f"dragMoveEvent r:{index.row()} c: {index.column()}")
-        position = self._get_position(event.pos(), self.visualRect(index))
-
-        dragged_date = self.last_dragged_index.siblingAtColumn(LancamentosView.Columns.DATA).data(Qt.UserRole)
-        dropping_date = index.siblingAtColumn(LancamentosView.Columns.DATA).data(Qt.UserRole)
-        if dragged_date != dropping_date:
-            # logging.debug(f"Evento ignorado datas diferentes r:{index.row()} c: {index.column()}")
-            event.ignore()
-
-            return
-
-        if position in IN_BETWEEN_POSITIONS:
-            if position == QAbstractItemView.BelowItem:
-                super(LancamentosTableView, self).dragMoveEvent(event)
-                event.accept()
-            else:
-                if index.row() == 0:
-                    super(LancamentosTableView, self).dragMoveEvent(event)
-                    event.accept()
-
-            return
-
-        event.ignore()
-
-    def _get_position(
-        self, mouse_position: QtCore.QPoint, widget_bounds: QtCore.QRect
-    ) -> QAbstractItemView.DropIndicatorPosition:
-        """Calcula a posição do mouse em relação ao widget"""
-
-        output = QAbstractItemView.DropIndicatorPosition.OnViewport
-        margin = 6
-
-        y_margin_top_start = widget_bounds.top()
-        y_margin_top_end = widget_bounds.top() + margin
-
-        y_margin_bottom_start = widget_bounds.bottom() - margin
-        y_margin_bottom_end = widget_bounds.bottom()
-
-        position_txt = "***Onviewport***"
-        if mouse_position.y() > y_margin_top_start and \
-           mouse_position.y() < y_margin_top_end :  # fmt: skip
-            position_txt = "Above***"
-            output = QAbstractItemView.DropIndicatorPosition.AboveItem
-
-        if mouse_position.y() > y_margin_bottom_start and \
-           mouse_position.y() < y_margin_bottom_end:  # fmt: skip
-            position_txt = "***Below"
-            output = QAbstractItemView.DropIndicatorPosition.BelowItem
-
-        logging.debug(
-            f"""{position_txt} => y: {mouse_position.y()} 
-                y_margin_top_start: {y_margin_top_start} y_margin_top_end: {y_margin_top_end}
-                y_margin_bottom_start: {y_margin_bottom_start} y_margin_bottom_end: {y_margin_bottom_end}"""
-        )
-
-        return output
 
 
 class LancamentosView(MyDialog):
@@ -189,45 +92,18 @@ class LancamentosView(MyDialog):
 
     records_added = pyqtSignal()
 
-    class Columns(IntEnum):
-        ID = 0
-        SEQ_ORDEM_LINHA = auto()
-        NR_REFERENCIA = auto()
-        DESCRICAO = auto()
-        DESCRICAO_USER = auto()
-        DATA = auto()
-        CATEGORIA_ID = auto()
-        VALOR = auto()
-        SALDO = auto()
-        REMOVER = auto()
-        ANEXOS = auto()
-        NR_ANEXOS = auto()
-
-    COLUMNS = {
-        Columns.ID: {"title": "ID", "sql_colname": "id", "col_width": 90},
-        Columns.SEQ_ORDEM_LINHA: {"title": "Seq Linha", "sql_colname": "seq_ordem_linha", "col_width": 100},
-        Columns.NR_REFERENCIA: {"title": "Número Ref.", "sql_colname": "nr_referencia", "col_width": 100},
-        Columns.DESCRICAO: {"title": "Descrição", "sql_colname": "descricao", "col_width": 500},
-        Columns.DESCRICAO_USER: {"title": "Descrição Usuário", "sql_colname": "descricao_user", "col_width": 100},
-        Columns.DATA: {"title": "Data", "sql_colname": "data", "col_width": 160},
-        Columns.CATEGORIA_ID: {"title": "Categorias", "sql_colname": "categoria_id", "col_width": 260},
-        Columns.VALOR: {"title": "Valor", "sql_colname": "valor", "col_width": 160},
-        Columns.SALDO: {"title": "Saldo", "col_width": 160},
-        Columns.REMOVER: {"title": "Remover", "col_width": 100},
-        Columns.ANEXOS: {"title": "Anexos", "col_width": 100},
-    }
-
     def __init__(self, parent: QWidget, conta_dc: Conta):
         super(LancamentosView, self).__init__(parent)
 
         self.toolbar = self.get_toolbar()
+        self.columns = LancamentosTableColumns()
         table = self.get_table()
         self.tableline = LancamentoTableLine(self)
         self.conta_dc = conta_dc
         self.parent: cv.ContasView = parent
-        self.import_lanc_view = None
-        self.search_dialog = None
-        self.filter_dialog = None
+        self.import_lanc_view: ImportarLancamentosView | None = None
+        self.search_dialog: SearchInputView | None = None
+        self.filter_dialog: FilterInputView | None = None
         self.total_label = TotalCurrLabel()
         self.model_lancamentos = Lancamentos(conta_dc)
         self.model_categorias = Categorias()
@@ -294,19 +170,19 @@ class LancamentosView(MyDialog):
 
     def on_dropped_lancamento(self, prev_lancamento_id: int, next_lancamento_id: int):
         if self.table.last_dragged_index:
-            moving_lancamento_id = self.table.last_dragged_index.siblingAtColumn(self.Columns.ID).data(Qt.UserRole)
+            moving_lancamento_id = self.table.last_dragged_index.siblingAtColumn(CIndex.ID).data(Qt.UserRole)
             self.model_lancamentos.update_seq_ordem_linha(moving_lancamento_id, prev_lancamento_id, next_lancamento_id)
 
             self.load_model_only()
 
-    def get_table(self) -> LancamentosTableView:
+    def get_table(self) -> QTableView:
         """
         Retorna tabela com o seu layout
         """
-        self.table = LancamentosTableView(self)
+        self.table = QTableView(self)
 
-        model = QStandardItemModel(0, len(self.COLUMNS))
-        model.setHorizontalHeaderLabels([col["title"] for col in self.COLUMNS.values()])
+        model = QStandardItemModel(0, self.columns.count(), self.table)
+        model.setHorizontalHeaderLabels(self.columns.titles())
 
         sortModel = LancamentoSortFilterProxyModel(self)
         sortModel.dropped_lancamento.connect(self.on_dropped_lancamento)
@@ -329,12 +205,12 @@ class LancamentosView(MyDialog):
         col = index.column()
 
         if index.column() not in [
-            LancamentosView.Columns.NR_REFERENCIA,
-            LancamentosView.Columns.DESCRICAO,
-            LancamentosView.Columns.DESCRICAO_USER,
-            LancamentosView.Columns.DATA,
-            LancamentosView.Columns.VALOR,
-            LancamentosView.Columns.CATEGORIA_ID,
+            CIndex.NR_REFERENCIA,
+            CIndex.DESCRICAO,
+            CIndex.DESCRICAO_USER,
+            CIndex.DATA,
+            CIndex.VALOR,
+            CIndex.CATEGORIA_ID,
         ]:
             logging.debug(f"Não é possivel modificar coluna {index.column()}. Alteração cancelada.")
             return
@@ -343,44 +219,37 @@ class LancamentosView(MyDialog):
 
         logging.debug(f"Cell changed row/col: {row}/{col}")
 
-        model: LancamentoSortFilterProxyModel = self.table.model()
-        col_id_index = index.model().index(row, self.Columns.ID)
+        model = cast(LancamentoSortFilterProxyModel, self.table.model())
+        col_id_index = index.model().index(row, CIndex.ID)
         lancamento_id = model.data(model.mapFromSource(col_id_index), Qt.UserRole)
         value = model.data(model.mapFromSource(index), Qt.UserRole)
 
-        column_data = self.COLUMNS.get(col)
-        if "sql_colname" not in column_data:
-            return
-
-        sql_colname = column_data["sql_colname"]
+        column_data = self.columns.column(col)
 
         logging.debug(f"Modificando lancamento numero:{lancamento_id}")
-        logging.debug(f'"{sql_colname}" >> "{value}"')
+        logging.debug(f'"{column_data.sql_colname}" >> "{value}"')
 
         # se for modificação de data, move os anexos para o novo diretório, se necessário.
-        if sql_colname == "data":
+        if column_data.sql_colname == "data":
             lancamento: ORMLancamentos = self.model_lancamentos.get_lancamento(lancamento_id)
             anexos = Anexos(lancamento.id)
             anexos.load()
             anexos.move_anexos(lancamento, value)
 
-        self.model_lancamentos.update(lancamento_id, sql_colname, value)
+        self.model_lancamentos.update(lancamento_id, column_data.sql_colname, value)
 
-        # recalcula total
-        # self.load_model_only(sql_colname == 'data')
-        # if sql_colname != 'categoria_id':
         self.load_model_only()
 
-        if sql_colname == "data":
-            item_new_indexes = model.match(model.index(0, self.Columns.ID), Qt.UserRole, lancamento_id, 1)
+        if column_data.sql_colname == "data":
+            item_new_indexes = model.match(model.index(0, CIndex.ID), Qt.UserRole, lancamento_id, 1)
             if len(item_new_indexes) > 0:
-                item_new_index = model.index(item_new_indexes[0].row(), self.Columns.DATA)
+                item_new_index = model.index(item_new_indexes[0].row(), CIndex.DATA)
                 self.table.scrollTo(item_new_index)
                 self.table.selectionModel().select(item_new_index, QItemSelectionModel.SelectCurrent)
                 self.table.setCurrentIndex(item_new_index)
 
         lancamento: ORMLancamentos = self.model_lancamentos.get_lancamento(lancamento_id)
-        self.changed.emit(lancamento, sql_colname)
+        self.changed.emit(lancamento, column_data.sql_colname)
         self.table.setFocus()
 
     def call_table_ctx_menu(self, pos):
@@ -408,11 +277,11 @@ class LancamentosView(MyDialog):
         """
         Exibe a janela de anexos
         """
-        model: QStandardItemModel = index.model()
-        lancamento_id: int = model.index(index.row(), self.Columns.ID).data(Qt.UserRole)
+        model = cast(QStandardItemModel, index.model())
+        lancamento_id: int = model.index(index.row(), CIndex.ID).data(Qt.UserRole)
         lancamento = self.model_lancamentos.get_lancamento(lancamento_id)
         if not lancamento:
-            QMessageBox(text=TEXTS.LANC_N_ENCONTRADO).exec()
+            MyMessagePopup(self).error(TEXTS.LANC_N_ENCONTRADO)
             return
         self.anexos_vw = AnexosView(self, lancamento)
 
@@ -437,20 +306,24 @@ class LancamentosView(MyDialog):
         self.records_added.emit()
 
     def open_search(self, logical_index):
-        col = self.COLUMNS.get(logical_index)
+        col = self.columns.column(logical_index)
         if not self.search_dialog:
             self.search_dialog = SearchInputView(self)
             self.layout().insertWidget(1, self.search_dialog)
-        self.search_dialog.show(col["title"], logical_index)
+        self.search_dialog.show(col.title, logical_index)
         self.search_dialog.on_close_signal.connect(self.on_close_search_dialog)
 
     def on_close_search_dialog(self):
         self.search_dialog = None
 
-    def open_filter(self, valor: str = None):
+    def open_filter(self, valor: str | None = None):
         if not self.filter_dialog:
             self.filter_dialog = FilterInputView(self)
-            self.layout().insertWidget(1, self.filter_dialog)
+            layout = cast(QVBoxLayout, self.layout())
+            if not layout:
+                raise Exception("Layout não encontrado")
+
+            layout.insertWidget(1, self.filter_dialog)
         if valor:
             self.filter_dialog.filter_field.setText(valor)
             self.filter_dialog.filter_button.click()
@@ -458,7 +331,7 @@ class LancamentosView(MyDialog):
         self.filter_dialog.on_close_signal.connect(self.on_close_filter_dialog)
 
     def on_close_filter_dialog(self):
-        model: LancamentoSortFilterProxyModel = self.table.model()
+        model = cast(LancamentoSortFilterProxyModel, self.table.model())
         model.clear_filters()
         model.invalidateFilter()
         self.filter_dialog = None
@@ -526,8 +399,8 @@ class LancamentosView(MyDialog):
         if not index:
             return
 
-        model: QStandardItemModel = index.model()
-        lancamento_id = model.index(index.row(), self.Columns.ID).data(Qt.UserRole)
+        model = cast(QStandardItemModel, index.model())
+        lancamento_id = model.index(index.row(), CIndex.ID).data(Qt.UserRole)
 
         if not self.check_del_not_ask.isChecked():
             button = QMessageBox.question(
@@ -567,7 +440,6 @@ class LancamentosView(MyDialog):
             QToaster.showMessage(self, TEXTS.NOVO_LANC_ADICIONADO)
 
     def on_rem_lancamentos(self):
-        item: QModelIndex = None
         list_of_indx = []
         for item in self.table.selectedIndexes():
             lanc_id = item.model().index(item.row(), 0).data(Qt.UserRole)
@@ -576,7 +448,7 @@ class LancamentosView(MyDialog):
         selected_count = len(list_of_indx)
 
         if selected_count == 0:
-            QMessageBox.critical(self, TEXTS.ERRO, TEXTS.SELEC_UMA_LINHA)
+            MyMessagePopup(self).error(TEXTS.SELEC_UMA_LINHA)
             return
 
         pop_answer = QMessageBox.question(
@@ -600,20 +472,21 @@ class LancamentosView(MyDialog):
         self.on_delete.emit(-1)
 
     def on_export_excel(self) -> None:
-        model: QStandardItemModel = self.table.model().sourceModel()
+        filter_model = cast(LancamentoSortFilterProxyModel, self.table.model())
+        model = cast(QStandardItemModel, filter_model.sourceModel())
         export_excel = ExportExcel(self, model, self.conta_dc.descricao)
         export_excel.export(TEXTS.EXPORTAR_PREFIXO)
 
     def recalculate_saldo_total(self):
         self.model_lancamentos.load()
-        filter_model: LancamentoSortFilterProxyModel = cast(LancamentoSortFilterProxyModel, self.table.model())
-        model: QStandardItemModel = filter_model.sourceModel()
+        filter_model = cast(LancamentoSortFilterProxyModel, self.table.model())
+        model = cast(QStandardItemModel, filter_model.sourceModel())
 
         saldo = 0
         for new_index, row in enumerate(self.model_lancamentos.items):
             saldo += row.valor
             model.setItemData(
-                model.index(new_index, self.Columns.SALDO),
+                model.index(new_index, CIndex.SALDO),
                 {
                     Qt.DisplayRole: curr.str_curr_to_locale(saldo or 0),
                     Qt.UserRole: saldo,
@@ -626,8 +499,8 @@ class LancamentosView(MyDialog):
     def load_model_only(self) -> None:
         self.model_lancamentos.load()
 
-        filter_model: LancamentoSortFilterProxyModel = self.table.model()
-        model: QStandardItemModel = filter_model.sourceModel()
+        filter_model = cast(LancamentoSortFilterProxyModel, self.table.model())
+        model = cast(QStandardItemModel, filter_model.sourceModel())
         try:
             model.itemChanged.disconnect(self.model_item_changed)
         except Exception as e:
@@ -637,20 +510,20 @@ class LancamentosView(MyDialog):
         saldo = 0
         for new_index, row in enumerate(self.model_lancamentos.items):
             model.setItemData(
-                model.index(new_index, self.Columns.ID),
+                model.index(new_index, CIndex.ID),
                 {Qt.UserRole: row.id},
             )
             model.setItemData(
-                model.index(new_index, self.Columns.SEQ_ORDEM_LINHA),
+                model.index(new_index, CIndex.SEQ_ORDEM_LINHA),
                 {Qt.UserRole: row.seq_ordem_linha},
             )
             model.setItemData(
-                model.index(new_index, self.Columns.NR_REFERENCIA),
+                model.index(new_index, CIndex.NR_REFERENCIA),
                 {Qt.DisplayRole: row.nr_referencia, Qt.UserRole: row.nr_referencia},
             )
             try:
                 model.setItemData(
-                    model.index(new_index, self.Columns.DESCRICAO),
+                    model.index(new_index, CIndex.DESCRICAO),
                     {
                         Qt.DisplayRole: row.descricao,
                         Qt.UserRole: row.descricao,
@@ -662,7 +535,7 @@ class LancamentosView(MyDialog):
 
             descricao_user = row.descricao_user or ""
             model.setItemData(
-                model.index(new_index, self.Columns.DESCRICAO_USER),
+                model.index(new_index, CIndex.DESCRICAO_USER),
                 {
                     Qt.DisplayRole: descricao_user,
                     Qt.UserRole: descricao_user,
@@ -670,7 +543,7 @@ class LancamentosView(MyDialog):
                 },
             )
             model.setItemData(
-                model.index(new_index, self.Columns.DATA),
+                model.index(new_index, CIndex.DATA),
                 {Qt.DisplayRole: row.data.strftime("%x"), Qt.UserRole: row.data, Qt.AccessibleTextRole: row.data},
             )
             if len(row.Categorias) > 0:
@@ -678,7 +551,7 @@ class LancamentosView(MyDialog):
             else:
                 categoria = self.model_categorias.items[0]
             model.setItemData(
-                model.index(new_index, self.Columns.CATEGORIA_ID),
+                model.index(new_index, CIndex.CATEGORIA_ID),
                 {
                     Qt.DisplayRole: categoria.nm_categoria,
                     Qt.UserRole: categoria.id or -1,
@@ -686,16 +559,16 @@ class LancamentosView(MyDialog):
                 },
             )
             model.setItemData(
-                model.index(new_index, self.Columns.VALOR),
+                model.index(new_index, CIndex.VALOR),
                 {
-                    Qt.DisplayRole: curr.str_curr_to_locale(row.valor or 0),
+                    Qt.DisplayRole: curr.str_curr_to_locale(int(row.valor) or 0),
                     Qt.UserRole: row.valor or 0,
                     Qt.AccessibleTextRole: row.valor or 0,
                 },
             )
-            saldo += row.valor
+            saldo += int(row.valor)
             model.setItemData(
-                model.index(new_index, self.Columns.SALDO),
+                model.index(new_index, CIndex.SALDO),
                 {
                     Qt.DisplayRole: curr.str_curr_to_locale(saldo or 0),
                     Qt.UserRole: saldo,
@@ -703,11 +576,11 @@ class LancamentosView(MyDialog):
                 },
             )
             model.setItemData(
-                model.index(new_index, self.Columns.ANEXOS),
+                model.index(new_index, CIndex.ANEXOS),
                 {Qt.UserRole: row.nr_anexos},
             )
             model.setItemData(
-                model.index(new_index, self.Columns.NR_ANEXOS),
+                model.index(new_index, CIndex.NR_ANEXOS),
                 {Qt.UserRole: row.nr_anexos},
             )
 
@@ -739,45 +612,48 @@ class LancamentosView(MyDialog):
         col6_del = GenericInputDelegate(self.table)
         col7_del = ButtonDelegate(self.table, LancamentoTableLine.get_attach_button(), self.on_open_attachments)
 
-        self.table.setItemDelegateForColumn(self.Columns.ID, IDLabelDelegate(self.table))
-        self.table.setItemDelegateForColumn(self.Columns.SEQ_ORDEM_LINHA, IDLabelDelegate(self.table))
-        self.table.setItemDelegateForColumn(self.Columns.NR_REFERENCIA, col1_del)
-        self.table.setItemDelegateForColumn(self.Columns.DESCRICAO, col2_del)
-        self.table.setItemDelegateForColumn(self.Columns.DESCRICAO_USER, col6_del)
-        self.table.setItemDelegateForColumn(self.Columns.DATA, col3_del)
-        self.table.setItemDelegateForColumn(self.Columns.CATEGORIA_ID, col4_del)
-        self.table.setItemDelegateForColumn(self.Columns.VALOR, col5_del)
-        self.table.setItemDelegateForColumn(self.Columns.SALDO, CurrencyLabelDelegate(self.table, bold=True))
+        self.table.setItemDelegateForColumn(CIndex.ID, IDLabelDelegate(self.table))
+        self.table.setItemDelegateForColumn(CIndex.SEQ_ORDEM_LINHA, IDLabelDelegate(self.table))
+        self.table.setItemDelegateForColumn(CIndex.NR_REFERENCIA, col1_del)
+        self.table.setItemDelegateForColumn(CIndex.DESCRICAO, col2_del)
+        self.table.setItemDelegateForColumn(CIndex.DESCRICAO_USER, col6_del)
+        self.table.setItemDelegateForColumn(CIndex.DATA, col3_del)
+        self.table.setItemDelegateForColumn(CIndex.CATEGORIA_ID, col4_del)
+        self.table.setItemDelegateForColumn(CIndex.VALOR, col5_del)
+        self.table.setItemDelegateForColumn(CIndex.SALDO, CurrencyLabelDelegate(self.table, bold=True))
         self.table.setItemDelegateForColumn(
-            self.Columns.REMOVER,
+            CIndex.REMOVER,
             ButtonDelegate(self.table, LancamentoTableLine.get_del_button(), self.on_del_lancamento),
         )
-        self.table.setItemDelegateForColumn(self.Columns.ANEXOS, col7_del)
+        self.table.setItemDelegateForColumn(CIndex.ANEXOS, col7_del)
 
         self.table.verticalScrollBar().setValue(vert_scr_position)
         QApplication.restoreOverrideCursor()
 
     def set_column_default_sizes(self):
-        for index, col in self.COLUMNS.items():
-            self.table.setColumnWidth(index, col.get("col_width"))
+        for index, col in self.columns.all():
+            self.table.setColumnWidth(index, col.width)
 
     def set_filter_mes_categ(self, filters: dict[str, str]):
-        filter_model: LancamentoSortFilterProxyModel = self.table.model()
+        filter_model = cast(LancamentoSortFilterProxyModel, self.table.model())
 
         filter_model.clear_filters()
         if len(filters) == 0:
             self.show_all()
-        for mes_ano, categoria in filters:
+        for mes_ano, categoria in filters.items():
             filter_model.add_filter(mes_ano, categoria)
         filter_model.invalidateFilter()
         self.load_model_only()
 
     def show_all(self):
-        filter_model: LancamentoSortFilterProxyModel = self.table.model()
+        filter_model = cast(LancamentoSortFilterProxyModel, self.table.model())
 
         filter_model.setFilterRegExp(".*")
 
-    def keyPressEvent(self, e: QEvent) -> None:
+    def keyPressEvent(self, e: QKeyEvent | None) -> None:
+        if not e:
+            return
+
         if e.key() == Qt.Key_Escape:
             return
 
@@ -804,15 +680,15 @@ class LancamentosView(MyDialog):
                 return
 
             if index.column() not in (
-                self.Columns.ID,
-                self.Columns.SEQ_ORDEM_LINHA,
-                self.Columns.NR_REFERENCIA,
-                self.Columns.DESCRICAO,
-                self.Columns.DESCRICAO_USER,
-                self.Columns.DATA,
-                self.Columns.CATEGORIA_ID,
-                self.Columns.VALOR,
-                self.Columns.SALDO,
+                CIndex.ID,
+                CIndex.SEQ_ORDEM_LINHA,
+                CIndex.NR_REFERENCIA,
+                CIndex.DESCRICAO,
+                CIndex.DESCRICAO_USER,
+                CIndex.DATA,
+                CIndex.CATEGORIA_ID,
+                CIndex.VALOR,
+                CIndex.SALDO,
             ):
                 return
 
@@ -865,6 +741,8 @@ class CopyAndPasteInTable:
         selection = self.table.selectedIndexes()
         if selection:
             model = self.table.model()
+            if not model:
+                raise Exception("Model não encontrado.")
 
             buffer = QApplication.clipboard().text()
             rows = sorted(index.row() for index in selection)
@@ -876,44 +754,37 @@ class CopyAndPasteInTable:
                     self._change_values(reader, model, rows, columns)
 
             else:
-                QMessageBox.critical(self.parent_view, TEXTS.ERRO, "Colar somente é suportado em uma célula por vez.")
+                MyMessagePopup(self.parent_view).error("Colar somente é suportado em uma célula por vez.")
 
-                # arr = [ [ cell for cell in row ] for row in reader]
-                # for index in selection:
-                #     row = index.row() - rows[0]
-                #     column = index.column() - columns[0]
-                #     index_to_change = model.index(rows[0]+i,columns[0]+j)
-                #     model.setData(index_to_change, arr[row][column], Qt.UserRole)
-
-    def _valid_changes(self, reader, model: QAbstractItemModel, rows, columns) -> Boolean:
+    def _valid_changes(self, reader, model: QAbstractItemModel, rows, columns) -> bool:
         for i, line in enumerate(reader):
             for j, cell in enumerate(line):
                 index_to_change = model.index(rows[0] + i, columns[0] + j)
 
                 if index_to_change.column() not in [
-                    LancamentosView.Columns.NR_REFERENCIA,
-                    LancamentosView.Columns.DESCRICAO,
-                    LancamentosView.Columns.DESCRICAO_USER,
-                    LancamentosView.Columns.DATA,
-                    LancamentosView.Columns.VALOR,
-                    LancamentosView.Columns.CATEGORIA_ID,
+                    CIndex.NR_REFERENCIA,
+                    CIndex.DESCRICAO,
+                    CIndex.DESCRICAO_USER,
+                    CIndex.DATA,
+                    CIndex.VALOR,
+                    CIndex.CATEGORIA_ID,
                 ]:
-                    QMessageBox.critical(self.parent_view, TEXTS.ERRO, "Coluna não modificavel.")
+                    MyMessagePopup(self.parent_view).error("Coluna não modificavel.")
                     return False
 
-                if index_to_change.column() == LancamentosView.Columns.CATEGORIA_ID:
+                if index_to_change.column() == CIndex.CATEGORIA_ID:
                     categoria = next((x for x in self.model_categorias.items if x.nm_categoria == cell), None)
                     if not categoria:
-                        QMessageBox.critical(self.parent_view, TEXTS.ERRO, TEXTS.NAO_EXISTE_CATEGORIA.format(cell))
+                        MyMessagePopup(self.parent_view).error(TEXTS.NAO_EXISTE_CATEGORIA.format(cell))
                         return False
 
-                elif index_to_change.column() == LancamentosView.Columns.DATA:
+                elif index_to_change.column() == CIndex.DATA:
                     try:
                         curr.str_to_date(cell)
                     except Exception as e:
                         QToaster.showMessage(self.parent_view, "Erro ao colar data.")
                         return False
-                elif index_to_change.column() == LancamentosView.Columns.VALOR:
+                elif index_to_change.column() == CIndex.VALOR:
                     try:
                         curr.str_curr_to_int(cell)
                     except Exception as e:
@@ -927,13 +798,15 @@ class CopyAndPasteInTable:
             for j, cell in enumerate(line):
                 index_to_change = model.index(rows[0] + i, columns[0] + j)
 
-                if index_to_change.column() == LancamentosView.Columns.CATEGORIA_ID:
+                if index_to_change.column() == CIndex.CATEGORIA_ID:
                     categoria = next((x for x in self.model_categorias.items if x.nm_categoria == cell), None)
+                    if not categoria:
+                        return
                     model.setData(index_to_change, categoria.id, Qt.UserRole)
-                elif index_to_change.column() == LancamentosView.Columns.DATA:
+                elif index_to_change.column() == CIndex.DATA:
                     date = curr.str_to_date(cell)
                     model.setData(index_to_change, date, Qt.UserRole)
-                elif index_to_change.column() == LancamentosView.Columns.VALOR:
+                elif index_to_change.column() == CIndex.VALOR:
                     valor_int = curr.str_curr_to_int(cell)
                     model.setData(index_to_change, valor_int, Qt.UserRole)
                 else:

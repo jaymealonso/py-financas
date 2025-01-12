@@ -1,12 +1,20 @@
+from lib.Genericos.QMessageHelper import MyMessagePopup
 from lib.Genericos.log import logging
 from enum import StrEnum
 
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, \
-    QPushButton, QComboBox, QLineEdit, QGridLayout, QMessageBox, QFileDialog
+from PyQt5.QtWidgets import (
+    QWidget,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QComboBox,
+    QLineEdit,
+    QGridLayout,
+    QFileDialog,
+)
 from PyQt5.QtCore import Qt
 
-from util.my_dialog import MyDialog
-from util.settings import Settings
+from util import MyDialog, Settings
 
 
 class TEXTS(StrEnum):
@@ -17,7 +25,6 @@ class TEXTS(StrEnum):
     CHANGE_WARNING = "Modificações só entrarão em efeito quando sair e entrar aplicativo novamente."
     SAVE = "Salvar"
     CLOSE = "Fechar"
-    SAVE_SUCCESS_TITLE = "Sucesso"
     SAVE_SUCCESS = "Configuração salva com exito."
     THEME_SYSTEM_DEFAULT = "Padrão do sistema"
     THEME_DARK = "Escuro"
@@ -66,7 +73,7 @@ class ConfiguracaoView(MyDialog):
         logging.info(f"Salvando db_location: {db_location}")
         self.global_settings.db_location = db_location
 
-        QMessageBox.information(self, TEXTS.SAVE_SUCCESS_TITLE, TEXTS.SAVE_SUCCESS)
+        MyMessagePopup(self).info(TEXTS.SAVE_SUCCESS)
         self.close()
 
     def on_close_pressed(self) -> None:

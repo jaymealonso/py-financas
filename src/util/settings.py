@@ -4,7 +4,7 @@ import darkdetect
 from pathlib import Path
 from PyQt5.QtCore import QSettings, QRect
 from abc import ABC
-from util.singleton_meta import SingletonMeta
+from util import SingletonMeta
 
 
 class JanelaSettings(ABC):
@@ -36,9 +36,7 @@ class JanelaVisaoMensalSettings(JanelaSettings):
     def __init__(self, settings: QSettings, conta_id: str):
         self.conta_id = conta_id
 
-        super(JanelaVisaoMensalSettings, self).__init__(
-            settings, group=f"VisaoMensal-{self.conta_id}"
-        )
+        super(JanelaVisaoMensalSettings, self).__init__(settings, group=f"VisaoMensal-{self.conta_id}")
 
     @property
     def divisoes(self) -> list[int]:
@@ -58,9 +56,7 @@ class JanelaLancamentosSettings(JanelaSettings):
     def __init__(self, settings: QSettings, conta_id: str):
         self.conta_id = conta_id
 
-        super(JanelaLancamentosSettings, self).__init__(
-            settings, group=f"Conta-Lancamento-{self.conta_id}"
-        )
+        super(JanelaLancamentosSettings, self).__init__(settings, group=f"Conta-Lancamento-{self.conta_id}")
 
 
 class JanelaImportLancamentosSettings(JanelaSettings):
@@ -175,9 +171,7 @@ class Settings(metaclass=SingletonMeta):
         self.settings.endGroup()
 
     def load_lanc_settings(self, conta_id: int) -> JanelaLancamentosSettings:
-        janela_array = [
-            janela for janela in self.janelas_lancamentos if janela.conta_id == conta_id
-        ]
+        janela_array = [janela for janela in self.janelas_lancamentos if janela.conta_id == conta_id]
         if len(janela_array) != 0:
             janela = janela_array[0]
         else:
@@ -187,9 +181,7 @@ class Settings(metaclass=SingletonMeta):
         return janela
 
     def load_impo_lanc_settings(self, conta_id: int) -> JanelaImportLancamentosSettings:
-        janela_array = [
-            janela for janela in self.janelas_imp_lancamentos if janela.conta_id == conta_id
-        ]
+        janela_array = [janela for janela in self.janelas_imp_lancamentos if janela.conta_id == conta_id]
         if len(janela_array) != 0:
             janela = janela_array[0]
         else:
@@ -199,11 +191,7 @@ class Settings(metaclass=SingletonMeta):
         return janela
 
     def load_visaomensal_settings(self, conta_id) -> JanelaVisaoMensalSettings:
-        janela_array = [
-            janela
-            for janela in self.janelas_visao_mensal
-            if janela.conta_id == conta_id
-        ]
+        janela_array = [janela for janela in self.janelas_visao_mensal if janela.conta_id == conta_id]
         if len(janela_array) != 0:
             janela = janela_array[0]
         else:

@@ -1,5 +1,6 @@
 from enum import StrEnum, IntEnum, auto
 
+from lib.Genericos.QMessageHelper import MyMessagePopup
 import view.icons.icons as icons
 import view.lanc_vw
 from lib.Genericos.log import logging
@@ -27,7 +28,7 @@ from PyQt5.QtWidgets import (
 )
 from lib import CustomToolbar
 from model import ContasTipo, Contas, Conta, ORMLancamentos
-from util.custom_table_delegates import (
+from util import (
     ButtonDelegate,
     GenericInputDelegate,
     ComboBoxDelegate,
@@ -128,7 +129,7 @@ class ContasView(QWidget):
             msg = f"Abertura automática de janela de lançamentos da conta: {conta_id}".join(
                 " não foi possível.\nConta não encontrada!"
             )
-            QMessageBox.critical(self, "Erro", msg)
+            MyMessagePopup(self).error(msg)
             return
 
         if conta_id not in self.lanc_windows_open:

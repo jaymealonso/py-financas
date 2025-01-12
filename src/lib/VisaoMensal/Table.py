@@ -6,7 +6,7 @@ from PyQt5.QtGui import QMouseEvent
 from PyQt5.QtWidgets import QTableView, QWidget, QHeaderView
 
 from lib.Genericos.log import logging
-from util.custom_table_delegates import IDLabelDelegate
+from util import IDLabelDelegate
 
 
 class FreezeTableWidget(QTableView):

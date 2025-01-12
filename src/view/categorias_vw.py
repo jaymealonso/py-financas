@@ -2,11 +2,12 @@ from unidecode import unidecode
 from lib.Categoria.Table import CategoriaTableView
 from lib.Genericos.MySortFilterProxyModel import MySortFilterProxyModel
 from lib import logging
+from lib.Genericos.QMessageHelper import MyMessagePopup
 from view.TableLine import TableLine
 import view.icons.icons as icons
 from enum import IntEnum, auto
 
-from util.custom_table_delegates import ButtonDelegate, GenericInputDelegate, IDLabelDelegate
+from util import ButtonDelegate, GenericInputDelegate, IDLabelDelegate
 from PyQt5.QtCore import Qt, QModelIndex
 from PyQt5.QtGui import QCursor, QStandardItem, QStandardItemModel
 from PyQt5.QtWidgets import (
@@ -159,16 +160,14 @@ class CategoriasView(QWidget):
 
         # Impede categoria 0 de ser eliminada
         if categoria_id == 0:
-            QMessageBox.critical(
-                self, "Erro", f'Não é possivel remover a categoria fixa "{categoria_descr}" id: "{categoria_id}".'
+            MyMessagePopup(self).error(
+                f'Não é possivel remover a categoria fixa "{categoria_descr}" id: "{categoria_id}".'
             )
             return
 
         if lancamentos_count > 0:
-            QMessageBox.critical(
-                self,
-                "Erro",
-                f'Não é possivel remover a categoria "{categoria_descr}" com {lancamentos_count} lançamentos associados.',
+            MyMessagePopup(self).error(
+                f'Não é possivel remover a categoria "{categoria_descr}" com {lancamentos_count} lançamentos associados.'
             )
             return
 

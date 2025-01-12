@@ -12,13 +12,13 @@ from PyQt5.QtWidgets import (
     QWidget,
     QTableView,
     QVBoxLayout,
+    QMessageBox,
     QDialog,
     QPushButton,
     QLineEdit,
     QHBoxLayout,
     QLabel,
     QFileDialog,
-    QMessageBox,
     QCheckBox,
 )
 from model import ORMLancamentos, ORMAnexos, Anexos

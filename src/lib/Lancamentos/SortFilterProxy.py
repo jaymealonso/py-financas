@@ -1,12 +1,13 @@
-import logging
-from PyQt5.QtGui import QStandardItemModel
 import moment
-from datetime import datetime
-from PyQt5.QtCore import QMimeData, QModelIndex, QObject, QRegExp, Qt, pyqtSignal
-from PyQt5.QtWidgets import QAbstractItemView
-
 import moment.utils
-import view.lanc_vw
+
+from lib import logging
+from typing import List, cast
+from PyQt5.QtGui import QStandardItemModel
+from PyQt5.QtWidgets import QWidget
+from datetime import datetime
+from PyQt5.QtCore import QAbstractItemModel, QMimeData, QModelIndex, QObject, QRegExp, Qt, pyqtSignal
+from PyQt5.QtWidgets import QAbstractItemView
 
 from lib.Genericos.MySortFilterProxyModel import MySortFilterProxyModel
 
@@ -37,6 +38,7 @@ class FilterAnoMes:
         self.calculate_start_end(ano_mes)
 
     def calculate_start_end(self, ano_mes: str):
+        """Calculate start and end date for the filter"""
         try:
             ano = int(ano_mes[0:4])
             mes = int(ano_mes[5:7])
@@ -63,8 +65,8 @@ class LancamentoSortFilterProxyModel(MySortFilterProxyModel):
     def __init__(self, parent: QObject | None = ...) -> None:
         super(LancamentoSortFilterProxyModel, self).__init__(parent)
 
-        self.filters = []
-        self.text_filters = []
+        self.filters: List[dict[int, FilterAnoMes | FilterCategoria]] = []
+        self.text_filters: List[dict[int, FilterAllTable]] = []
 
     def clear_filters(self):
         self.filters.clear()
@@ -81,23 +83,22 @@ class LancamentoSortFilterProxyModel(MySortFilterProxyModel):
         COLUNA_CATEGORIA_INDEX = 6
         COLUNA_DATA_INDEX = 5
 
+        src_model: QStandardItemModel = cast(QStandardItemModel, self.sourceModel())
+
         if len(self.text_filters) == 0 and len(self.filters) == 0:
             return True
 
         if len(self.text_filters) > 0:
-            src_model: QStandardItemModel = self.sourceModel()
             # search in all columns
             for col_index in range(src_model.columnCount()):
-                text = self.sourceModel().index(source_row, col_index, source_parent).data()
+                text = src_model.index(source_row, col_index, source_parent).data()
                 single_filter = list(dict.values(self.text_filters[0]))[0]
                 if single_filter.validate(text):
                     return True
 
         if len(self.filters) > 0:
-            categoria = self.sourceModel().index(source_row, COLUNA_CATEGORIA_INDEX, source_parent).data()
-            date_date: datetime = (
-                self.sourceModel().index(source_row, COLUNA_DATA_INDEX, source_parent).data(Qt.UserRole)
-            )
+            categoria = src_model.index(source_row, COLUNA_CATEGORIA_INDEX, source_parent).data()
+            date_date: datetime = src_model.index(source_row, COLUNA_DATA_INDEX, source_parent).data(Qt.UserRole)
             if not date_date:
                 return True
             date_moment: moment.Moment = moment.date(date_date)
@@ -123,8 +124,8 @@ class LancamentoSortFilterProxyModel(MySortFilterProxyModel):
 
         # In between rows
         if parent.row() == -1 and parent.column() == -1 and action == Qt.DropAction.MoveAction:
-            lanc_view: view.lanc_vw.LancamentosView = self.parent()
-            model = lanc_view.table.model()
+            lanc_view = cast(QWidget, self.parent())
+            model = cast(QAbstractItemModel, lanc_view.table.model())
             if row == 0:
                 row = 1
             lancamento_id_index = model.index(row - 1, 0)
@@ -146,4 +147,8 @@ class LancamentoSortFilterProxyModel(MySortFilterProxyModel):
         return True  # result
 
     def supportedDropActions(self) -> Qt.DropActions:
-        return Qt.DropAction.MoveAction  #  super().supportedDropActions()
+        # super().supportedDropActions()
+        return Qt.DropActions(Qt.DropAction.MoveAction)
+
+    def lessThan(self, left, right):
+        return super().lessThan(left, right)

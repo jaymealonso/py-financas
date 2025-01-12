@@ -10,9 +10,7 @@ from sqlalchemy.sql import text
 
 
 class Lancamentos:
-    """
-    Todos os lancamentos de uma conta
-    """
+    """Todos os lancamentos de uma conta"""
 
     def __init__(self, conta_dc: Conta):
         self.id = None

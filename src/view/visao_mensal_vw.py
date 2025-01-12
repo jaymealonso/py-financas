@@ -5,9 +5,7 @@ from PyQt5.QtWidgets import QAction, QWidget, QVBoxLayout, QSizePolicy, QSplitte
 from lib import CustomToolbar
 from lib.VisaoMensal.Table import VisaoGeralTableView
 
-from util.custom_table_delegates import CurrencyLabelDelegate, IDLabelDelegate
-from util.my_dialog import MyDialog
-from util.settings import JanelaVisaoMensalSettings, Settings
+from util import CurrencyLabelDelegate, IDLabelDelegate, MyDialog, JanelaVisaoMensalSettings, Settings
 from lib.Genericos.log import logging
 from lib import ExportExcel
 import view.contas_vw as cv

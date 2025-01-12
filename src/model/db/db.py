@@ -1,14 +1,9 @@
-from lib.Genericos.log import logging
-
-from PyQt5.QtCore import QCoreApplication
-from PyQt5.QtWidgets import QMessageBox
+from lib import logging
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.engine import Engine
-from sqlalchemy.exc import SQLAlchemyError, OperationalError, ObjectNotExecutableError
 from sqlalchemy.orm import declarative_base
 from model import DataLoader
-from util.settings import Settings
-from util.singleton_meta import SingletonMeta
+from util import Settings, SingletonMeta
 
 Base = declarative_base()
 

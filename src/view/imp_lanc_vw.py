@@ -6,12 +6,12 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
-    QMessageBox,
     QPushButton,
     QVBoxLayout,
     QWidget,
 )
 
+from lib.Genericos.QMessageHelper import MyMessagePopup
 from lib.Genericos.log import logging
 from lib.ImportacaoLanc.FirstStep import (
     AbrirExcelErro,
@@ -23,8 +23,7 @@ from lib.ImportacaoLanc.FirstStep import (
 from lib.ImportacaoLanc.SecondStep import SecondStepFrame
 from lib import CustomToolbar
 from model import Conta, ORMLancamentos
-from util.my_dialog import MyDialog
-from util.settings import JanelaImportLancamentosSettings, Settings
+from util import MyDialog, JanelaImportLancamentosSettings, Settings
 from util.toaster import QToaster
 import view.icons.icons as icons
 
@@ -118,17 +117,12 @@ class ImportarLancamentosView(MyDialog):
         try:
             file_name_fullpath = self.file_path.text()
             if not os.path.isfile(file_name_fullpath):
-                QMessageBox.critical(self, "Erro", f"Arquivo: {file_name_fullpath} não encontrado.")
+                MyMessagePopup(self).info(f"Arquivo: {file_name_fullpath} não encontrado.")
                 return
 
             self.first_table_frame.csv_to_table(file_name_fullpath)
         except AbrirExcelErro as e:
-            QMessageBox(
-                QMessageBox.Warning,
-                f"Erro no formato {e}",
-                str(e),
-                QMessageBox.Ok,
-            ).exec_()
+            MyMessagePopup(self).warn(f"Erro no formato {e}")
 
     def on_importar_clicked(self, linhas: list[NewLancamento]) -> None:
         created_lines = 0

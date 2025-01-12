@@ -1,12 +1,13 @@
 import sys
 from contextlib import suppress
 
+from lib import MyMessagePopup
 import view.icons.icons as icons
 from view.contas_vw import ContasView
-from util.settings import Settings
+from util import Settings
 from pathlib import Path
 from argparse import ArgumentParser
-from PyQt5.QtWidgets import QApplication, QMessageBox, QSplashScreen
+from PyQt5.QtWidgets import QApplication, QSplashScreen
 from PyQt5.QtCore import QFile, QTextStream, QDir, Qt
 from view.main_window import MainWindow
 from model import Database
@@ -27,8 +28,8 @@ class MainApp:
     def prepare_database(self, drop: bool = False, populate_sample: bool = False) -> Database:
         db = Database()
         if not db.exists():
-            QMessageBox.critical(
-                None, "Erro ao abrir base de dados", "Arquivo escolhido como base de dados não é compativel."
+            MyMessagePopup(self).error(
+                "Arquivo escolhido como base de dados não é compativel.", "Erro ao abrir base de dados"
             )
             sys.exit(1)
         if drop:

@@ -4,8 +4,9 @@ from enum import IntEnum, auto
 
 from PyQt5.QtGui import QStandardItemModel
 from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import QAbstractItemView, QMessageBox, QSizePolicy, QTableView, QVBoxLayout, QWidget
+from PyQt5.QtWidgets import QAbstractItemView, QSizePolicy, QTableView, QVBoxLayout, QWidget
 
+from lib.Genericos.QMessageHelper import MyMessagePopup
 from lib.ImportacaoLanc.AddCategoriaPopup import AddCategoriasPopup
 from lib import CustomToolbar
 import util.curr_formatter as curr
@@ -178,7 +179,7 @@ class SecondStepFrame(QWidget):
             if linha.new_categoria.strip() != "":
                 values.add(linha.new_categoria)
         if len(values) == 0:
-            QMessageBox.critical(self, "Erro", "Nenhuma categoria nova detectada.")
+            MyMessagePopup(self).error("Nenhuma categoria nova detectada.")
             return
 
         popup = AddCategoriasPopup(self, values)

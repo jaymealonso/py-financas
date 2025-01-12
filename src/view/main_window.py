@@ -15,7 +15,7 @@ from view.contas_vw import ContasView
 from view.agenda_vw import AgendaView
 from view.categorias_vw import CategoriasView
 import view.icons.icons as icons
-from util.settings import Settings
+from util import Settings
 
 
 class MainWindow(QMainWindow):

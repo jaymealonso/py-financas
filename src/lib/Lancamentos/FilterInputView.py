@@ -8,9 +8,9 @@ from view.icons import icons
 
 class TEXTS(StrEnum):
     FILTRO = "Filtro"
-    FILTRAR = 'Filtrar'
-    FILTER_BUTTON_TOOLTIP = 'Filtra'
-    CANCEL_BUTTON_TOOLTIP = 'Limpar filtro'
+    FILTRAR = "Filtrar"
+    FILTER_BUTTON_TOOLTIP = "Filtra"
+    CANCEL_BUTTON_TOOLTIP = "Limpar filtro"
 
 
 class FilterInputView(QWidget):
@@ -21,7 +21,7 @@ class FilterInputView(QWidget):
         super(FilterInputView, self).__init__(parent)
 
         # vars
-        self.table:QTableView = parent.table
+        self.table: QTableView = parent.table
 
         # layout
         layout = QHBoxLayout()
@@ -83,5 +83,3 @@ class ColumnSearchViewComponents:
         line_edit = QLineEdit()
         line_edit.setPlaceholderText(TEXTS.FILTRO)
         return line_edit
-
-    

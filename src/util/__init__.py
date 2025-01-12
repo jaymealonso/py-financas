@@ -9,6 +9,8 @@ from .custom_table_delegates import (
     GenericInputDelegate,
     IDLabelDelegate,
 )
+from .singleton_meta import SingletonMeta
+from .settings import Settings, JanelaImportLancamentosSettings, JanelaLancamentosSettings, JanelaVisaoMensalSettings
 
 __all__ = [
     "MyDialog",
@@ -20,4 +22,9 @@ __all__ = [
     "DateEditDelegate",
     "GenericInputDelegate",
     "IDLabelDelegate",
+    "SingletonMeta",
+    "Settings",
+    "JanelaImportLancamentosSettings",
+    "JanelaLancamentosSettings",
+    "JanelaVisaoMensalSettings",
 ]

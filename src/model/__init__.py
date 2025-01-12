@@ -1,12 +1,6 @@
 from .initial_load.initial_db_data import DataLoader
 from .db.db import Database
 from .db.db_orm import (
-    # ORMLancamentos,
-    # ORMAnexos,
-    # ORMCategorias,
-    # ORMContas,
-    # ORMContasTipo,
-    # ORMLancCateg,
     Lancamentos as ORMLancamentos,
     Anexos as ORMAnexos,
     Categorias as ORMCategorias,

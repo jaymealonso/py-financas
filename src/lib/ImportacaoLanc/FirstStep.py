@@ -3,13 +3,14 @@
 from enum import IntEnum, auto
 import io
 import locale
+import openpyxl
 
 from PyQt5.QtGui import QCursor, QIcon
-import openpyxl
+from lib.Genericos.QMessageHelper import MyMessagePopup
 from lib.Genericos.log import logging
 from lib import CustomToolbar
 from util.curr_formatter import str_curr_to_int
-from util.settings import JanelaImportLancamentosSettings
+from util import JanelaImportLancamentosSettings
 import view.icons.icons as icons
 
 from dataclasses import dataclass, field
@@ -21,7 +22,6 @@ from PyQt5.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
-    QMessageBox,
     QProgressBar,
     QTableWidget,
     QTableWidgetItem,
@@ -129,7 +129,7 @@ class FirstStepFrame(QWidget):
     def on_proximo_passo(self):
         """Envia linhas selecionadas para a proxima tabela de preview"""
         if len(self.table.selectedIndexes()) == 0:
-            QMessageBox.critical(self, "Erro", "Favor selecionar ao menos uma linha.")
+            MyMessagePopup(self).error("Favor selecionar ao menos uma linha.")
             return
 
         mapping_cols = {}

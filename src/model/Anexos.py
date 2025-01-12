@@ -1,5 +1,6 @@
 from datetime import date
 from pathlib import Path
+from pickle import NONE
 import shutil
 from lib.Genericos.log import logging
 from typing import List
@@ -19,7 +20,7 @@ class Anexos:
     def items(self) -> List[ORMAnexos]:
         return self.__items
 
-    def by_id(self, id: int) -> ORMAnexos:
+    def by_id(self, id: int) -> ORMAnexos | None:
         item = next((item for item in self.__items if item.id == id), None)
         return item
 
@@ -45,6 +46,7 @@ class Anexos:
         Adiciona novo anexo ao DB com os dados de entrada enviados
         e retorna o ID do novo anexo
         """
+
         with Session(self.__db.engine) as session:
             new_anexo = session.scalar(
                 insert(ORMAnexos).returning(ORMAnexos),
