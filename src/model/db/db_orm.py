@@ -1,4 +1,3 @@
-from decimal import Decimal
 from sqlalchemy import Column, Numeric
 from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
@@ -43,7 +42,7 @@ class Lancamentos(Base):
 
     id = Column(Integer, primary_key=True, autoincrement="auto")
     # Para lançamentos na mesma data é possivel ordenar a posição deles baseado neste numero deve ser (1,2,3,4...)
-    seq_ordem_linha = Column(Numeric(10,5))
+    seq_ordem_linha = Column(Numeric(10, 5))
     nr_referencia = Column(String)
     descricao = Column(String)
     descricao_user = Column(String)
