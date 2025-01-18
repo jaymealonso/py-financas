@@ -2,7 +2,7 @@ import csv
 from enum import StrEnum
 import io
 from typing import cast
-from PyQt5.QtCore import QAbstractItemModel, QItemSelectionModel, QModelIndex, Qt, pyqtSignal
+from PyQt5.QtCore import QAbstractItemModel, QItemSelectionModel, QModelIndex, pyqtSignal, Qt, QTextStream
 from PyQt5.QtGui import QCursor, QKeySequence, QStandardItem, QStandardItemModel, QKeyEvent
 from PyQt5.QtWidgets import (
     QAction,
@@ -10,10 +10,8 @@ from PyQt5.QtWidgets import (
     QCheckBox,
     QHBoxLayout,
     QLabel,
-    QLineEdit,
     QMenu,
     QMessageBox,
-    QPushButton,
     QSizePolicy,
     QTableView,
     QTableWidget,
@@ -21,8 +19,7 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 from unidecode import unidecode
-
-import util.curr_formatter as curr
+from util import str_curr_to_locale, str_to_date, int_to_locale, str_curr_to_int
 from lib import (
     MyMessagePopup,
     CustomToolbar,
@@ -32,16 +29,12 @@ from lib import (
     ExportExcel,
     LancamentoSortFilterProxyModel,
 )
-from lib.Lancamentos import LancamentosTableColumns, CIndex
+from lib.Lancamentos import LancamentosTableColumns, CIndex, LancamentoTableLine
 from model import Anexos, Categorias, Conta, Lancamentos, ORMAnexos, ORMLancamentos
 
 from util import (
-    QCurrencyLineEdit,
     ButtonDelegate,
-    ComboBoxDelegate,
-    CurrencyEditDelegate,
     CurrencyLabelDelegate,
-    DateEditDelegate,
     GenericInputDelegate,
     IDLabelDelegate,
     MyDialog,
@@ -54,7 +47,13 @@ import view.contas_vw as cv
 import view.icons.icons as icons
 from view.anexos_vw import AnexosView
 from view.imp_lanc_vw import ImportarLancamentosView
-from view.TableLine import TableLine
+
+
+ItemDataRole = Qt.ItemDataRole
+ContextMenuPolicy = Qt.ContextMenuPolicy
+SelectionFlag = QItemSelectionModel.SelectionFlag
+CONST_KEY = Qt.Key
+CONST_KEYBMODIF = Qt.KeyboardModifier
 
 
 class TEXTS(StrEnum):
@@ -98,7 +97,6 @@ class LancamentosView(MyDialog):
         self.toolbar = self.get_toolbar()
         self.columns = LancamentosTableColumns()
         table = self.get_table()
-        self.tableline = LancamentoTableLine(self)
         self.conta_dc = conta_dc
         self.parent: cv.ContasView = parent
         self.import_lanc_view: ImportarLancamentosView | None = None
@@ -108,6 +106,7 @@ class LancamentosView(MyDialog):
         self.model_lancamentos = Lancamentos(conta_dc)
         self.model_categorias = Categorias()
         self.model_categorias.load()
+        self.tableline = LancamentoTableLine(self)
         self.global_settings = Settings()
         self.settings: JanelaLancamentosSettings = self.global_settings.load_lanc_settings(self.conta_dc.id)
         self.copy_paste_handler = CopyAndPasteInTable(self)
@@ -143,9 +142,11 @@ class LancamentosView(MyDialog):
         toolbar: CustomToolbar = CustomToolbar()
 
         import_act = toolbar.addAction(icons.import_file(), TEXTS.IMPORTAR_LANCAMENTOS)
+        assert import_act is not None
         import_act.triggered.connect(self.on_import_lancam)
 
         refresh_act = toolbar.addAction(icons.atualizar(), TEXTS.ATUALIZAR)
+        assert refresh_act is not None
         refresh_act.triggered.connect(lambda: self.load_table_data())
 
         spacer = QWidget()
@@ -156,21 +157,24 @@ class LancamentosView(MyDialog):
         toolbar.addWidget(self.check_del_not_ask)
 
         add_act = toolbar.addAction(icons.add(), TEXTS.NOVO_LANCAMENTO)
+        assert add_act is not None
         add_act.triggered.connect(lambda: self.on_add_lancamento())
 
         rem_act = toolbar.addAction(icons.delete(), TEXTS.ELIMINAR_SELECIONADOS)
+        assert rem_act is not None
         rem_act.triggered.connect(lambda: self.on_rem_lancamentos())
 
         toolbar.addSeparator()
 
         export_act = toolbar.addAction(icons.exportar_planilha(), TEXTS.EXPORTAR_PLANILHA)
+        assert export_act is not None
         export_act.triggered.connect(lambda: self.on_export_excel())
 
         return toolbar
 
     def on_dropped_lancamento(self, prev_lancamento_id: int, next_lancamento_id: int):
         if self.table.last_dragged_index:
-            moving_lancamento_id = self.table.last_dragged_index.siblingAtColumn(CIndex.ID).data(Qt.UserRole)
+            moving_lancamento_id = self.table.last_dragged_index.siblingAtColumn(CIndex.ID).data(ItemDataRole.UserRole)
             self.model_lancamentos.update_seq_ordem_linha(moving_lancamento_id, prev_lancamento_id, next_lancamento_id)
 
             self.load_model_only()
@@ -190,12 +194,23 @@ class LancamentosView(MyDialog):
         self.table.setModel(sortModel)
         self.table.setSortingEnabled(True)
 
-        self.table.verticalHeader().setVisible(False)
+        vertical_header = self.table.verticalHeader()
+        assert vertical_header is not None
+        vertical_header.setVisible(False)
+
         # Enable context menu on the column header
         hheader = self.table.horizontalHeader()
-        hheader.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.table.horizontalHeader().customContextMenuRequested.connect(self.on_table_header_context_menu)
-        self.table.contextMenuEvent = self.call_table_ctx_menu
+        assert hheader is not None
+        hheader.setContextMenuPolicy(ContextMenuPolicy.CustomContextMenu)
+
+        horizontal_header = self.table.horizontalHeader()
+        assert horizontal_header is not None
+        horizontal_header.customContextMenuRequested.connect(self.on_table_header_context_menu)
+
+        #        self.table.contextMenuEvent = self.call_table_ctx_menu
+
+        self.table.setContextMenuPolicy(ContextMenuPolicy.CustomContextMenu)
+        self.table.customContextMenuRequested.connect(self.call_table_ctx_menu)
 
         return self.table
 
@@ -215,23 +230,26 @@ class LancamentosView(MyDialog):
             logging.debug(f"Não é possivel modificar coluna {index.column()}. Alteração cancelada.")
             return
 
-        logging.debug(f"Item changed row: {item.row()} col: {item.column()}, Userrole: {item.data(Qt.UserRole)}")
+        logging.debug(
+            f"Item changed row: {item.row()} col: {item.column()}, Userrole: {item.data(ItemDataRole.UserRole)}"
+        )
 
         logging.debug(f"Cell changed row/col: {row}/{col}")
 
         model = cast(LancamentoSortFilterProxyModel, self.table.model())
-        col_id_index = index.model().index(row, CIndex.ID)
-        lancamento_id = model.data(model.mapFromSource(col_id_index), Qt.UserRole)
-        value = model.data(model.mapFromSource(index), Qt.UserRole)
+        col_id_index = index.siblingAtColumn(CIndex.ID)  #  model().index(row, CIndex.ID)
+        lancamento_id = model.data(model.mapFromSource(col_id_index), ItemDataRole.UserRole)
+        value = model.data(model.mapFromSource(index), ItemDataRole.UserRole)
 
         column_data = self.columns.column(col)
 
         logging.debug(f"Modificando lancamento numero:{lancamento_id}")
         logging.debug(f'"{column_data.sql_colname}" >> "{value}"')
 
+        lancamento: ORMLancamentos = self.model_lancamentos.get_lancamento(lancamento_id)
+
         # se for modificação de data, move os anexos para o novo diretório, se necessário.
         if column_data.sql_colname == "data":
-            lancamento: ORMLancamentos = self.model_lancamentos.get_lancamento(lancamento_id)
             anexos = Anexos(lancamento.id)
             anexos.load()
             anexos.move_anexos(lancamento, value)
@@ -241,14 +259,17 @@ class LancamentosView(MyDialog):
         self.load_model_only()
 
         if column_data.sql_colname == "data":
-            item_new_indexes = model.match(model.index(0, CIndex.ID), Qt.UserRole, lancamento_id, 1)
+            item_new_indexes = model.match(model.index(0, CIndex.ID), ItemDataRole.UserRole, lancamento_id, 1)
             if len(item_new_indexes) > 0:
                 item_new_index = model.index(item_new_indexes[0].row(), CIndex.DATA)
                 self.table.scrollTo(item_new_index)
-                self.table.selectionModel().select(item_new_index, QItemSelectionModel.SelectCurrent)
+                selection_model = self.table.selectionModel()
+                assert selection_model is not None
+
+                selection_model.select(item_new_index, SelectionFlag.SelectCurrent)
                 self.table.setCurrentIndex(item_new_index)
 
-        lancamento: ORMLancamentos = self.model_lancamentos.get_lancamento(lancamento_id)
+        #        lancamento: ORMLancamentos = self.model_lancamentos.get_lancamento(lancamento_id)
         self.changed.emit(lancamento, column_data.sql_colname)
         self.table.setFocus()
 
@@ -278,7 +299,7 @@ class LancamentosView(MyDialog):
         Exibe a janela de anexos
         """
         model = cast(QStandardItemModel, index.model())
-        lancamento_id: int = model.index(index.row(), CIndex.ID).data(Qt.UserRole)
+        lancamento_id: int = model.index(index.row(), CIndex.ID).data(ItemDataRole.UserRole)
         lancamento = self.model_lancamentos.get_lancamento(lancamento_id)
         if not lancamento:
             MyMessagePopup(self).error(TEXTS.LANC_N_ENCONTRADO)
@@ -400,7 +421,7 @@ class LancamentosView(MyDialog):
             return
 
         model = cast(QStandardItemModel, index.model())
-        lancamento_id = model.index(index.row(), CIndex.ID).data(Qt.UserRole)
+        lancamento_id = model.index(index.row(), CIndex.ID).data(ItemDataRole.UserRole)
 
         if not self.check_del_not_ask.isChecked():
             button = QMessageBox.question(
@@ -488,7 +509,7 @@ class LancamentosView(MyDialog):
             model.setItemData(
                 model.index(new_index, CIndex.SALDO),
                 {
-                    Qt.DisplayRole: curr.str_curr_to_locale(saldo or 0),
+                    Qt.DisplayRole: str_curr_to_locale(saldo or 0),
                     Qt.UserRole: saldo,
                     Qt.AccessibleTextRole: saldo,
                 },
@@ -511,40 +532,44 @@ class LancamentosView(MyDialog):
         for new_index, row in enumerate(self.model_lancamentos.items):
             model.setItemData(
                 model.index(new_index, CIndex.ID),
-                {Qt.UserRole: row.id},
+                {ItemDataRole.UserRole: row.id},
             )
             model.setItemData(
                 model.index(new_index, CIndex.SEQ_ORDEM_LINHA),
-                {Qt.UserRole: row.seq_ordem_linha},
+                {ItemDataRole.UserRole: row.seq_ordem_linha},
             )
             model.setItemData(
                 model.index(new_index, CIndex.NR_REFERENCIA),
-                {Qt.DisplayRole: row.nr_referencia, Qt.UserRole: row.nr_referencia},
+                {ItemDataRole.DisplayRole: row.nr_referencia, ItemDataRole.UserRole: row.nr_referencia},
             )
             try:
                 model.setItemData(
                     model.index(new_index, CIndex.DESCRICAO),
                     {
-                        Qt.DisplayRole: row.descricao,
-                        Qt.UserRole: row.descricao,
-                        Qt.AccessibleTextRole: unidecode(row.descricao),
+                        ItemDataRole.DisplayRole: row.descricao,
+                        ItemDataRole.UserRole: row.descricao,
+                        ItemDataRole.AccessibleTextRole: unidecode(str(row.descricao)),
                     },
                 )
             except Exception as e:
                 pass
 
-            descricao_user = row.descricao_user or ""
+            descricao_user = str(row.descricao_user) or ""
             model.setItemData(
                 model.index(new_index, CIndex.DESCRICAO_USER),
                 {
-                    Qt.DisplayRole: descricao_user,
-                    Qt.UserRole: descricao_user,
-                    Qt.AccessibleTextRole: unidecode(descricao_user),
+                    ItemDataRole.DisplayRole: descricao_user,
+                    ItemDataRole.UserRole: descricao_user,
+                    ItemDataRole.AccessibleTextRole: unidecode(descricao_user),
                 },
             )
             model.setItemData(
                 model.index(new_index, CIndex.DATA),
-                {Qt.DisplayRole: row.data.strftime("%x"), Qt.UserRole: row.data, Qt.AccessibleTextRole: row.data},
+                {
+                    ItemDataRole.DisplayRole: row.data.strftime("%x"),
+                    ItemDataRole.UserRole: row.data,
+                    ItemDataRole.AccessibleTextRole: row.data,
+                },
             )
             if len(row.Categorias) > 0:
                 categoria = row.Categorias[0]
@@ -553,35 +578,35 @@ class LancamentosView(MyDialog):
             model.setItemData(
                 model.index(new_index, CIndex.CATEGORIA_ID),
                 {
-                    Qt.DisplayRole: categoria.nm_categoria,
-                    Qt.UserRole: categoria.id or -1,
-                    Qt.AccessibleTextRole: unidecode(categoria.nm_categoria),
+                    ItemDataRole.DisplayRole: categoria.nm_categoria,
+                    ItemDataRole.UserRole: categoria.id or -1,
+                    ItemDataRole.AccessibleTextRole: unidecode(categoria.nm_categoria),
                 },
             )
             model.setItemData(
                 model.index(new_index, CIndex.VALOR),
                 {
-                    Qt.DisplayRole: curr.str_curr_to_locale(int(row.valor) or 0),
-                    Qt.UserRole: row.valor or 0,
-                    Qt.AccessibleTextRole: row.valor or 0,
+                    ItemDataRole.DisplayRole: str_curr_to_locale(int(row.valor) or 0),
+                    ItemDataRole.UserRole: row.valor or 0,
+                    ItemDataRole.AccessibleTextRole: row.valor or 0,
                 },
             )
             saldo += int(row.valor)
             model.setItemData(
                 model.index(new_index, CIndex.SALDO),
                 {
-                    Qt.DisplayRole: curr.str_curr_to_locale(saldo or 0),
-                    Qt.UserRole: saldo,
-                    Qt.AccessibleTextRole: saldo,
+                    ItemDataRole.DisplayRole: str_curr_to_locale(saldo or 0),
+                    ItemDataRole.UserRole: saldo,
+                    ItemDataRole.AccessibleTextRole: saldo,
                 },
             )
             model.setItemData(
                 model.index(new_index, CIndex.ANEXOS),
-                {Qt.UserRole: row.nr_anexos},
+                {ItemDataRole.UserRole: row.nr_anexos},
             )
             model.setItemData(
                 model.index(new_index, CIndex.NR_ANEXOS),
-                {Qt.UserRole: row.nr_anexos},
+                {ItemDataRole.UserRole: row.nr_anexos},
             )
 
         filter_model.setSourceModel(model)
@@ -654,7 +679,7 @@ class LancamentosView(MyDialog):
         if not e:
             return
 
-        if e.key() == Qt.Key_Escape:
+        if e.key() == CONST_KEY.Key_Escape:
             return
 
         # Evento Copiar Ctrl + C
@@ -665,16 +690,16 @@ class LancamentosView(MyDialog):
             self.copy_paste_handler.handle_paste()
 
         # Evento Ctrl + L para chamar a filtro na tabela
-        if e.key() == Qt.Key_L and (e.modifiers() & Qt.ControlModifier):
+        if e.key() == CONST_KEY.Key_L and (e.modifiers() & CONST_KEYBMODIF.ControlModifier):
             self.open_filter()
 
         # Evento Ctrl + ; para chamar a filtro na tabela com valor
-        if e.key() == Qt.Key_Semicolon and (e.modifiers() & Qt.ControlModifier):
-            valor_celula = self.table.selectedIndexes()[0].data(Qt.DisplayRole)
+        if e.key() == CONST_KEY.Key_Semicolon and (e.modifiers() & CONST_KEYBMODIF.ControlModifier):
+            valor_celula = self.table.selectedIndexes()[0].data(ItemDataRole.DisplayRole)
             self.open_filter(valor_celula)
 
         # Evento Ctrl + F para chamar a busca na coluna
-        if e.key() == Qt.Key_F and (e.modifiers() & Qt.ControlModifier):
+        if e.key() == CONST_KEY.Key_F and (e.modifiers() & CONST_KEYBMODIF.ControlModifier):
             index = next((sel_ind for sel_ind in self.table.selectedIndexes()), None)
             if not index:
                 return
@@ -697,13 +722,13 @@ class LancamentosView(MyDialog):
 
         if self.search_dialog:
             # evento move cursor para o registro anterior na lista encontrada
-            if e.key() == Qt.Key_P and (e.modifiers() & Qt.ControlModifier):
+            if e.key() == CONST_KEY.Key_P and (e.modifiers() & CONST_KEYBMODIF.ControlModifier):
                 self.table.clearSelection()
                 self.search_dialog.on_click_search(go_prev=True)
                 return
 
             # evento move cursor para o registro proximo na lista encontrada
-            if e.key() == Qt.Key_N and (e.modifiers() & Qt.ControlModifier):
+            if e.key() == CONST_KEY.Key_N and (e.modifiers() & CONST_KEYBMODIF.ControlModifier):
                 self.table.clearSelection()
                 self.search_dialog.on_click_search()
                 return
@@ -780,13 +805,13 @@ class CopyAndPasteInTable:
 
                 elif index_to_change.column() == CIndex.DATA:
                     try:
-                        curr.str_to_date(cell)
+                        str_to_date(cell)
                     except Exception as e:
                         QToaster.showMessage(self.parent_view, "Erro ao colar data.")
                         return False
                 elif index_to_change.column() == CIndex.VALOR:
                     try:
-                        curr.str_curr_to_int(cell)
+                        str_curr_to_int(cell)
                     except Exception as e:
                         QToaster.showMessage(self.parent_view, "Erro ao colar valor.")
                         return False
@@ -802,71 +827,29 @@ class CopyAndPasteInTable:
                     categoria = next((x for x in self.model_categorias.items if x.nm_categoria == cell), None)
                     if not categoria:
                         return
-                    model.setData(index_to_change, categoria.id, Qt.UserRole)
+                    model.setData(index_to_change, categoria.id, ItemDataRole.UserRole)
                 elif index_to_change.column() == CIndex.DATA:
-                    date = curr.str_to_date(cell)
-                    model.setData(index_to_change, date, Qt.UserRole)
+                    date = str_to_date(cell)
+                    model.setData(index_to_change, date, ItemDataRole.UserRole)
                 elif index_to_change.column() == CIndex.VALOR:
-                    valor_int = curr.str_curr_to_int(cell)
-                    model.setData(index_to_change, valor_int, Qt.UserRole)
+                    valor_int = str_curr_to_int(cell)
+                    model.setData(index_to_change, valor_int, ItemDataRole.UserRole)
                 else:
-                    model.setData(index_to_change, cell, Qt.UserRole)
+                    model.setData(index_to_change, cell, ItemDataRole.UserRole)
+
+
+FieldAlignment = QTextStream.FieldAlignment
+AlignmentFlag = Qt.AlignmentFlag
+Alignment = Qt.Alignment
 
 
 class TotalCurrLabel(QLabel):
     def set_int_value(self, value_int: int):
-        self.setText(curr.int_to_locale(value_int))
+        self.setText(int_to_locale(value_int))
         color = "color:darkgreen"
         if value_int < 0:
             color = "color:red"
         stylesheet = f"margin-right:3px; margin-left:3px; font-weight:bold; {color}"
         self.setStyleSheet(stylesheet)
-        self.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-
-
-class LancamentoTableLine(TableLine):
-    def __init__(self, parent: LancamentosView):
-        super(LancamentoTableLine, self).__init__()
-        self.parentOne: LancamentosView = parent
-
-    def get_currency_value_delegate(self) -> CurrencyEditDelegate:
-        return CurrencyEditDelegate(self.parentOne.table)
-
-    def get_categoria_dropdown_delegate(self):
-        categorias = {}
-        for item in self.parentOne.model_categorias.items:
-            categorias[item.id] = item.nm_categoria
-
-        cmb_delegate = ComboBoxDelegate(categorias, self.parentOne.table)
-
-        return cmb_delegate
-
-    def get_date_input(self):
-        date = DateEditDelegate(self.parentOne.table)
-        return date
-
-    def get_currency_input(self, valor: int, row: int, col: int) -> QCurrencyLineEdit:
-        line_edit = QCurrencyLineEdit(self)
-        line_edit.setTextInt(valor)
-        return line_edit
-
-    def on_curr_input_text_changed(self, *args, **kwargs) -> None:
-        self.sender().setTextFormat()
-
-    def get_label_for_saldo(self, value: int) -> QLineEdit:
-        label = super().get_label_for_currency(value)
-        return label
-
-    @staticmethod
-    def get_del_button() -> QPushButton:
-        del_pbutt = QPushButton()
-        del_pbutt.setToolTip("Eliminar Lançamento")
-        del_pbutt.setIcon(icons.delete())
-        return del_pbutt
-
-    @staticmethod
-    def get_attach_button() -> QPushButton:
-        del_pbutt = QPushButton()
-        del_pbutt.setToolTip("Anexos")
-        del_pbutt.setIcon(icons.attach())
-        return del_pbutt
+        new_alignment = cast(Alignment, AlignmentFlag.AlignRight | AlignmentFlag.AlignVCenter)
+        self.setAlignment(new_alignment)

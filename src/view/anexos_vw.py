@@ -5,7 +5,7 @@ import shutil
 from uuid import uuid4
 from pathlib import Path
 import view.icons.icons as icons
-from view.TableLine import TableLine
+from lib.Genericos.TableLine import TableLine
 from PyQt5.QtGui import QStandardItemModel
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import (

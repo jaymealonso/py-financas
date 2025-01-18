@@ -1,5 +1,6 @@
-from view.TableLine import TableLine
+from lib.Genericos.TableLine import TableLine
 from PyQt5.QtWidgets import QLineEdit
+
 
 class VisaoGeralViewLine(TableLine):
     def get_label_for_currency(self, value: int):

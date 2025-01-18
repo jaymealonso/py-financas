@@ -5,7 +5,7 @@ from lib.Genericos.log import logging
 from datetime import datetime
 from util.curr_formatter import str_curr_to_int
 from PyQt5.QtWidgets import QComboBox
-from view.TableLine import TableLine
+from lib.Genericos.TableLine import TableLine
 
 
 class ImportarLancamentosTableLine(TableLine):

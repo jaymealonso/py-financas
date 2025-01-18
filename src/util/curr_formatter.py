@@ -1,6 +1,5 @@
 import datetime
 import locale
-from unicodedata import digit
 
 locale.setlocale(locale.LC_ALL, "pt_BR.utf8")
 
@@ -35,9 +34,8 @@ def int_to_locale(value_int: int) -> str:
 
 
 def str_to_date(text: str) -> datetime.datetime:
-        # remove all non digit
-        text = ''.join(filter(str.isalnum, text))
-        # convert to date
-        date = datetime.datetime(day=int(text[0:2]), month=int(text[2:4]), year=int(text[4:8]))
-        return date
-
+    # remove all non digit
+    text = "".join(filter(str.isalnum, text))
+    # convert to date
+    date = datetime.datetime(day=int(text[0:2]), month=int(text[2:4]), year=int(text[4:8]))
+    return date

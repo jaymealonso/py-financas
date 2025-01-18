@@ -5,7 +5,7 @@ import view.icons.icons as icons
 import view.lanc_vw
 from lib.Genericos.log import logging
 import util.curr_formatter as curr
-from view.TableLine import TableLine
+from lib.Genericos.TableLine import TableLine
 from view.visao_mensal_vw import VisaoGeralView
 from typing import Tuple
 from PyQt5.QtCore import Qt, QModelIndex

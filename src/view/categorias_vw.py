@@ -3,7 +3,7 @@ from lib.Categoria.Table import CategoriaTableView
 from lib.Genericos.MySortFilterProxyModel import MySortFilterProxyModel
 from lib import logging
 from lib.Genericos.QMessageHelper import MyMessagePopup
-from view.TableLine import TableLine
+from lib.Genericos.TableLine import TableLine
 import view.icons.icons as icons
 from enum import IntEnum, auto
 

@@ -124,6 +124,6 @@ class Contas:
         session.execute(update(ORMContas).where(ORMContas.id == conta_id).values({fieldname: value}))
         session.commit()
 
-    def find_by_id(self, id: int) -> Conta:
+    def find_by_id(self, id: int) -> Conta | None:
         contas_found = [item for item in self.__items if item.id == id]
         return contas_found[0] if len(contas_found) > 0 else None

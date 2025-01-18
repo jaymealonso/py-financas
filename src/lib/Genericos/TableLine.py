@@ -4,6 +4,8 @@ import util.curr_formatter as curr
 
 
 class TableLine(QObject):
+    """Classe para criar widgets usados em várias tabelas"""
+
     @staticmethod
     def get_label_for_id(value: str):
         label = QLineEdit(value)
