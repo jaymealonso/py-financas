@@ -23,3 +23,7 @@ pythonpath = [".", "src"]
 
 [tool.mypy]
 mypy_path = "src"
+
+[[tool.mypy.overrides]]
+module = ["moment.*", "openpyxl.*"]
+follow_untyped_imports = true

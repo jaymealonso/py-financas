@@ -2,7 +2,7 @@ import csv
 from enum import StrEnum
 import io
 from typing import cast
-from PyQt5.QtCore import QAbstractItemModel, QItemSelectionModel, QModelIndex, pyqtSignal, Qt, QTextStream
+from PyQt5.QtCore import QAbstractItemModel, QItemSelectionModel, QModelIndex, pyqtSignal, Qt
 from PyQt5.QtGui import QCursor, QKeySequence, QStandardItem, QStandardItemModel, QKeyEvent
 from PyQt5.QtWidgets import (
     QAction,
@@ -19,7 +19,8 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 from unidecode import unidecode
-from util import str_curr_to_locale, str_to_date, int_to_locale, str_curr_to_int
+
+from util import str_curr_to_locale, str_to_date, str_curr_to_int
 from lib import (
     MyMessagePopup,
     CustomToolbar,
@@ -29,12 +30,14 @@ from lib import (
     ExportExcel,
     LancamentoSortFilterProxyModel,
 )
-from lib.Lancamentos import LancamentosTableColumns, CIndex, LancamentoTableLine
+from lib.Lancamentos import LancamentosTableColumns, CIndex, LancamentoTableLine, TotalCurrLabel
 from model import Anexos, Categorias, Conta, Lancamentos, ORMAnexos, ORMLancamentos
 
 from util import (
     ButtonDelegate,
     CurrencyLabelDelegate,
+    CurrencyEditDelegate,
+    DateEditDelegate,
     GenericInputDelegate,
     IDLabelDelegate,
     MyDialog,
@@ -82,41 +85,80 @@ class TEXTS(StrEnum):
 
 
 class LancamentosView(MyDialog):
-    # lancamento: ORMLancamentos, field:str
+    """Dialog que exibe os lançamentos de uma conta"""
+
     changed = pyqtSignal(ORMLancamentos, str)
-    # lancamento_id: int
+    """
+    Signal para indicar que um campo de um lançamento foi alterado
+
+    Parameters
+    ----------
+    lancamento: ORMLancamentos
+        Objeto de lançamento que foi alterado
+    field: str
+        Nome do campo que foi alterado
+    """
+
     add_lancamento = pyqtSignal(int)
-    # lancamento_id: int
+    """ 
+    Signal para indicar que um lançamento foi adicionado
+    
+    Parameters
+    ----------
+    lancamento_id: int
+        ID do novo lançamento criado
+    """
+
     on_delete = pyqtSignal(int)
+    """
+    Signal para indicar que um lançamento foi deletado
+
+    Parameters
+    ----------
+    lancamento_id: int
+        ID do lançamento que foi deletado
+    """
 
     records_added = pyqtSignal()
+    """Signal para indicar que registros foram adicionados via importação em lote"""
 
     def __init__(self, parent: QWidget, conta_dc: Conta):
         super(LancamentosView, self).__init__(parent)
 
-        self.toolbar = self.get_toolbar()
-        self.columns = LancamentosTableColumns()
-        table = self.get_table()
-        self.conta_dc = conta_dc
         self.parent: cv.ContasView = parent
-        self.import_lanc_view: ImportarLancamentosView | None = None
+        self.conta_dc = conta_dc
+
+        # Elementos da View lancamentos
+        self.toolbar = self.create_toolbar()
+        self.columns = LancamentosTableColumns()
+        self.table = self.create_table(self.columns)
         self.search_dialog: SearchInputView | None = None
         self.filter_dialog: FilterInputView | None = None
         self.total_label = TotalCurrLabel()
+
+        # outras views
+        self.import_lanc_view: ImportarLancamentosView | None = None
+
+        # model
         self.model_lancamentos = Lancamentos(conta_dc)
         self.model_categorias = Categorias()
         self.model_categorias.load()
+
+        # TODO: remover após criar um delegate para o categorias dropdown
         self.tableline = LancamentoTableLine(self)
+
+        # Carregamento de padrões
         self.global_settings = Settings()
         self.settings: JanelaLancamentosSettings = self.global_settings.load_lanc_settings(self.conta_dc.id)
+
         self.copy_paste_handler = CopyAndPasteInTable(self)
         self.setWindowTitle(TEXTS.TITLE.format(self.conta_dc.id, self.conta_dc.descricao))
-        self.restore_geometry()
+        self.restaura_dim_janela()
         self.on_close_signal.connect(self.on_close)
 
         layout = QVBoxLayout()
         layout.addWidget(self.toolbar)
-        layout.addWidget(table)
+        layout.addWidget(self.table)
         layout.addWidget(self.get_footer())
 
         self.setLayout(layout)
@@ -127,7 +169,9 @@ class LancamentosView(MyDialog):
     def on_close(self):
         self.settings.dimensoes = self.saveGeometry()
 
-    def restore_geometry(self) -> None:
+    def restaura_dim_janela(self) -> None:
+        """Carrega última dimensão salva da janela ou o padrão se não houver"""
+
         self.setMinimumSize(800, 600)
         try:
             self.restoreGeometry(self.settings.dimensoes)
@@ -135,10 +179,9 @@ class LancamentosView(MyDialog):
             logging.error(str(e))
             self.resize(1600, 900)
 
-    def get_toolbar(self) -> CustomToolbar:
-        """
-        Retorna toolbar
-        """
+    def create_toolbar(self) -> CustomToolbar:
+        """Cria uma nova instancia de CustomToolbar com os botoes de ação e retorna"""
+
         toolbar: CustomToolbar = CustomToolbar()
 
         import_act = toolbar.addAction(icons.import_file(), TEXTS.IMPORTAR_LANCAMENTOS)
@@ -179,40 +222,44 @@ class LancamentosView(MyDialog):
 
             self.load_model_only()
 
-    def get_table(self) -> QTableView:
+    def create_table(self, columns: LancamentosTableColumns) -> QTableView:
         """
-        Retorna tabela com o seu layout
-        """
-        self.table = QTableView(self)
+        Cria uma nova tabela com o seu layout e retorna
 
-        model = QStandardItemModel(0, self.columns.count(), self.table)
-        model.setHorizontalHeaderLabels(self.columns.titles())
+        Parameters
+        ----------
+        columns: LancamentosTableColumns
+            Objeto com as colunas da tabela
+        """
+
+        table = QTableView(self)
+
+        model = QStandardItemModel(0, columns.count(), table)
+        model.setHorizontalHeaderLabels(columns.titles())
 
         sortModel = LancamentoSortFilterProxyModel(self)
         sortModel.dropped_lancamento.connect(self.on_dropped_lancamento)
         sortModel.setSourceModel(model)
-        self.table.setModel(sortModel)
-        self.table.setSortingEnabled(True)
+        table.setModel(sortModel)
+        table.setSortingEnabled(True)
 
-        vertical_header = self.table.verticalHeader()
+        vertical_header = table.verticalHeader()
         assert vertical_header is not None
         vertical_header.setVisible(False)
 
         # Enable context menu on the column header
-        hheader = self.table.horizontalHeader()
+        hheader = table.horizontalHeader()
         assert hheader is not None
         hheader.setContextMenuPolicy(ContextMenuPolicy.CustomContextMenu)
 
-        horizontal_header = self.table.horizontalHeader()
+        horizontal_header = table.horizontalHeader()
         assert horizontal_header is not None
         horizontal_header.customContextMenuRequested.connect(self.on_table_header_context_menu)
 
-        #        self.table.contextMenuEvent = self.call_table_ctx_menu
+        table.setContextMenuPolicy(ContextMenuPolicy.CustomContextMenu)
+        table.customContextMenuRequested.connect(self.call_table_ctx_menu)
 
-        self.table.setContextMenuPolicy(ContextMenuPolicy.CustomContextMenu)
-        self.table.customContextMenuRequested.connect(self.call_table_ctx_menu)
-
-        return self.table
+        return table
 
     def model_item_changed(self, item: QStandardItem):
         index = item.index()
@@ -496,7 +543,7 @@ class LancamentosView(MyDialog):
         filter_model = cast(LancamentoSortFilterProxyModel, self.table.model())
         model = cast(QStandardItemModel, filter_model.sourceModel())
         export_excel = ExportExcel(self, model, self.conta_dc.descricao)
-        export_excel.export(TEXTS.EXPORTAR_PREFIXO)
+        export_excel.export(TEXTS.EXPORTAR_PREFIXO, currency_cols_indexes=[CIndex.VALOR, CIndex.SALDO])
 
     def recalculate_saldo_total(self):
         self.model_lancamentos.load()
@@ -509,9 +556,9 @@ class LancamentosView(MyDialog):
             model.setItemData(
                 model.index(new_index, CIndex.SALDO),
                 {
-                    Qt.DisplayRole: str_curr_to_locale(saldo or 0),
-                    Qt.UserRole: saldo,
-                    Qt.AccessibleTextRole: saldo,
+                    ItemDataRole.DisplayRole: str_curr_to_locale(saldo or 0),
+                    ItemDataRole.UserRole: saldo,
+                    ItemDataRole.AccessibleTextRole: saldo,
                 },
             )
         # Define valor do TOTAL que aparece no rodapé da janela
@@ -525,7 +572,7 @@ class LancamentosView(MyDialog):
         try:
             model.itemChanged.disconnect(self.model_item_changed)
         except Exception as e:
-            pass  # ignore error
+            logging.error(f"Erro ao desconectar model_item_changed: {e}")
 
         model.setRowCount(len(self.model_lancamentos.items))
         saldo = 0
@@ -552,7 +599,7 @@ class LancamentosView(MyDialog):
                     },
                 )
             except Exception as e:
-                pass
+                logging.error(f"Erro ao carregar descrição: {e}")
 
             descricao_user = str(row.descricao_user) or ""
             model.setItemData(
@@ -631,9 +678,9 @@ class LancamentosView(MyDialog):
 
         col1_del = GenericInputDelegate(self.table)
         col2_del = GenericInputDelegate(self.table)
-        col3_del = self.tableline.get_date_input()
+        col3_del = DateEditDelegate(self.table)  # self.tableline.get_date_input()
         col4_del = self.tableline.get_categoria_dropdown_delegate()
-        col5_del = self.tableline.get_currency_value_delegate()
+        col5_del = CurrencyEditDelegate(self.table)  # self.tableline.get_currency_value_delegate()
         col6_del = GenericInputDelegate(self.table)
         col7_del = ButtonDelegate(self.table, LancamentoTableLine.get_attach_button(), self.on_open_attachments)
 
@@ -759,7 +806,9 @@ class CopyAndPasteInTable:
                 table[row][column] = index.data()
             stream = io.StringIO()
             csv.writer(stream, delimiter="\t").writerows(table)
-            QApplication.clipboard().setText(stream.getvalue())
+            clipboard = QApplication.clipboard()
+            assert clipboard is not None
+            clipboard.setText(stream.getvalue())
 
     def handle_paste(self) -> None:
         QToaster.showMessage(self.parent_view, "Dado colado!")
@@ -769,7 +818,9 @@ class CopyAndPasteInTable:
             if not model:
                 raise Exception("Model não encontrado.")
 
-            buffer = QApplication.clipboard().text()
+            clipboard = QApplication.clipboard()
+            assert clipboard is not None
+            buffer = clipboard.text()
             rows = sorted(index.row() for index in selection)
             columns = sorted(index.column() for index in selection)
             reader = csv.reader(io.StringIO(buffer), delimiter="\t")
@@ -807,13 +858,13 @@ class CopyAndPasteInTable:
                     try:
                         str_to_date(cell)
                     except Exception as e:
-                        QToaster.showMessage(self.parent_view, "Erro ao colar data.")
+                        QToaster.showMessage(self.parent_view, f"Erro ao colar a data. {e}")
                         return False
                 elif index_to_change.column() == CIndex.VALOR:
                     try:
                         str_curr_to_int(cell)
                     except Exception as e:
-                        QToaster.showMessage(self.parent_view, "Erro ao colar valor.")
+                        QToaster.showMessage(self.parent_view, f"Erro ao colar valor. {e}")
                         return False
 
         return True
@@ -836,20 +887,3 @@ class CopyAndPasteInTable:
                     model.setData(index_to_change, valor_int, ItemDataRole.UserRole)
                 else:
                     model.setData(index_to_change, cell, ItemDataRole.UserRole)
-
-
-FieldAlignment = QTextStream.FieldAlignment
-AlignmentFlag = Qt.AlignmentFlag
-Alignment = Qt.Alignment
-
-
-class TotalCurrLabel(QLabel):
-    def set_int_value(self, value_int: int):
-        self.setText(int_to_locale(value_int))
-        color = "color:darkgreen"
-        if value_int < 0:
-            color = "color:red"
-        stylesheet = f"margin-right:3px; margin-left:3px; font-weight:bold; {color}"
-        self.setStyleSheet(stylesheet)
-        new_alignment = cast(Alignment, AlignmentFlag.AlignRight | AlignmentFlag.AlignVCenter)
-        self.setAlignment(new_alignment)

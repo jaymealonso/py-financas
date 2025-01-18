@@ -2,7 +2,7 @@ from typing import cast
 import view.icons.icons as icons
 from PyQt5.QtWidgets import QLineEdit, QPushButton
 from lib import TableLine
-from util import ComboBoxDelegate, CurrencyEditDelegate, DateEditDelegate, QCurrencyLineEdit
+from util import ComboBoxDelegate, QCurrencyLineEdit
 from model import Categorias
 
 
@@ -14,8 +14,8 @@ class LancamentoTableLine(TableLine):
         self.table = parent.table
         self.model_categorias = cast(Categorias, parent.model_categorias)
 
-    def get_currency_value_delegate(self) -> CurrencyEditDelegate:
-        return CurrencyEditDelegate(self.table)
+    # def get_currency_value_delegate(self) -> CurrencyEditDelegate:
+    #     return CurrencyEditDelegate(self.table)
 
     def get_categoria_dropdown_delegate(self) -> ComboBoxDelegate:
         categorias = {}
@@ -26,9 +26,9 @@ class LancamentoTableLine(TableLine):
 
         return cmb_delegate
 
-    def get_date_input(self):
-        date = DateEditDelegate(self.table)
-        return date
+    # def get_date_input(self):
+    #     date = DateEditDelegate(self.table)
+    #     return date
 
     def get_currency_input(self, valor: int, row: int, col: int) -> QCurrencyLineEdit:
         line_edit = QCurrencyLineEdit(self.table)

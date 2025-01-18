@@ -3,6 +3,7 @@
 .coverage
 .idea/*
 *__pycache__*
+*.egg-info/
 *database*.db*
 dist
 output

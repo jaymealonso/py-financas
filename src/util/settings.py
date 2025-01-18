@@ -121,6 +121,8 @@ class JanelaImportLancamentosSettings(JanelaSettings):
 
 
 class Settings(metaclass=SingletonMeta):
+    """Classe Singleton de armazenamento de configurações"""
+
     PADROES = "Padroes"
 
     def __init__(self):
