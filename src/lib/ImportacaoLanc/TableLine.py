@@ -1,9 +1,4 @@
 #!
-import locale
-from lib.Genericos.log import logging
-
-from datetime import datetime
-from util.curr_formatter import str_curr_to_int
 from PyQt5.QtWidgets import QComboBox
 from lib.Genericos.TableLine import TableLine
 

@@ -4,7 +4,7 @@ import moment
 from typing import List
 from sqlalchemy import insert, update, delete, func, select
 from sqlalchemy.orm import Session, joinedload
-from model import Database, Conta, ORMLancamentos, ORMLancCateg, ORMAnexos
+from model import Database, ORMLancamentos, ORMLancCateg, ORMAnexos
 
 from sqlalchemy.sql import text
 
@@ -12,17 +12,17 @@ from sqlalchemy.sql import text
 class Lancamentos:
     """Todos os lancamentos de uma conta"""
 
-    def __init__(self, conta_dc: Conta):
+    def __init__(self):
         self.id = None
         self.__items: List[ORMLancamentos] = []
         self.__db = Database()
-        self.conta: Conta = conta_dc
+        # self.conta: Conta = conta_dc
 
     @property
     def items(self) -> list[ORMLancamentos]:
         return self.__items
 
-    def get_lancamento(self, lancamento_id: int) -> ORMLancamentos:
+    def get_lancamento(self, lancamento_id: int) -> ORMLancamentos | None:
         items = [item for item in self.items if item.id == lancamento_id]
         if len(items) > 0:
             return items[0]
@@ -36,7 +36,7 @@ class Lancamentos:
         """
         return sum([x.valor for x in self.__items])
 
-    def load(self) -> None:
+    def load(self, conta_id: int) -> None:
         """
         Carrega dados dos lancamentos do DB
         """
@@ -45,7 +45,7 @@ class Lancamentos:
         with Session(self.__db.engine) as session:
             self.__items = (
                 session.query(ORMLancamentos)
-                .filter(ORMLancamentos.conta_id == self.conta.id)
+                .filter(ORMLancamentos.conta_id == conta_id)
                 .order_by(ORMLancamentos.data, ORMLancamentos.seq_ordem_linha)
                 # se não forçar o carregamento aqui carrega quando referencia o "Categorias"
                 .options(joinedload(ORMLancamentos.Categorias))
@@ -55,7 +55,7 @@ class Lancamentos:
             result = session.execute(
                 select(ORMLancamentos.id, func.count(ORMAnexos.id).label("nr_anexos"))
                 .join(ORMLancamentos.Anexos, isouter=True)
-                .filter(ORMLancamentos.conta_id == self.conta.id)
+                .filter(ORMLancamentos.conta_id == conta_id)
                 .group_by(ORMLancamentos)
             ).all()
 

@@ -1,8 +1,9 @@
 #!
 
-from enum import IntEnum, auto
+from enum import IntEnum, StrEnum, auto
 import io
 import locale
+from typing import cast
 import openpyxl
 
 from PyQt5.QtGui import QCursor, QIcon
@@ -28,15 +29,31 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from model import ORMCategorias
+from model import Categorias
 
 from lib.ImportacaoLanc.TableLine import ImportarLancamentosTableLine
+
+
+ToolButtonStyle = Qt.ToolButtonStyle
+ItemFlag = Qt.ItemFlag
+CursorShape = Qt.CursorShape
+
+
+class TEXTS(StrEnum):
+    ARQUIVO_N_EXCEL = 'Arquivo "{0}" não parece estar no formato excel.'
+    SELECIONE_UMA_LINHA = "Favor selecionar ao menos uma linha."
+    CATEGORIA_N_ENCONTRADA = 'Categoria com o nome "{0}" não encontrada.'
+    CATEGORIA_VAZIA = "Categoria vazia."
+    ERRO_AO_ADICIONAR_LINHA = "Erro ao adicionar linha {0}. Devem ao menos existir atributos: data, valor e descricao"
+    LBL_SEPARADOR_MILHAR = "Separador Milhar:"
+    LBL_SEPARADOR_DECIMAL = "Separador Decimal:"
+    LBL_FORMATO_DATA = "Formato Data:"
 
 
 class AbrirExcelErro(Exception):
     def __init__(self, filepath: str) -> None:
         self.filepath = filepath
-        self.message = f'Arquivo "{self.filepath}" não parece estar no formato excel.'
+        self.message = TEXTS.ARQUIVO_N_EXCEL.format(self.filepath)
         super().__init__(self.message)
 
 
@@ -59,6 +76,7 @@ class NewLancamento:
     data: date
     valor: int
     categoria_id: int
+    suggested_categ: int = field(default=-1)
 
     row_index: int = field(default=0)
     message_status: NewLancamentoStatus = field(default=NewLancamentoStatus.Nenhum)
@@ -68,7 +86,7 @@ class NewLancamento:
     pode_inserir: bool = field(default=True)
 
     def valid(self) -> bool:
-        return self.descricao and self.data and self.valor
+        return self.descricao != "" and self.data is not None  # and self.valor != 0
 
     @property
     def icon(self) -> QIcon:
@@ -106,16 +124,18 @@ class FirstStepFrame(QWidget):
         self.setLayout(layout)
 
         # model
-        self.model_categoria = ORMCategorias()
+        self.model_categoria = Categorias()
 
     def get_toolbar(self) -> CustomToolbar:
         toolbar = CustomToolbar()
-        toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        toolbar.setToolButtonStyle(ToolButtonStyle.ToolButtonTextBesideIcon)
 
         btn_next = toolbar.addAction(icons.results_next(), "Próximo passo")
+        assert btn_next is not None
         btn_next.triggered.connect(self.on_proximo_passo)
 
         btn_remove_line = toolbar.addAction(icons.delete(), "Remover linha(s)")
+        assert btn_remove_line is not None
         btn_remove_line.triggered.connect(self.on_remove_lines)
 
         return toolbar
@@ -128,13 +148,17 @@ class FirstStepFrame(QWidget):
 
     def on_proximo_passo(self):
         """Envia linhas selecionadas para a proxima tabela de preview"""
-        if len(self.table.selectedIndexes()) == 0:
-            MyMessagePopup(self).error("Favor selecionar ao menos uma linha.")
+        array_indexes = list(map(lambda x: x.row(), self.table.selectedIndexes()))
+        unique_indexes = list(set(array_indexes))
+
+        # Nenhuma linha selecionada ou somente a primeira linha (dos combos)
+        if len(unique_indexes) == 0 or (len(unique_indexes) == 1 and 0 in unique_indexes):
+            MyMessagePopup(self).error(TEXTS.SELECIONE_UMA_LINHA)
             return
 
         mapping_cols = {}
         for col_index in range(self.table.columnCount()):
-            column_combo: QComboBox = self.table.cellWidget(0, col_index)
+            column_combo = cast(QComboBox, self.table.cellWidget(0, col_index))
             if column_combo.currentData() != "":
                 mapping_cols[column_combo.currentData()] = col_index
 
@@ -173,18 +197,18 @@ class FirstStepFrame(QWidget):
                     )
                     if not categ_value:
                         if cell_value != "":
-                            new_lancamento.message = f'Categoria com o nome "{cell_value}" não encontrada.'
+                            new_lancamento.message = TEXTS.CATEGORIA_N_ENCONTRADA.format(cell_value)
                             new_lancamento.message_status = NewLancamentoStatus.Aviso
                             new_lancamento.new_categoria = cell_value
                         else:
-                            new_lancamento.message = "Categoria vazia."
+                            new_lancamento.message = TEXTS.CATEGORIA_VAZIA
                             new_lancamento.message_status = NewLancamentoStatus.Aviso
 
                     new_lancamento.categoria_id = categ_value
                 else:
                     new_lancamento.__setattr__(col, cell_value)
             if not new_lancamento.valid():
-                text = f"Erro ao adicionar linha {row_index + 1}. Devem ao menos existir atributos: data, valor e descricao"
+                text = TEXTS.ERRO_AO_ADICIONAR_LINHA.format(row_index + 1)
                 new_lancamento.message = text
                 new_lancamento.pode_inserir = False
                 new_lancamento.message_status = NewLancamentoStatus.Erro
@@ -218,7 +242,7 @@ class FirstStepFrame(QWidget):
             raise AbrirExcelErro(file_name_fullpath)
         ws = wb.active
 
-        QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
+        QApplication.setOverrideCursor(QCursor(CursorShape.WaitCursor))
 
         column_count = len(list(ws.columns))
         self.table.setColumnCount(column_count)
@@ -227,16 +251,18 @@ class FirstStepFrame(QWidget):
 
         # Adiciona primeira linha da tabela para seleção de campo a ser mapeado
         self.table.insertRow(0)
-        positions: dict[int, set] = self.settings.import_col_position
+        positions = self.settings.import_col_position
+
         for i in range(column_count):
             combo = line.get_combo()
-            filled_col_name = next((x for x, y in positions.items() if y == i), None)
-            if filled_col_name is not None:
-                for index in range(combo.count()):
-                    if combo.itemData(index) == filled_col_name:
-                        combo.setCurrentIndex(index)
-                        break
             self.table.setCellWidget(0, i, combo)
+
+        for position in positions:
+            col_index = positions[position]
+            combo = cast(QComboBox, self.table.cellWidget(0, col_index))
+            index = combo.findData(position)
+            if index:
+                combo.setCurrentIndex(index)
 
         row_no = 1
         skipcount = 0
@@ -244,7 +270,9 @@ class FirstStepFrame(QWidget):
         # TODO: mudar para QProgressDialog
         prog_bar = QProgressBar()
         prog_bar.setRange(1, len(list(ws.rows)))
-        self.layout().addWidget(prog_bar)
+        layout = self.layout()
+        assert layout is not None
+        layout.addWidget(prog_bar)
 
         rowcount = 1  # starts at one because of the header line
         for row in ws.rows:
@@ -268,7 +296,8 @@ class FirstStepFrame(QWidget):
                     cell_widget = QTableWidgetItem(str(cell.value))
                 else:
                     cell_widget = QTableWidgetItem(cell.value)
-                cell_widget.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+
+                cell_widget.setFlags(ItemFlag.ItemIsSelectable | ItemFlag.ItemIsEnabled)
                 self.table.setItem(row_no, column_no, cell_widget)
                 column_no += 1
 
@@ -280,7 +309,7 @@ class FirstStepFrame(QWidget):
 
         self.table.resizeColumnsToContents()
 
-        self.layout().removeWidget(prog_bar)
+        layout.removeWidget(prog_bar)
 
         QApplication.restoreOverrideCursor()
 
@@ -290,7 +319,7 @@ class FirstStepFrame(QWidget):
         try:
             decimal_point = locale.localeconv()["decimal_point"]
             thousands_sep = locale.localeconv()["thousands_sep"]
-            curr_str = curr_str.replace(mil_separador, thousands_sep).replace(dec_separador, decimal_point)
+            curr_str = curr_str.replace(mil_separador, str(thousands_sep)).replace(dec_separador, decimal_point)
             curr_int = str_curr_to_int(curr_str)
         except Exception as e:
             logging.debug(f"Erro importando valor em currency!, {e}")
@@ -324,9 +353,9 @@ class ConfigImportacaoBlock(QWidget):
 
         # local vars
         self.settings = settings
-        self.decimal_separator: QLineEdit = None
-        self.mil_separator: QLineEdit = None
-        self.date_format: QLineEdit = None
+        self.decimal_separator: QLineEdit | None = None
+        self.mil_separator: QLineEdit | None = None
+        self.date_format: QLineEdit | None = None
 
         # startup
         self.config_inputs()
@@ -344,13 +373,13 @@ class ConfigImportacaoBlock(QWidget):
         self.date_format.setObjectName("formato_data")
         self.date_format.editingFinished.connect(lambda: self._on_change_params(self.date_format))
 
-    def config_layout(self) -> QHBoxLayout:
+    def config_layout(self) -> None:
         layout = QHBoxLayout()
-        layout.addWidget(QLabel("Separador Milhar:"))
+        layout.addWidget(QLabel(TEXTS.LBL_SEPARADOR_MILHAR))
         layout.addWidget(self.mil_separator)
-        layout.addWidget(QLabel("Separador Decimal:"))
+        layout.addWidget(QLabel(TEXTS.LBL_SEPARADOR_DECIMAL))
         layout.addWidget(self.decimal_separator)
-        layout.addWidget(QLabel("Formato Data:"))
+        layout.addWidget(QLabel(TEXTS.LBL_FORMATO_DATA))
         layout.addWidget(self.date_format)
 
         self.setLayout(layout)

@@ -1,25 +1,39 @@
 #!
 
 from enum import IntEnum, auto
+from typing import cast
 
 from PyQt5.QtGui import QStandardItemModel
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtWidgets import QAbstractItemView, QSizePolicy, QTableView, QVBoxLayout, QWidget
+from PyQt5.QtCore import QModelIndex, Qt, pyqtSignal
+from PyQt5.QtWidgets import QAbstractItemView, QPushButton, QSizePolicy, QTableView, QVBoxLayout, QWidget
 
 from lib.Genericos.QMessageHelper import MyMessagePopup
 from lib.ImportacaoLanc.AddCategoriaPopup import AddCategoriasPopup
-from lib import CustomToolbar
+from lib import CustomToolbar, logging
+from lib.ImportacaoLanc.Classification import LancamentosClassificador, TrainingData
 import util.curr_formatter as curr
+from util import ButtonDelegate
 from lib.ImportacaoLanc.FirstStep import NewLancamento
 import view.icons.icons as icons
-from model import Categorias
+from model import Categorias, Lancamentos
+
+ToolButtonStyle = Qt.ToolButtonStyle
+ItemDataRole = Qt.ItemDataRole
 
 
 class SecondStepFrame(QWidget):
-    # list[NewLancamento]
     import_linhas = pyqtSignal(list)
+    """
+    Envia um sinal com as linhas que devem ser importadas
+
+    Parameters
+    ----------
+    lancamento_list = list[NewLancamento]
+        Lista de lancçamentos a serem processados
+    """
 
     passo_anterior = pyqtSignal()
+    """Volta para o passo anterior"""
 
     class Column(IntEnum):
         NR_REFERENCIA = 0
@@ -27,6 +41,8 @@ class SecondStepFrame(QWidget):
         DESCRICAO_USER = auto()
         DATA = auto()
         CATEGORIA_ID = auto()
+        BTN_MOVE_CATEG = auto()
+        CATEG_SUGERIDA = auto()
         VALOR = auto()
         NEW_ID = auto()
         MESSAGE = auto()
@@ -37,18 +53,22 @@ class SecondStepFrame(QWidget):
         Column.DESCRICAO_USER: {"title": "Descrição Usuário", "sql_colname": "descricao_user", "col_width": 100},
         Column.DATA: {"title": "Data", "sql_colname": "data", "col_width": 160},
         Column.CATEGORIA_ID: {"title": "Categorias", "sql_colname": "categoria_id", "col_width": 260},
+        Column.BTN_MOVE_CATEG: {"title": "Aceitar", "sql_colname": "", "col_width": 100},
+        Column.CATEG_SUGERIDA: {"title": "Categoria Sugerida", "sql_colname": "", "col_width": 100},
         Column.VALOR: {"title": "Valor", "sql_colname": "valor", "col_width": 160},
         Column.NEW_ID: {"title": "Novo ID", "sql_colname": "id", "col_width": 90},
-        Column.MESSAGE: {"title": "Mensagem de importação", "sql_colname": "valor", "col_width": 600},
+        Column.MESSAGE: {"title": "Mensagem de importação", "sql_colname": "", "col_width": 600},
     }
 
     def __init__(self, parent: QWidget) -> None:
         super(SecondStepFrame, self).__init__(parent)
 
         # local vars
+        self.parent_view = parent
         self.table = self.get_table()
         self.toolbar = self.get_toolbar()
-        self.linhas = list[NewLancamento]
+        self.linhas: list[NewLancamento] = []
+        self.classificador: LancamentosClassificador
 
         # layout
         layout = QVBoxLayout()
@@ -60,17 +80,20 @@ class SecondStepFrame(QWidget):
         # model
         self.model_categorias = Categorias()
         self.model_categorias.load()
+        self.model_lancamentos = Lancamentos()
 
-        parent.importacao_finalizada.connect(self.set_linhas)
+        self.parent_view.importacao_finalizada.connect(self.set_linhas)
 
     def get_toolbar(self) -> CustomToolbar:
         toolbar = CustomToolbar()
-        toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        toolbar.setToolButtonStyle(ToolButtonStyle.ToolButtonTextBesideIcon)
 
         btn_previous = toolbar.addAction(icons.results_prev(), "Passo anterior")
+        assert btn_previous is not None
         btn_previous.triggered.connect(self.passo_anterior.emit)
 
         btn_criar_categ = toolbar.addAction(icons.add(), "Criar categorias")
+        assert btn_criar_categ is not None
         btn_criar_categ.triggered.connect(self.on_criar_categorias)
 
         spacer = QWidget()
@@ -78,6 +101,7 @@ class SecondStepFrame(QWidget):
         toolbar.addWidget(spacer)
 
         btn_import_lanc = toolbar.addAction(icons.excel_imports(), "Importar linhas")
+        assert btn_import_lanc is not None
         btn_import_lanc.triggered.connect(self.on_import_linhas)
 
         return toolbar
@@ -89,7 +113,7 @@ class SecondStepFrame(QWidget):
         self.table = QTableView()
 
         model = QStandardItemModel(0, len(self.COLUMNS))
-        model.setHorizontalHeaderLabels([col["title"] for col in self.COLUMNS.values()])
+        model.setHorizontalHeaderLabels([str(col["title"]) for col in self.COLUMNS.values()])
 
         self.table.setModel(model)
         self.table.setSortingEnabled(True)
@@ -102,25 +126,46 @@ class SecondStepFrame(QWidget):
         self.table.sortByColumn(-1, Qt.AscendingOrder)
 
         self.load_model_only()
+
+        col7_del = ButtonDelegate(self.table, self.get_accept_button(), self.on_aceita_categ_sugg)
+
+        self.table.setItemDelegateForColumn(self.Column.BTN_MOVE_CATEG, col7_del)
+
         self.set_column_default_sizes()
 
+    def on_aceita_categ_sugg(self, index: QModelIndex):
+        val_sugg = index.siblingAtColumn(self.Column.CATEG_SUGERIDA)
+
+        nm_categoria = val_sugg.data(ItemDataRole.DisplayRole)
+        categ_id = next((item.id for item in self.model_categorias.items if item.nm_categoria == nm_categoria), None)
+        if categ_id:
+            self.linhas[index.row()].categoria_id = categ_id
+
+        self.load_model_only()
+
+    def get_accept_button(self) -> QPushButton:
+        del_pbutt = QPushButton()
+        del_pbutt.setToolTip("Aceita categoria")
+        del_pbutt.setIcon(icons.arrow_left())
+        return del_pbutt
+
     def load_model_only(self):
-        model: QStandardItemModel = self.table.model()
+        model = cast(QStandardItemModel, self.table.model())
         model.setRowCount(len(self.linhas))
         vertical_col_indexes = []
         for new_index, row in enumerate(self.linhas):
             vertical_col_indexes.append(str(row.row_index))
             model.setItemData(
                 model.index(new_index, self.Column.NR_REFERENCIA),
-                {Qt.DisplayRole: row.nr_referencia, Qt.UserRole: row.nr_referencia},
+                {ItemDataRole.DisplayRole: row.nr_referencia, ItemDataRole.UserRole: row.nr_referencia},
             )
             model.setItemData(
                 model.index(new_index, self.Column.DESCRICAO),
-                {Qt.DisplayRole: row.descricao, Qt.UserRole: row.descricao},
+                {ItemDataRole.DisplayRole: row.descricao, ItemDataRole.UserRole: row.descricao},
             )
             model.setItemData(
                 model.index(new_index, self.Column.DESCRICAO_USER),
-                {Qt.DisplayRole: row.descricao_user, Qt.UserRole: row.descricao_user},
+                {ItemDataRole.DisplayRole: row.descricao_user, ItemDataRole.UserRole: row.descricao_user},
             )
             try:
                 data = row.data.strftime("%x")
@@ -128,7 +173,7 @@ class SecondStepFrame(QWidget):
                 data = "Inválida"
             model.setItemData(
                 model.index(new_index, self.Column.DATA),
-                {Qt.DisplayRole: data, Qt.UserRole: row.data},
+                {ItemDataRole.DisplayRole: data, ItemDataRole.UserRole: row.data},
             )
             nm_categoria = next(
                 (x.nm_categoria for x in self.model_categorias.items if x.id == row.categoria_id),
@@ -136,23 +181,27 @@ class SecondStepFrame(QWidget):
             )
             model.setItemData(
                 model.index(new_index, self.Column.CATEGORIA_ID),
-                {Qt.DisplayRole: nm_categoria},
+                {ItemDataRole.DisplayRole: nm_categoria},
             )
             model.setItemData(
-                model.index(new_index, self.Column.VALOR),
-                {
-                    Qt.DisplayRole: curr.str_curr_to_locale(row.valor or 0),
-                    Qt.UserRole: row.valor or 0,
-                },
+                model.index(new_index, self.Column.CATEG_SUGERIDA),
+                {ItemDataRole.DisplayRole: row.suggested_categ},
             )
 
             model.setItemData(
+                model.index(new_index, self.Column.VALOR),
+                {
+                    ItemDataRole.DisplayRole: curr.str_curr_to_locale(row.valor or 0),
+                    ItemDataRole.UserRole: row.valor or 0,
+                },
+            )
+            model.setItemData(
                 model.index(new_index, self.Column.NEW_ID),
-                {Qt.DisplayRole: row.id},
+                {ItemDataRole.DisplayRole: row.id},
             )
             model.setItemData(
                 model.index(new_index, self.Column.MESSAGE),
-                {Qt.DisplayRole: row.message, Qt.DecorationRole: row.icon},
+                {ItemDataRole.DisplayRole: row.message, Qt.DecorationRole: row.icon},
             )
 
         model.setVerticalHeaderLabels(vertical_col_indexes)
@@ -164,6 +213,24 @@ class SecondStepFrame(QWidget):
 
     def set_linhas(self, linhas: list[NewLancamento]):
         self.linhas = linhas
+
+        self.model_lancamentos.load(self.parent_view.conta_dc.id)
+        train_data = []
+        for item in self.model_lancamentos.items:
+            if len(item.Categorias) > 0:
+                nm_categoria = item.Categorias[0].nm_categoria
+            else:
+                nm_categoria = ""
+            train_data.append(TrainingData(str(item.descricao), float(item.valor / 100), nm_categoria))
+        self.classificador = LancamentosClassificador()
+        self.classificador.train_model(train_data)
+
+        for index, linha in enumerate(self.linhas):
+            descr, prob = self.classificador.predict_category(linha.descricao, linha.valor)
+            logging.debug(f"Linha {index} Sugestão: {descr} / id:{prob}")
+
+            linha.suggested_categ = descr
+
         self.load_table_data()
 
     def on_import_linhas(self) -> None:

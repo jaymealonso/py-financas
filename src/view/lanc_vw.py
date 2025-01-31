@@ -140,7 +140,7 @@ class LancamentosView(MyDialog):
         self.import_lanc_view: ImportarLancamentosView | None = None
 
         # model
-        self.model_lancamentos = Lancamentos(conta_dc)
+        self.model_lancamentos = Lancamentos()
         self.model_categorias = Categorias()
         self.model_categorias.load()
 
@@ -293,7 +293,8 @@ class LancamentosView(MyDialog):
         logging.debug(f"Modificando lancamento numero:{lancamento_id}")
         logging.debug(f'"{column_data.sql_colname}" >> "{value}"')
 
-        lancamento: ORMLancamentos = self.model_lancamentos.get_lancamento(lancamento_id)
+        lancamento = self.model_lancamentos.get_lancamento(lancamento_id)
+        assert lancamento is not None
 
         # se for modificação de data, move os anexos para o novo diretório, se necessário.
         if column_data.sql_colname == "data":
@@ -358,7 +359,7 @@ class LancamentosView(MyDialog):
         self.anexos_vw.show()
 
     def on_changed_anexos(self, anexo: ORMAnexos, total_anexos: int):
-        self.model_lancamentos.load()
+        self.model_lancamentos.load(self.conta_dc.id)
         self.load_table_data()
 
     def on_import_lancam(self):
@@ -546,7 +547,7 @@ class LancamentosView(MyDialog):
         export_excel.export(TEXTS.EXPORTAR_PREFIXO, currency_cols_indexes=[CIndex.VALOR, CIndex.SALDO])
 
     def recalculate_saldo_total(self):
-        self.model_lancamentos.load()
+        self.model_lancamentos.load(self.conta_dc.id)
         filter_model = cast(LancamentoSortFilterProxyModel, self.table.model())
         model = cast(QStandardItemModel, filter_model.sourceModel())
 
@@ -565,7 +566,7 @@ class LancamentosView(MyDialog):
         self.total_label.set_int_value(self.model_lancamentos.total)
 
     def load_model_only(self) -> None:
-        self.model_lancamentos.load()
+        self.model_lancamentos.load(self.conta_dc.id)
 
         filter_model = cast(LancamentoSortFilterProxyModel, self.table.model())
         model = cast(QStandardItemModel, filter_model.sourceModel())

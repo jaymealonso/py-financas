@@ -127,3 +127,7 @@ def status_ok() -> QIcon:
 
 def status_not_exec() -> QIcon:
     return QIcon(QPixmap(path + r"/ok_gray.png"))
+
+
+def arrow_left() -> QIcon:
+    return QIcon(QPixmap(path + r"/arrow_left.png"))
