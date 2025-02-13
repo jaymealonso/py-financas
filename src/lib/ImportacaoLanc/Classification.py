@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+import sys
+from tabnanny import verbose
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
@@ -21,16 +23,6 @@ class LancamentosClassificador:
         self.model = None
         self.preprocessor = None
         self.label_encoder = None
-
-    # def load_data(self):
-    #     """Carrega dados incluindo valor e descrição"""
-    #     df = pd.read_csv(
-    #         "training.csv",
-    #         sep=";",
-    #         names=["descricao", "categoria", "valor"],
-    #         decimal=",",
-    #     )
-    #     return df
 
     def preprocess_text(self, series):
         """Pré-processamento do texto"""
@@ -97,6 +89,7 @@ class LancamentosClassificador:
 
         # Avaliar
         y_pred = self.model.predict(X_test)
+
         print(
             classification_report(
                 y_test,

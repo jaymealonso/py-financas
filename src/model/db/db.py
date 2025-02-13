@@ -1,20 +1,19 @@
 from lib import logging
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import declarative_base
 from model import DataLoader
 from util import Settings, SingletonMeta
 
-Base = declarative_base()
+from .db_orm import Base
 
 
 class Database(metaclass=SingletonMeta):
     def __init__(self):
         self.settings = Settings()
 
-        database_path: str = self.settings.db_location
+        database_path = self.settings.db_location
         logging.debug(f"Conectando a base de dados: {database_path}")
-        self.engine: Engine = create_engine(f"sqlite:///{database_path}", echo=False)
+        self.engine = create_engine(f"sqlite:///{database_path}", echo=False)
 
     def exists(self) -> bool:
         try:
@@ -23,7 +22,7 @@ class Database(metaclass=SingletonMeta):
                 conn.execute(text("SELECT * FROM sqlite_master"))
             logging.info("Database check exists SUCCESS!")
             return True
-        except:
+        except Exception as _:
             logging.error("Database check exists FAILED!")
             return False
 
@@ -50,6 +49,7 @@ class Database(metaclass=SingletonMeta):
         logging.debug("=====================================")
         with self.engine.connect() as conn:
             Base.metadata.create_all(conn)
+        conn.commit()
 
     def is_initial_load(self) -> bool:
         """
