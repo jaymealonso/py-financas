@@ -1,7 +1,7 @@
 import csv
 from enum import StrEnum
 import io
-from typing import cast
+from typing import List, Tuple, cast
 from PyQt5.QtCore import QAbstractItemModel, QItemSelectionModel, QModelIndex, pyqtSignal, Qt
 from PyQt5.QtGui import QCursor, QKeySequence, QStandardItem, QStandardItemModel, QKeyEvent
 from PyQt5.QtWidgets import (
@@ -284,7 +284,7 @@ class LancamentosView(MyDialog):
         logging.debug(f"Cell changed row/col: {row}/{col}")
 
         model = cast(LancamentoSortFilterProxyModel, self.table.model())
-        col_id_index = index.siblingAtColumn(CIndex.ID)  #  model().index(row, CIndex.ID)
+        col_id_index = index.siblingAtColumn(CIndex.ID)
         lancamento_id = model.data(model.mapFromSource(col_id_index), ItemDataRole.UserRole)
         value = model.data(model.mapFromSource(index), ItemDataRole.UserRole)
 
@@ -707,14 +707,24 @@ class LancamentosView(MyDialog):
         for index, col in self.columns.all():
             self.table.setColumnWidth(index, col.width)
 
-    def set_filter_mes_categ(self, filters: dict[str, str]):
+    def set_filter_mes_categ(self, filters: List[Tuple[str, str]]):
+        """
+        Applies a list of month and category filters to the table model.
+
+        Args:
+            filters: A list of tuples, where each tuple contains
+                    (month_year_string: str, category_string: str).
+                    For example: [("2023-01", "Almoço"), ("2023-02", "Aluguel")]
+        """
         filter_model = cast(LancamentoSortFilterProxyModel, self.table.model())
 
         filter_model.clear_filters()
-        if len(filters) == 0:
+        if not filters:
             self.show_all()
-        for mes_ano, categoria in filters.items():
-            filter_model.add_filter(mes_ano, categoria)
+        else:
+            for mes_ano, categoria in filters:
+                filter_model.add_filter(mes_ano, categoria)
+
         filter_model.invalidateFilter()
         self.load_model_only()
 

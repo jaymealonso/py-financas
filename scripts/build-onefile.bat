@@ -14,11 +14,7 @@ pyinstaller src\main.py ^
 --noconsole ^
 --add-data "src/view/icons/*.png;view/icons/" ^
 --icon="src\view\icons\app-icon.ico"
-
-
-@REM --noconsole ^
-
-@REM --splash "src\imagens\splash.png"
+@REM --splash "src\imagens\splash.png" ^
 
 @REM--hiddenimport=scipy._lib.array_api_compat.numpy.fft ^
 

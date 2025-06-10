@@ -1,25 +1,26 @@
 from enum import StrEnum
-from PyQt5.QtGui import QColor, QKeyEvent
+from typing import cast
+from PyQt5.QtGui import QColor, QKeyEvent, QStandardItemModel
 from PyQt5.QtCore import Qt, QModelIndex, pyqtSignal
 from PyQt5.QtWidgets import QDialog, QLineEdit, QPushButton, QWidget, QHBoxLayout, QTableView, QLabel
 from view.icons import icons
 
 
 class TEXTS(StrEnum):
-    NADA_ENCONTRADO = 'Nada encontrado.'
-    PROCURAR = 'Procurar'
-    SEARCH_BUTTON_TOOLTIP = 'Executa procura'
-    CANCEL_BUTTON_TOOLTIP = 'Ocultar busca'
+    NADA_ENCONTRADO = "Nada encontrado."
+    PROCURAR = "Procurar"
+    SEARCH_BUTTON_TOOLTIP = "Executa procura"
+    CANCEL_BUTTON_TOOLTIP = "Ocultar busca"
     FOUND_MATCHES = "{0} de {1}"
-    SEARCHING_IN_THE_COLUMN = "Procurando na coluna \"{0}\""
-    NEXT_RESULT = 'Próximo resultado.'
-    PREV_RESULT = 'Resultado anterior.'
+    SEARCHING_IN_THE_COLUMN = 'Procurando na coluna "{0}"'
+    NEXT_RESULT = "Próximo resultado."
+    PREV_RESULT = "Resultado anterior."
 
 
 class SearchInputView(QWidget):
     # sender: QDialog
     on_close_signal = pyqtSignal(QDialog)
-    
+
     def __init__(self, parent):
         super(SearchInputView, self).__init__(parent)
 
@@ -28,7 +29,7 @@ class SearchInputView(QWidget):
         self.last_found_string: str = None
         self.found_matches: list[QModelIndex] = []
         self.found_matches_index: int = -1
-        self.table:QTableView = parent.table
+        self.table: QTableView = parent.table
         self.model = self.table.model()
 
         # layout
@@ -54,7 +55,7 @@ class SearchInputView(QWidget):
             self.search_button.click()
         elif event.key() == Qt.Key_Escape:
             self.on_fechar_popup()
-        
+
         return super(SearchInputView, self).keyPressEvent(event)
 
     def show(self, column_name: str, column_index: int) -> None:
@@ -74,7 +75,7 @@ class SearchInputView(QWidget):
         from_line = select_indexes[0].row() if len(select_indexes) > 0 else 1
 
         if self.last_found_string == self.search_field.text() and len(self.found_matches) > 0:
-            self.found_matches_index += (-1 if go_prev else 1)
+            self.found_matches_index += -1 if go_prev else 1
             if self.found_matches_index > len(self.found_matches) - 1:
                 self.found_matches_index = 0
             if self.found_matches_index < 0:
@@ -90,7 +91,7 @@ class SearchInputView(QWidget):
                     Qt.DisplayRole,
                     self.search_field.text(),
                     -1,
-                    Qt.MatchContains | Qt.MatchWrap
+                    Qt.MatchContains | Qt.MatchWrap,
                 )
                 self.modif_backgroud_encontrados()
             if len(self.found_matches) == 0:
@@ -106,15 +107,20 @@ class SearchInputView(QWidget):
         self.last_found_string = self.search_field.text()
 
     def modif_backgroud_encontrados(self, highlight: bool = True):
+        view = self.parent()
+        self.model.sourceModel().itemChanged.disconnect()
+
         if not highlight:
             for match in self.found_matches:
                 match.model().setData(match, None, Qt.BackgroundRole)
         else:
-            match:QModelIndex = None
+            match: QModelIndex = None
             highlight: QColor = QColor()
-            highlight.setRgb(255,102,102,50)
+            highlight.setRgb(255, 102, 102, 50)
             for match in self.found_matches:
                 match.model().setData(match, highlight, Qt.BackgroundRole)
+
+        self.model.sourceModel().itemChanged.connect(view.model_item_changed)
 
     def on_fechar_popup(self):
         """Fecha o bloco de procura de valores"""

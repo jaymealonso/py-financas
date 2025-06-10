@@ -65,8 +65,8 @@ class Database(metaclass=SingletonMeta):
             self.create_structure()
             startup.insert_all()
         else:
-            logging.debug("Dados já carregados, pulando Initial load")
-            logging.debug("-----------------------------------------")
+            logging.debug(" Dados já carregados, pulando Initial load")
+            logging.debug("-------------------------------------------")
 
         if populate_sample:
             logging.debug("Populando dados de exemplo")

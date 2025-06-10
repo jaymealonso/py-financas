@@ -17,18 +17,18 @@ class FilterAllTable:
         self.text = text
 
     def validate(self, text: str) -> bool:
-        regex = QRegExp(self.text, Qt.CaseInsensitive, QRegExp.RegExp)
+        regex = QRegExp(self.text, Qt.CaseSensitivity.CaseInsensitive, QRegExp.FixedString)
         return regex.indexIn(text) > -1
 
 
 class FilterCategoria:
     def __init__(self, categoria: str) -> None:
-        self.categoria = categoria or "(vazio)"
+        self.filtered_categoria = categoria or "(vazio)"
         self.filter_categoria = None
 
-    def validate(self, categoria: str) -> bool:
-        regex = QRegExp(self.categoria, Qt.CaseInsensitive, QRegExp.RegExp)
-        return regex.indexIn(categoria) > -1
+    def validate(self, validating_categoria: str) -> bool:
+        regex = QRegExp(self.filtered_categoria, Qt.CaseSensitivity.CaseInsensitive, QRegExp.FixedString)
+        return regex.indexIn(validating_categoria) > -1
 
 
 class FilterAnoMes:
@@ -62,7 +62,7 @@ class LancamentoSortFilterProxyModel(MySortFilterProxyModel):
     dropped_lancamento = pyqtSignal(int, int)
     """Signal emitted when a lancamento is dropped here from drag and drop"""
 
-    def __init__(self, parent: QObject | None = ...) -> None:
+    def __init__(self, parent: QObject | None = None) -> None:
         super(LancamentoSortFilterProxyModel, self).__init__(parent)
 
         self.filters: List[dict[int, FilterAnoMes | FilterCategoria]] = []
@@ -98,13 +98,15 @@ class LancamentoSortFilterProxyModel(MySortFilterProxyModel):
 
         if len(self.filters) > 0:
             categoria = src_model.index(source_row, COLUNA_CATEGORIA_INDEX, source_parent).data()
-            date_date: datetime = src_model.index(source_row, COLUNA_DATA_INDEX, source_parent).data(Qt.UserRole)
+            date_date: datetime = src_model.index(source_row, COLUNA_DATA_INDEX, source_parent).data(
+                Qt.ItemDataRole.UserRole
+            )
             if not date_date:
                 return True
             date_moment: moment.Moment = moment.date(date_date)
 
             for single_filter in [x for x in self.filters]:
-                single_filter_aux = list(dict.values(single_filter))
+                single_filter_aux = list(single_filter.values())
                 filter_ano_mes = single_filter_aux[0]
                 filter_categoria = single_filter_aux[1]
 
@@ -129,9 +131,9 @@ class LancamentoSortFilterProxyModel(MySortFilterProxyModel):
             if row == 0:
                 row = 1
             lancamento_id_index = model.index(row - 1, 0)
-            lancamento_id = lancamento_id_index.data(Qt.UserRole)
-            seq_linha = model.index(row, 1).data(Qt.UserRole)
-            next_lancamento_id = lancamento_id_index.sibling(row, 0).data(Qt.UserRole)
+            lancamento_id = lancamento_id_index.data(Qt.ItemDataRole.UserRole)
+            seq_linha = model.index(row, 1).data(Qt.ItemDataRole.UserRole)
+            next_lancamento_id = lancamento_id_index.sibling(row, 0).data(Qt.ItemDataRole.UserRole)
             logging.debug(f"lancamento_id: {lancamento_id}, next:{next_lancamento_id}, seq: {seq_linha}")
 
             if lanc_view.table.dropIndicatorPosition() in [
