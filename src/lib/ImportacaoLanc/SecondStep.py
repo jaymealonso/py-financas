@@ -41,6 +41,7 @@ class SecondStepFrame(QWidget):
         DESCRICAO_USER = auto()
         DATA = auto()
         CATEGORIA_ID = auto()
+        BTN_LIMPA_CATEG = auto()
         BTN_MOVE_CATEG = auto()
         CATEG_SUGERIDA = auto()
         VALOR = auto()
@@ -53,7 +54,8 @@ class SecondStepFrame(QWidget):
         Column.DESCRICAO_USER: {"title": "Descrição Usuário", "sql_colname": "descricao_user", "col_width": 100},
         Column.DATA: {"title": "Data", "sql_colname": "data", "col_width": 160},
         Column.CATEGORIA_ID: {"title": "Categorias", "sql_colname": "categoria_id", "col_width": 260},
-        Column.BTN_MOVE_CATEG: {"title": "Aceitar", "sql_colname": "", "col_width": 100},
+        Column.BTN_LIMPA_CATEG: {"title": "Aceitar", "sql_colname": "", "col_width": 100},
+        Column.BTN_MOVE_CATEG: {"title": "Limpar", "sql_colname": "", "col_width": 100},
         Column.CATEG_SUGERIDA: {"title": "Categoria Sugerida", "sql_colname": "", "col_width": 100},
         Column.VALOR: {"title": "Valor", "sql_colname": "valor", "col_width": 160},
         Column.NEW_ID: {"title": "Novo ID", "sql_colname": "id", "col_width": 90},
@@ -127,11 +129,29 @@ class SecondStepFrame(QWidget):
 
         self.load_model_only()
 
-        col7_del = ButtonDelegate(self.table, self.get_accept_button(), self.on_aceita_categ_sugg)
+        col6_del = ButtonDelegate(self.table, self.get_clear_button(), self.on_limpa_categ_sugg)
+        self.table.setItemDelegateForColumn(self.Column.BTN_LIMPA_CATEG, col6_del)
 
+
+        col7_del = ButtonDelegate(self.table, self.get_accept_button(), self.on_aceita_categ_sugg)
         self.table.setItemDelegateForColumn(self.Column.BTN_MOVE_CATEG, col7_del)
 
         self.set_column_default_sizes()
+
+    def on_limpa_categ_sugg(self, index: QModelIndex):
+        """
+        Limpa a categoria sugerida e a categoria do lançamento
+        """
+        val_sugg = index.siblingAtColumn(self.Column.CATEG_SUGERIDA)
+
+        # limpa categoria sugerida
+        val_sugg.model().setData(val_sugg, "", ItemDataRole.DisplayRole)
+        val_sugg.model().setData(val_sugg, "", ItemDataRole.UserRole)
+
+        # limpa categoria do lançamento
+        self.linhas[index.row()].categoria_id = None
+
+        self.load_model_only()
 
     def on_aceita_categ_sugg(self, index: QModelIndex):
         val_sugg = index.siblingAtColumn(self.Column.CATEG_SUGERIDA)
@@ -148,6 +168,13 @@ class SecondStepFrame(QWidget):
         del_pbutt.setToolTip("Aceita categoria")
         del_pbutt.setIcon(icons.arrow_left())
         return del_pbutt
+
+    def get_clear_button(self) -> QPushButton:
+        del_pbutt = QPushButton()
+        del_pbutt.setToolTip("Limpa categoria")
+        del_pbutt.setIcon(icons.delete())
+        return del_pbutt
+
 
     def load_model_only(self):
         model = cast(QStandardItemModel, self.table.model())
@@ -222,8 +249,13 @@ class SecondStepFrame(QWidget):
             else:
                 nm_categoria = ""
             train_data.append(TrainingData(str(item.descricao), float(item.valor / 100), nm_categoria))
-        self.classificador = LancamentosClassificador()
-        self.classificador.train_model(train_data)
+        try:
+            self.classificador = LancamentosClassificador()
+            self.classificador.train_model(train_data)
+        except Exception as e:
+            logging.error(f"Erro ao treinar classificador: {str(e)}")
+            MyMessagePopup(self).error("Erro ao treinar classificador. Verifique os dados de treinamento.")
+            return
 
         for index, linha in enumerate(self.linhas):
             descr, prob = self.classificador.predict_category(linha.descricao, linha.valor)
