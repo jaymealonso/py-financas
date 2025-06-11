@@ -19,7 +19,7 @@ uv venv .venv
 
 ## Instalar Libs
 ```terminal
-uv pip install -r requirements.txt
+uv pip install -r .\pyproject.toml
 ```
 
 ## Executar

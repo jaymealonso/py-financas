@@ -9,16 +9,13 @@ dependencies = [
     "pyqt5==5.15.10",
     "pyqt5-sip==12.13.0",
     "sqlalchemy==2.0.28",
-    "pyinstaller==6.5.0",
-    "pyinstaller-hooks-contrib==2024.3",
     "moment==0.12.1",
     "openpyxl==3.1.2",
     "darkdetect==0.8.0",
     "black==24.4.2",
     "unidecode==1.3.8",
-    "pytest==8.3.4",
-    "scikit-learn>=1.6.1",
-    "pandas>=2.2.3",
+    "scikit-learn==1.6.1",
+    "pandas==2.2.3",
 ]
 [tool.pytest.ini_options]
 pythonpath = [".", "src"]
@@ -29,3 +26,10 @@ mypy_path = "src"
 [[tool.mypy.overrides]]
 module = ["moment.*", "openpyxl.*"]
 follow_untyped_imports = true
+
+[dependency-groups]
+dev = [
+    "pyinstaller==6.5.0",
+    "pyinstaller-hooks-contrib==2024.3",
+    "pytest>=8.3.4",
+]
