@@ -9,12 +9,18 @@ from lib.Genericos.log import logging
 from util import IDLabelDelegate
 
 
+class FrozenColTableView(QTableView):
+    def mouseReleaseEvent(self, e):
+        print("aaaaa")
+        return super().mouseReleaseEvent(e)
+
+
 class FreezeTableWidget(QTableView):
     """Classe para congelar colunas de uma tabela. Peguei da internet não sei como funciona."""
 
     def __init__(self, model):
         super(FreezeTableWidget, self).__init__()
-        self.frozenTableView = QTableView(self)
+        self.frozenTableView = FrozenColTableView(self)
 
         # Events
         self.horizontalHeader().sectionResized.connect(self.updateSectionWidth)

@@ -5,10 +5,23 @@ Em 25.11.2024 adicionei utilização de [RUFF](https://docs.astral.sh/ruff/) e [
 
 ## Instalar UV
 Para instalar uv usando pip execute o seguinte comando ou siga o [link](https://github.com/astral-sh/uv?tab=readme-ov-file#installation) para outros metodos.
+
+With pip.
 ```
-# With pip.
 pip install uv
 ```
+
+## Criar venv
+```terminal
+uv venv .venv
+```
+
+
+## Instalar Libs
+```terminal
+uv pip install -r requirements.txt
+```
+
 ## Executar
 
 ```terminal
