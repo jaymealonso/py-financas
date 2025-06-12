@@ -87,20 +87,22 @@ class Contas:
                 )
                 self.__items.append(conta)
 
-    def add_new(self, conta: Conta):
-        session = Session(self.__db.engine)
-        session.execute(
-            insert(ORMContas),
-            [
-                {
-                    "descricao": conta.descricao,
-                    "numero": conta.numero,
-                    "moeda": conta.moeda,
-                    "tipo_id": conta.tipo_id,
-                },
-            ],
-        )
-        session.commit()
+    def add_new(self, conta: Conta) -> int:
+        with Session(self.__db.engine) as session:
+            new_conta = session.scalar(
+                insert(ORMContas).returning(ORMContas),
+                [
+                    {
+                        "descricao": conta.descricao,
+                        "numero": conta.numero,
+                        "moeda": conta.moeda,
+                        "tipo_id": conta.tipo_id,
+                    },
+                ],
+            )
+            session.commit()
+
+            return new_conta.id
 
     def delete(self, conta_id: str):
         sql = text("SELECT id FROM lancamentos WHERE conta_id = :conta_id")

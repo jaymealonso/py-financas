@@ -15,7 +15,7 @@ from view.contas_vw import ContasView
 from view.agenda_vw import AgendaView
 from view.categorias_vw import CategoriasView
 import view.icons.icons as icons
-from util import Settings
+from util import Settings, undo_manager
 
 
 class MainWindow(QMainWindow):
@@ -59,9 +59,12 @@ class MainWindow(QMainWindow):
 
     def get_tabbar(self):
         self.tabbar = QTabWidget(self.window())
+        
+        self.contas_vw = ContasView(self)
+        self.categorias_vw = CategoriasView()
 
-        self.tabbar.addTab(ContasView(self), "Contas")
-        self.tabbar.addTab(CategoriasView(), "Categorias")
+        self.tabbar.addTab(self.contas_vw, "Contas")
+        self.tabbar.addTab(self.categorias_vw, "Categorias")
         # self.tabbar.addTab(AgendaView(), "Agenda")
 
         return self.tabbar
@@ -73,6 +76,9 @@ class MainWindow(QMainWindow):
         toolbar.setIconSize(QSize(64, 64))
         toolbar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
 
+        undo_button = toolbar.addAction(icons.undo(), "Desfazer")
+        undo_button.triggered.connect(self.on_undo)
+
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         toolbar.addWidget(spacer)
@@ -80,20 +86,11 @@ class MainWindow(QMainWindow):
         config_act = toolbar.addAction(icons.configurar(), "Configurar")
         config_act.triggered.connect(self.on_configure)
 
-    def on_undo(self):
-        QToaster.showMessage(self, "On UNDO clicked")
-        pass
-
-    def on_redo(self):
-        QToaster.showMessage(self, "On REDO clicked")
-        pass
-
     def on_configure(self):
         config_vw = ConfiguracaoView(self)
         config_vw.show()
 
-    def on_load(self, s):
-        QToaster.showMessage(self, "On LOAD clicked")
 
-    def on_save(self):
-        QToaster.showMessage(self, "On SAVE clicked")
+    def on_undo(self):
+        if undo_manager.undo():
+            self.contas_vw.load_table_data()
