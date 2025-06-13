@@ -1,3 +1,4 @@
+from enum import StrEnum
 import sys
 from contextlib import suppress
 
@@ -11,6 +12,10 @@ from PyQt5.QtWidgets import QApplication, QSplashScreen
 from PyQt5.QtCore import QFile, QTextStream, QDir, Qt
 from view.main_window import MainWindow
 from model import Database
+
+
+class TEXTS(StrEnum):
+    ERROR_OPENING_WINDOW = "Abertura automática de janela de lançamentos da conta: {0} não foi possível.\nConta não encontrada!"
 
 
 class MainApp:
@@ -80,7 +85,10 @@ class MainApp:
             conta_indexes = contas_vw.table.model().findItems(
                 str(self.args.conta_id), Qt.MatchExactly, contas_vw.Column.ID
             )
-            if conta_indexes:
+            if not conta_indexes:
+                MyMessagePopup(self.window).error(TEXTS.ERROR_OPENING_WINDOW.format(self.args.conta_id))
+                return
+            else:
                 conta_index = conta_indexes[0]
                 contas_vw.on_open_lancamentos(conta_index)
 

@@ -34,7 +34,7 @@ class MainWindow(QMainWindow):
         try:
             self.restoreGeometry(self.settings.dimensoes)
         except Exception as e:
-            logging.info(f"Sem tamanho padrão da janela.{e}")
+            logging.info(f"Sem tamanho padrão da janela.{e}. Usando padrão 1600x900.")
             self.resize(1600, 900)
 
         layout = QVBoxLayout(self.window())

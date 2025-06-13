@@ -1,6 +1,5 @@
 from enum import StrEnum, IntEnum, auto
 
-from lib.Genericos.QMessageHelper import MyMessagePopup
 import view.icons.icons as icons
 import view.lanc_vw
 from lib.Genericos.log import logging
@@ -46,6 +45,7 @@ class TEXTS(StrEnum):
     REMOVE_ACCOUNT_TOOLTIP = "Eliminar Conta"
     OPEN_POSTINGS = "Abrir Lançamentos"
     OPEN_MONTHLY_VIEW = "Abrir Visão Mensal"
+    ERROR_OPENING_WINDOW = "Abertura automática de janela de lançamentos da conta: {0} não foi possível.\nConta não encontrada!"
 
 
 class ContasView(QWidget):
@@ -126,13 +126,6 @@ class ContasView(QWidget):
         model: QStandardItemModel = index.model()
         conta_id = model.index(index.row(), self.Column.ID).data(Qt.UserRole)
         conta_dc = self.model_contas.find_by_id(conta_id)
-
-        if not conta_dc:
-            msg = f"Abertura automática de janela de lançamentos da conta: {conta_id}".join(
-                " não foi possível.\nConta não encontrada!"
-            )
-            MyMessagePopup(self).error(msg)
-            return
 
         if conta_id not in self.lanc_windows_open:
             lancamentos_window = view.lanc_vw.LancamentosView(self, conta_dc)
@@ -353,22 +346,6 @@ class ContaTableLine(TableLine):
 
         return cmb_delegate
 
-    # def get_tipo_conta_dropdown(self, conta: Conta):
-    #     combobox = QComboBox()
-    #     index: int = 0
-    #     items = self.parentOne.model_tps_conta.items
-    #     for key, item_index in enumerate(items):
-    #         item = items.get(item_index)
-    #         if item.id == conta.tipo_id:
-    #             index = key
-    #         combobox.addItem(item.descricao, item.id)
-
-    #     combobox.setCurrentIndex(index)
-    #     combobox.currentIndexChanged.connect(
-    #         lambda: self.tipo_conta_dropdown_change(combobox, conta)
-    #     )
-    #     return combobox
-
     def tipo_conta_dropdown_change(self, combobox: QComboBox, conta: Conta):
         data = combobox.currentData()
         conta.tipo_id = data
@@ -394,31 +371,6 @@ class ContaTableLine(TableLine):
         op_lanc_pbutt.setToolTip(TEXTS.OPEN_MONTHLY_VIEW)
         op_lanc_pbutt.setIcon(icons.visao_mensal())
         return op_lanc_pbutt
-
-    # def get_del_button(self, conta_id: int) -> QPushButton:
-    #     del_pbutt = QPushButton()
-    #     del_pbutt.setToolTip(TEXTS.REMOVE_ACCOUNT_TOOLTIP)
-    #     del_pbutt.setIcon(icons.delete())
-    #     del_pbutt.clicked.connect(lambda: self.parentOne.on_del_conta(conta_id))
-    #     return del_pbutt
-
-    # def get_open_lanc_button(self, conta_id: int) -> QPushButton:
-    #     op_lanc_pbutt = QPushButton()
-    #     op_lanc_pbutt.setToolTip(TEXTS.OPEN_POSTINGS)
-    #     op_lanc_pbutt.setIcon(icons.open_lancamentos())
-    #     op_lanc_pbutt.clicked.connect(
-    #         lambda: self.parentOne.on_open_lancamentos(conta_id)
-    #     )
-    #     return op_lanc_pbutt
-
-    # def get_visao_mensal(self, conta_id: int) -> QPushButton:
-    #     op_lanc_pbutt = QPushButton()
-    #     op_lanc_pbutt.setToolTip(TEXTS.OPEN_MONTHLY_VIEW)
-    #     op_lanc_pbutt.setIcon(icons.visao_mensal())
-    #     op_lanc_pbutt.clicked.connect(
-    #         lambda: self.parentOne.on_open_visao_mensal(conta_id)
-    #     )
-    #     return op_lanc_pbutt
 
 
 class ContasViewComponents:
