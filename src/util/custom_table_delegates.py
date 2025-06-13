@@ -237,6 +237,9 @@ class CurrencyLabelDelegate(QStyledItemDelegate):
         self.center = center
         self.bold = bold
 
+        self.background_radius = 6  # Adjust for more/less rounding
+        self.background_margin = 3  # Space between text and background
+
     def createEditor(self, parent, option, index):
         pass
 
@@ -259,19 +262,37 @@ class CurrencyLabelDelegate(QStyledItemDelegate):
             logging.error(f"CurrencyLabelDelegate Exception {e}")
 
         painter.save()
+
         if value < 0:
-            painter.setPen(QColor(Qt.red))
+            text_color = QColor(Qt.red)
+            bg_color = QColor(255, 200, 200)  # Light red
         else:
-            painter.setPen(QColor(Qt.darkGreen))
-        option.rect.setWidth(option.rect.width() - 3)
-        option.rect.center()
+            text_color = QColor(Qt.darkGreen)
+            bg_color = QColor(200, 255, 200)  # Light green
+
+        # Draw rounded rectangle background
+        bg_rect = option.rect.adjusted(
+            self.background_margin, 
+            self.background_margin, 
+            -self.background_margin, 
+            -self.background_margin
+        )
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(bg_color)
+        painter.drawRoundedRect(bg_rect, self.background_radius, self.background_radius)
+
+        # Draw text
+        painter.setPen(text_color)
         if self.bold:
             font.setBold(True)
-
+        
         flags = Qt.AlignVCenter + (Qt.AlignHCenter if self.center else Qt.AlignRight)
         painter.setFont(font)
-
-        painter.drawText(option.rect, flags, str(text))
+        
+        # Adjust text rectangle to account for background
+        text_rect = option.rect.adjusted(0, 0, -5, 0)
+        painter.drawText(text_rect, flags, str(text))
+        
         painter.restore()
 
 
@@ -291,6 +312,10 @@ class CurrencyEditDelegate(EmitterItemDelegade):
     def __init__(self, parent_table: QTableView):
         super(CurrencyEditDelegate, self).__init__(parent_table)
         self.parent_table = parent_table
+
+        self.background_radius = 6  # Adjust for more/less rounding
+        self.background_margin = 3  # Space between text and background
+
 
     def createEditor(self, widget, option, index: QModelIndex):
         logging.debug(f"Create Currency Editor, row: {index.row()}, col: {index.column()}")
@@ -324,17 +349,37 @@ class CurrencyEditDelegate(EmitterItemDelegade):
             logging.error(f"CurrencyEditDelegate Exception {e}")
 
         painter.save()
-        try:
-            painter.setPen(QColor(Qt.darkGreen))
-            if value < 0:
-                painter.setPen(QColor(Qt.red))
-        except Exception as e1:
-            pass
 
-        option.rect.setWidth(option.rect.width() - 3)
-        option.rect.center()
+        if value < 0:
+            text_color = QColor(Qt.red)
+            bg_color = QColor(255, 200, 200)  # Light red
+        else:
+            text_color = QColor(Qt.darkGreen)
+            bg_color = QColor(200, 255, 200)  # Light green
 
-        painter.drawText(option.rect, Qt.AlignRight + Qt.AlignVCenter, str(text))
+        # Draw rounded rectangle background
+        bg_rect = option.rect.adjusted(
+            self.background_margin, 
+            self.background_margin, 
+            -self.background_margin, 
+            -self.background_margin
+        )
+        painter.setPen(Qt.NoPen)
+        painter.setBrush(bg_color)
+        painter.drawRoundedRect(bg_rect, self.background_radius, self.background_radius)
+
+        # Draw text
+        painter.setPen(text_color)
+        # if self.bold:
+        #     font.setBold(True)
+        
+        flags = Qt.AlignVCenter + Qt.AlignRight
+        # painter.setFont(font)
+        
+        # Adjust text rectangle to account for background
+        text_rect = option.rect.adjusted(0, 0, -5, 0)
+        painter.drawText(text_rect, flags, str(text))
+        
         painter.restore()
 
 

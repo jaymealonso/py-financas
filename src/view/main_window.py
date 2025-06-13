@@ -15,7 +15,7 @@ from view.contas_vw import ContasView
 from view.agenda_vw import AgendaView
 from view.categorias_vw import CategoriasView
 import view.icons.icons as icons
-from util import Settings, undo_manager
+from util import Settings
 
 
 class MainWindow(QMainWindow):
@@ -79,6 +79,9 @@ class MainWindow(QMainWindow):
         undo_button = toolbar.addAction(icons.undo(), "Desfazer")
         undo_button.triggered.connect(self.on_undo)
 
+        redo_button = toolbar.addAction(icons.redo(), "Refazer")
+        redo_button.triggered.connect(self.on_redo)
+
         spacer = QWidget()
         spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         toolbar.addWidget(spacer)
@@ -90,7 +93,8 @@ class MainWindow(QMainWindow):
         config_vw = ConfiguracaoView(self)
         config_vw.show()
 
-
     def on_undo(self):
-        if undo_manager.undo():
-            self.contas_vw.load_table_data()
+        pass 
+
+    def on_redo(self):
+        pass     

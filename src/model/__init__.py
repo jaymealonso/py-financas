@@ -14,7 +14,7 @@ from .Categoria import Categorias
 from .Conta import Conta, Contas, ContaTipo, ContasTipo
 from .Lancamento import Lancamentos
 from .VisaoMensal import VisaoMensal
-
+from .UndoRedoOperation import manager as undo_manager
 
 __all__ = [
     "Database",
@@ -33,4 +33,5 @@ __all__ = [
     "ORMContas",
     "ORMContasTipo",
     "ORMLancCateg",
+    "undo_manager",
 ]

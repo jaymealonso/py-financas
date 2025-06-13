@@ -12,7 +12,6 @@ from .custom_table_delegates import (
 from .singleton_meta import SingletonMeta
 from .settings import Settings, JanelaImportLancamentosSettings, JanelaLancamentosSettings, JanelaVisaoMensalSettings
 from .curr_formatter import str_curr_to_locale, str_curr_to_int, int_to_locale, str_to_date
-from .undo_manager import manager as undo_manager
 
 __all__ = [
     "MyDialog",
@@ -33,5 +32,4 @@ __all__ = [
     "str_curr_to_int",
     "int_to_locale",
     "str_to_date",
-    "undo_manager",
 ]

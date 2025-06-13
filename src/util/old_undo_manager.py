@@ -1,5 +1,5 @@
 
-from lib.Genericos.log import logging
+from lib import logging
 
 class class_undo_manager:
     def __init__(self):

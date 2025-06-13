@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Numeric
+from datetime import datetime, timezone
+from sqlalchemy import JSON, Column, Numeric
 from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
 from sqlalchemy import String
@@ -75,3 +76,16 @@ class Anexos(Base):
 
     lancamento_id = Column(Integer, ForeignKey("lancamentos.id"), nullable=False)
     Lancamento = relationship("Lancamentos")
+
+
+class UndoRedoOperation(Base):
+    """Database table to store undo/redo operations"""
+    __tablename__ = 'undo_redo_stack'
+    
+    id = Column(Integer, primary_key=True)
+    operation_type = Column(String(10))  # 'undo' or 'redo'
+    sql_command = Column(String(1000))
+    params = Column(JSON)  # Stores parameters as JSON
+    description = Column(String(255))
+    timestamp = Column(DateTime, default=datetime.now(timezone.utc))
+    sequence = Column(Integer)  # For maintaining order

@@ -32,8 +32,7 @@ from util import (
     GenericInputDelegate,
     ComboBoxDelegate,
     IDLabelDelegate,
-    CurrencyLabelDelegate,
-    undo_manager,
+    CurrencyLabelDelegate,    
 )
 
 
@@ -97,8 +96,7 @@ class ContasView(QWidget):
     def on_add_conta(self, show_message=True):
         logging.debug("Adding new conta in the database...")
         conta_id = self.model_contas.add_new(Conta(None, "nova conta", "", "BRL", "1", 0, 0, 0))
-        undo_manager.register(self.model_contas.delete, conta_id)
-        logging.debug("Done !!!")
+        logging.debug(f"Feito !!! Conta criada com id: {conta_id}")
         logging.debug("Reloading data...")
         self.load_table_data()
 
