@@ -5,6 +5,7 @@ from typing import List
 from sqlalchemy import insert, update, delete, func, select
 from sqlalchemy.orm import Session, joinedload
 from model import Database, ORMLancamentos, ORMLancCateg, ORMAnexos
+from .UndoRedoOperation import undo_manager, UndoRedoOperation 
 
 from sqlalchemy.sql import text
 
@@ -83,10 +84,9 @@ class Lancamentos:
         seq_ordem_linha = self._get_next_seq(data, conta_id)
 
         with Session(self.__db.engine) as session:
-            new_lancamento = session.scalar(
-                insert(ORMLancamentos).returning(ORMLancamentos),
-                [
-                    {
+
+            statement = insert(ORMLancamentos).returning(ORMLancamentos)
+            params = {
                         "conta_id": conta_id,
                         "seq_ordem_linha": seq_ordem_linha,
                         "nr_referencia": nr_referencia,
@@ -95,9 +95,18 @@ class Lancamentos:
                         "data": data,
                         "valor": valor,
                     }
-                ],
+            new_lancamento = session.scalar(
+                statement, [params]
             )
+
             session.commit()
+
+            undo_statement = delete(ORMLancamentos).filter(ORMLancamentos.id == new_lancamento.id)
+            undo_manager.register(
+                UndoRedoOperation(True, str(statement), params, f"Insert novo Lançamento id: {new_lancamento.id}"),
+                UndoRedoOperation(False, str(undo_statement),
+                                  {'id_1': new_lancamento.id}, f"Delete Lançamento id: {new_lancamento.id}")
+            )
 
             return new_lancamento.id
 

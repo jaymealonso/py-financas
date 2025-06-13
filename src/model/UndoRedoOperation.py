@@ -1,5 +1,15 @@
+from dataclasses import dataclass
+from typing import Dict
 from lib import logging
 from model import Database
+
+
+@dataclass
+class UndoRedoOperation:
+    undo: bool # if not undo then redo
+    sql: str
+    params: Dict[any, any]
+    description: str
 
 
 class UndoRedoManager:
@@ -9,7 +19,7 @@ class UndoRedoManager:
         """
         self._db = Database()
 
-    def register(self, undo_sql: str, redo_sql: str, params: dict = None, description: str = None):
+    def register(self, undo: UndoRedoOperation, redo: UndoRedoOperation):
         """
         Register an operation with explicit undo/redo SQL commands
         
@@ -36,9 +46,9 @@ class UndoRedoManager:
                 # Store undo operation
                 op = UndoRedoManager(
                     operation_type='undo',
-                    sql_command=undo_sql,
+                    sql_command=undo.sql,
                     params=params,
-                    description=description or f"Undo operation {next_seq}",
+                    description=undo.description or f"Undo operation {next_seq}",
                     sequence=next_seq
                 )
                 session.add(op)
@@ -46,15 +56,15 @@ class UndoRedoManager:
                 # Store redo operation
                 op = UndoRedoManager(
                     operation_type='redo',
-                    sql_command=redo_sql,
+                    sql_command=redo.sql,
                     params=params,
-                    description=description or f"Redo operation {next_seq}",
+                    description=redo.description or f"Redo operation {next_seq}",
                     sequence=next_seq
                 )
                 session.add(op)
                 
                 session.commit()
-                logging.info(f"Registered operation: {description or f'Operation {next_seq}'}")
+                logging.info(f"Registered operation: {undo.description or f'Operation {next_seq}'}")
                 
         except Exception as e:
             logging.error(f"Failed to register operation: {e}")
@@ -146,4 +156,4 @@ class UndoRedoManager:
             return []
 
 # Create a single instance for the application
-manager = UndoRedoManager()
+undo_manager = UndoRedoManager()
