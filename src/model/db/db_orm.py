@@ -80,12 +80,13 @@ class Anexos(Base):
 
 class UndoRedoOperation(Base):
     """Database table to store undo/redo operations"""
-    __tablename__ = 'undo_redo_stack'
-    
+
+    __tablename__ = "undo_redo_stack"
+
     id = Column(Integer, primary_key=True)
     operation_type = Column(String(10))  # 'undo' or 'redo'
     sql_command = Column(String(1000))
     params = Column(JSON)  # Stores parameters as JSON
     description = Column(String(255))
-    timestamp = Column(DateTime, default=datetime.now(timezone.utc))
+    timestamp = Column(DateTime)
     sequence = Column(Integer)  # For maintaining order

@@ -7,6 +7,7 @@ from .db.db_orm import (
     Contas as ORMContas,
     ContasTipo as ORMContasTipo,
     association_lanc_categ as ORMLancCateg,
+    UndoRedoOperation as ORMUndoRedoOperation,
 )
 
 from .Anexos import Anexos
@@ -33,6 +34,7 @@ __all__ = [
     "ORMContas",
     "ORMContasTipo",
     "ORMLancCateg",
+    "ORMUndoRedoOperation",
     "UndoRedoOperation",
     "undo_manager",
 ]
