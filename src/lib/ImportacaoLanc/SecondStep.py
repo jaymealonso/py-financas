@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import QAbstractItemView, QPushButton, QSizePolicy, QTableV
 from lib.Genericos.QMessageHelper import MyMessagePopup
 from lib.ImportacaoLanc.AddCategoriaPopup import AddCategoriasPopup
 from lib import CustomToolbar, logging
-from lib.ImportacaoLanc.Classification import LancamentosClassificador, TrainingData
+# from lib.ImportacaoLanc.Classification import LancamentosClassificador, TrainingData
 import util.curr_formatter as curr
 from util import ButtonDelegate
 from lib.ImportacaoLanc.FirstStep import NewLancamento
@@ -70,7 +70,7 @@ class SecondStepFrame(QWidget):
         self.table = self.get_table()
         self.toolbar = self.get_toolbar()
         self.linhas: list[NewLancamento] = []
-        self.classificador: LancamentosClassificador
+        # self.classificador: LancamentosClassificador
 
         # layout
         layout = QVBoxLayout()
@@ -242,26 +242,27 @@ class SecondStepFrame(QWidget):
         self.linhas = linhas
 
         self.model_lancamentos.load(self.parent_view.conta_dc.id)
-        train_data = []
-        for item in self.model_lancamentos.items:
-            if len(item.Categorias) > 0:
-                nm_categoria = item.Categorias[0].nm_categoria
-            else:
-                nm_categoria = ""
-            train_data.append(TrainingData(str(item.descricao), float(item.valor / 100), nm_categoria))
-        try:
-            self.classificador = LancamentosClassificador()
-            self.classificador.train_model(train_data)
-        except Exception as e:
-            logging.error(f"Erro ao treinar classificador: {str(e)}")
-            MyMessagePopup(self).error("Erro ao treinar classificador. Verifique os dados de treinamento.")
-            return
 
-        for index, linha in enumerate(self.linhas):
-            descr, prob = self.classificador.predict_category(linha.descricao, linha.valor)
-            logging.debug(f"Linha {index} Sugestão: {descr} / id:{prob}")
+        # train_data = []
+        # for item in self.model_lancamentos.items:
+        #     if len(item.Categorias) > 0:
+        #         nm_categoria = item.Categorias[0].nm_categoria
+        #     else:
+        #         nm_categoria = ""
+        #     train_data.append(TrainingData(str(item.descricao), float(item.valor / 100), nm_categoria))
+        # try:
+        #     self.classificador = LancamentosClassificador()
+        #     self.classificador.train_model(train_data)
+        # except Exception as e:
+        #     logging.error(f"Erro ao treinar classificador: {str(e)}")
+        #     MyMessagePopup(self).error("Erro ao treinar classificador. Verifique os dados de treinamento.")
+        #     return
 
-            linha.suggested_categ = descr
+        # for index, linha in enumerate(self.linhas):
+        #     descr, prob = self.classificador.predict_category(linha.descricao, linha.valor)
+        #     logging.debug(f"Linha {index} Sugestão: {descr} / id:{prob}")
+
+        #     linha.suggested_categ = descr
 
         self.load_table_data()
 

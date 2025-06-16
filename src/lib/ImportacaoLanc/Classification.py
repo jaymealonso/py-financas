@@ -1,6 +1,4 @@
 from dataclasses import dataclass
-import sys
-from tabnanny import verbose
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
